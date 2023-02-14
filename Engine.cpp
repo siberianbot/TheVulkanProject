@@ -63,13 +63,13 @@ void Engine::init() {
     Mesh vikingRoomMesh = readMesh("models/viking_room.obj");
     Texture vikingRoomTexture = {"textures/viking_room.png"};
 
-    this->firstBoundMesh = this->renderer.uploadMesh(vikingRoomMesh, vikingRoomTexture);
+    this->firstBoundMesh = this->renderer.uploadMesh(0, vikingRoomMesh, vikingRoomTexture);
     this->firstBoundMesh->model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -0.5f, 0.0f));
 
-    this->secondBoundMesh = this->renderer.uploadMesh(vikingRoomMesh, vikingRoomTexture);
+    this->secondBoundMesh = this->renderer.uploadMesh(1, vikingRoomMesh, vikingRoomTexture);
     this->secondBoundMesh->model = glm::translate(glm::mat4(1.0f), glm::vec3(-2.0f, -0.5f, 0.0f));
 
-    this->thirdBoundMesh = this->renderer.uploadMesh(vikingRoomMesh, vikingRoomTexture);
+    this->thirdBoundMesh = this->renderer.uploadMesh(2, vikingRoomMesh, vikingRoomTexture);
     this->thirdBoundMesh->model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -0.5f, 2.0f));
 }
 

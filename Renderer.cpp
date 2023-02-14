@@ -353,31 +353,33 @@ VkDeviceMemory Renderer::allocateMemoryForBuffer(VkBuffer buffer, VkMemoryProper
     return memory;
 }
 
-Renderer::Renderer(Engine* engine) : engine(engine) {
+Renderer::Renderer(Engine *engine) : engine(engine) {
     //
 }
 
 void Renderer::init() {
-    int w, h;
-    glfwGetWindowSize(this->engine->window(), &w, &h);
-    currentExtent = {(uint32_t) w, (uint32_t) h};
-
     initInstance();
+
     initSurface(this->engine->window());
+
     initPhysicalDevice();
     initDevice();
-    initSwapchain();
+
     initCommand();
-    initRenderPass();
-    initResources();
-    initFramebuffers();
     initSync();
-    initClearColors();
+
     initUniformBuffers();
     initTextureSampler();
     initDescriptors();
     initLayouts();
-    initGraphicsPipeline();
+
+    initSwapchain();
+    initSwapchainResources();
+
+    for (auto & renderpass : this->renderpasses) {
+        renderpass = createRenderpass();
+        createRenderpassFramebuffers(renderpass);
+    }
 }
 
 void Renderer::cleanup() {
@@ -385,7 +387,10 @@ void Renderer::cleanup() {
 
     cleanupSwapchain();
 
-    vkDestroyPipeline(this->device, this->pipeline, nullptr);
+    for (const auto &renderpass: this->renderpasses) {
+        destroyRenderpass(renderpass);
+    }
+
     vkDestroyPipelineLayout(this->device, this->pipelineLayout, nullptr);
 
     vkDestroyDescriptorSetLayout(this->device, this->descriptorSetLayout, nullptr);
@@ -403,7 +408,6 @@ void Renderer::cleanup() {
         vkDestroyBuffer(this->device, this->uniformBuffers[idx], nullptr);
     }
 
-    vkDestroyRenderPass(this->device, this->renderpass, nullptr);
     vkFreeCommandBuffers(this->device, this->commandPool, VK_MAX_INFLIGHT_FRAMES, this->commandBuffers.data());
     vkDestroyCommandPool(this->device, this->commandPool, nullptr);
     vkDestroyDevice(this->device, nullptr);
@@ -461,6 +465,10 @@ void Renderer::initInstance() {
 }
 
 void Renderer::initSurface(GLFWwindow *window) {
+    int w, h;
+    glfwGetWindowSize(window, &w, &h);
+    currentExtent = {(uint32_t) w, (uint32_t) h};
+
     vkEnsure(glfwCreateWindowSurface(this->instance, window, nullptr, &this->surface));
 }
 
@@ -596,7 +604,7 @@ void Renderer::initSwapchain() {
     }
 }
 
-void Renderer::initRenderPass() {
+VkRenderPass Renderer::initRenderPass() {
     VkAttachmentDescription colorAttachment = {
             .flags = 0,
             .format= this->swapchainFormat,
@@ -692,7 +700,10 @@ void Renderer::initRenderPass() {
             .pDependencies = &subpassDependency
     };
 
-    vkEnsure(vkCreateRenderPass(this->device, &renderPassCreateInfo, nullptr, &this->renderpass));
+    VkRenderPass renderpass;
+    vkEnsure(vkCreateRenderPass(this->device, &renderPassCreateInfo, nullptr, &renderpass));
+
+    return renderpass;
 }
 
 void Renderer::initCommand() {
@@ -716,14 +727,16 @@ void Renderer::initCommand() {
     vkEnsure(vkAllocateCommandBuffers(this->device, &commandBufferAllocateInfo, this->commandBuffers.data()));
 }
 
-void Renderer::initResources() {
+void Renderer::initSwapchainResources() {
     // color
-    this->colorImage = createImage(this->swapchainExtent.width, this->swapchainExtent.height, this->swapchainFormat,
+    this->colorImage = createImage(this->swapchainExtent.width, this->swapchainExtent.height,
+                                   this->swapchainFormat,
                                    VkImageUsageFlagBits::VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT |
                                    VkImageUsageFlagBits::VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
                                    this->physicalDeviceInfo.msaaSamples);
     this->colorImageMemory = allocateMemoryForImage(this->colorImage, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    this->colorImageView = createImageView(this->colorImage, this->swapchainFormat, VK_IMAGE_ASPECT_COLOR_BIT);
+    this->colorImageView = createImageView(this->colorImage, this->swapchainFormat,
+                                           VK_IMAGE_ASPECT_COLOR_BIT);
 
     // depth
     this->depthImage = createImage(this->swapchainExtent.width, this->swapchainExtent.height,
@@ -735,10 +748,11 @@ void Renderer::initResources() {
                                            VK_IMAGE_ASPECT_DEPTH_BIT);
 }
 
-void Renderer::initFramebuffers() {
+void Renderer::initFramebuffers(Renderpass &renderpass) {
     uint32_t count = this->swapchainImageViews.size();
 
-    this->swapchainFramebuffers.resize(count);
+    renderpass.framebuffers.resize(count);
+
     for (uint32_t idx = 0; idx < count; idx++) {
         std::array<VkImageView, 3> attachments = {
                 this->colorImageView,
@@ -750,7 +764,7 @@ void Renderer::initFramebuffers() {
                 .sType = VkStructureType::VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
                 .pNext = nullptr,
                 .flags = 0,
-                .renderPass = this->renderpass,
+                .renderPass = renderpass.renderpass,
                 .attachmentCount = 3,
                 .pAttachments = attachments.data(),
                 .width = this->swapchainExtent.width,
@@ -758,7 +772,7 @@ void Renderer::initFramebuffers() {
                 .layers = 1
         };
 
-        vkEnsure(vkCreateFramebuffer(this->device, &framebufferCreateInfo, nullptr, &this->swapchainFramebuffers[idx]));
+        vkEnsure(vkCreateFramebuffer(this->device, &framebufferCreateInfo, nullptr, &renderpass.framebuffers[idx]));
     }
 }
 
@@ -782,9 +796,13 @@ void Renderer::initSync() {
     }
 }
 
-void Renderer::initClearColors() {
-    this->clearValues[0].color = {{0.0f, 0.0f, 0.0f, 1.0f}};
-    this->clearValues[1].depthStencil = {1.0f, 0};
+std::array<VkClearValue, 2> Renderer::initClearColors() {
+    std::array<VkClearValue, 2> clearColors = {};
+
+    clearColors[0].color = {{0.0f, 0.0f, 0.0f, 0.0f}};
+    clearColors[1].depthStencil = {1.0f, 0};
+
+    return clearColors;
 }
 
 void Renderer::initUniformBuffers() {
@@ -898,7 +916,7 @@ void Renderer::initLayouts() {
     vkEnsure(vkCreatePipelineLayout(this->device, &pipelineLayoutInfo, nullptr, &this->pipelineLayout));
 }
 
-void Renderer::initGraphicsPipeline() {
+VkPipeline Renderer::initGraphicsPipeline(VkRenderPass renderpass) {
     VkShaderModule vertexShaderModule = createShaderModule(VK_DEFAULT_VERTEX_SHADER);
     VkShaderModule fragmentShaderModule = createShaderModule(VK_DEFAULT_FRAGMENT_SHADER);
 
@@ -1079,29 +1097,45 @@ void Renderer::initGraphicsPipeline() {
             .pColorBlendState = &colorBlending,
             .pDynamicState = &dynamicState,
             .layout = this->pipelineLayout,
-            .renderPass = this->renderpass,
+            .renderPass = renderpass,
             .subpass = 0,
             .basePipelineHandle = VK_NULL_HANDLE,
             .basePipelineIndex = 0
     };
 
-    vkEnsure(vkCreateGraphicsPipelines(this->device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &this->pipeline));
+    VkPipeline pipeline;
+    vkEnsure(vkCreateGraphicsPipelines(this->device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline));
 
     vkDestroyShaderModule(this->device, vertexShaderModule, nullptr);
     vkDestroyShaderModule(this->device, fragmentShaderModule, nullptr);
+
+    return pipeline;
+}
+
+void Renderer::destroyRenderpass(const Renderpass &renderpass) {
+    vkDestroyPipeline(this->device, renderpass.pipeline, nullptr);
+
+    vkDestroyRenderPass(this->device, renderpass.renderpass, nullptr);
+}
+
+void Renderer::destroyRenderpassFramebuffers(const Renderpass &renderpass) {
+    for (const VkFramebuffer &framebuffer: renderpass.framebuffers) {
+        vkDestroyFramebuffer(this->device, framebuffer, nullptr);
+    }
 }
 
 void Renderer::cleanupSwapchain() {
-    vkDestroyImageView(this->device, this->colorImageView, nullptr);
-    vkDestroyImageView(this->device, this->depthImageView, nullptr);
-    vkFreeMemory(this->device, this->colorImageMemory, nullptr);
-    vkFreeMemory(this->device, this->depthImageMemory, nullptr);
-    vkDestroyImage(this->device, this->colorImage, nullptr);
-    vkDestroyImage(this->device, this->depthImage, nullptr);
-
-    for (const VkFramebuffer &framebuffer: this->swapchainFramebuffers) {
-        vkDestroyFramebuffer(this->device, framebuffer, nullptr);
+    for (const Renderpass &renderpass: this->renderpasses) {
+        destroyRenderpassFramebuffers(renderpass);
     }
+
+    vkDestroyImageView(this->device, this->colorImageView, nullptr);
+    vkFreeMemory(this->device, this->colorImageMemory, nullptr);
+    vkDestroyImage(this->device, this->colorImage, nullptr);
+
+    vkDestroyImageView(this->device, this->depthImageView, nullptr);
+    vkFreeMemory(this->device, this->depthImageMemory, nullptr);
+    vkDestroyImage(this->device, this->depthImage, nullptr);
 
     for (const VkImageView &imageView: this->swapchainImageViews) {
         vkDestroyImageView(this->device, imageView, nullptr);
@@ -1118,8 +1152,11 @@ void Renderer::handleResize() {
     this->physicalDeviceInfo = getPhysicalDeviceInfo(this->physicalDevice);
 
     initSwapchain();
-    initResources();
-    initFramebuffers();
+    initSwapchainResources();
+
+    for (auto & renderpass : this->renderpasses) {
+        createRenderpassFramebuffers(renderpass);
+    }
 }
 
 void Renderer::render() {
@@ -1159,59 +1196,68 @@ void Renderer::render() {
     };
     vkEnsure(vkBeginCommandBuffer(currentCommandBuffer, &commandBufferBeginInfo));
 
-    VkRenderPassBeginInfo renderPassBeginInfo = {
-            .sType = VkStructureType::VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-            .pNext = nullptr,
-            .renderPass = this->renderpass,
-            .framebuffer = this->swapchainFramebuffers[imageIdx],
-            .renderArea = {
-                    .offset = {0, 0},
-                    .extent = this->swapchainExtent
-            },
-            .clearValueCount = static_cast<uint32_t>(this->clearValues.size()),
-            .pClearValues = this->clearValues.data()
-    };
-    vkCmdBeginRenderPass(currentCommandBuffer, &renderPassBeginInfo, VkSubpassContents::VK_SUBPASS_CONTENTS_INLINE);
+    for (uint32_t renderpassIdx = 0; renderpassIdx < this->renderpasses.size(); renderpassIdx++) {
+        Renderpass renderpass = this->renderpasses[renderpassIdx];
 
-    vkCmdBindPipeline(currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->pipeline);
-
-    VkViewport viewport = {
-            .x = 0,
-            .y = 0,
-            .width = (float) this->swapchainExtent.width,
-            .height = (float) this->swapchainExtent.height,
-            .minDepth = 0.0f,
-            .maxDepth = 1.0f
-    };
-    vkCmdSetViewport(currentCommandBuffer, 0, 1, &viewport);
-
-    VkRect2D scissor = {
-            .offset = {0, 0},
-            .extent = this->swapchainExtent
-    };
-    vkCmdSetScissor(currentCommandBuffer, 0, 1, &scissor);
-
-    int idx = 0;
-    for (const auto &mesh: this->meshes) {
-        VkDeviceSize offset = 0;
-        VkDescriptorSet descriptorSet = mesh->descriptorSets[currentFrame];
-
-        Constants constants = {
-                .model = mesh->model
+        VkRenderPassBeginInfo renderPassBeginInfo = {
+                .sType = VkStructureType::VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+                .pNext = nullptr,
+                .renderPass = renderpass.renderpass,
+                .framebuffer = renderpass.framebuffers[imageIdx],
+                .renderArea = {
+                        .offset = {0, 0},
+                        .extent = this->swapchainExtent
+                },
+                .clearValueCount = static_cast<uint32_t>(renderpass.clearValues.size()),
+                .pClearValues = renderpass.clearValues.data()
         };
-        vkCmdPushConstants(currentCommandBuffer, pipelineLayout,
-                           VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Constants), &constants);
+        vkCmdBeginRenderPass(currentCommandBuffer, &renderPassBeginInfo, VkSubpassContents::VK_SUBPASS_CONTENTS_INLINE);
 
-        vkCmdBindVertexBuffers(currentCommandBuffer, 0, 1, &mesh->vertexBuffer.buffer, &offset);
-        vkCmdBindIndexBuffer(currentCommandBuffer, mesh->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+        vkCmdBindPipeline(currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, renderpass.pipeline);
 
-        vkCmdBindDescriptorSets(currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout,
-                                0, 1, &descriptorSet, 0, nullptr);
+        VkViewport viewport = {
+                .x = 0,
+                .y = 0,
+                .width = (float) this->swapchainExtent.width,
+                .height = (float) this->swapchainExtent.height,
+                .minDepth = 0.0f,
+                .maxDepth = 1.0f
+        };
+        vkCmdSetViewport(currentCommandBuffer, 0, 1, &viewport);
 
-        vkCmdDrawIndexed(currentCommandBuffer, mesh->indicesCount, 1, 0, 0, idx++);
+        VkRect2D scissor = {
+                .offset = {0, 0},
+                .extent = this->swapchainExtent
+        };
+        vkCmdSetScissor(currentCommandBuffer, 0, 1, &scissor);
+
+        int idx = 0;
+        for (const auto &mesh: this->meshes) {
+//            if (mesh->renderpassIdx != renderpassIdx) {
+//                continue;
+//            }
+
+            VkDeviceSize offset = 0;
+            VkDescriptorSet descriptorSet = mesh->descriptorSets[currentFrame];
+
+            Constants constants = {
+                    .model = mesh->model
+            };
+            vkCmdPushConstants(currentCommandBuffer, pipelineLayout,
+                               VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Constants), &constants);
+
+            vkCmdBindVertexBuffers(currentCommandBuffer, 0, 1, &mesh->vertexBuffer.buffer, &offset);
+            vkCmdBindIndexBuffer(currentCommandBuffer, mesh->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+
+            vkCmdBindDescriptorSets(currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout,
+                                    0, 1, &descriptorSet, 0, nullptr);
+
+            vkCmdDrawIndexed(currentCommandBuffer, mesh->indicesCount, 1, 0, 0, idx++);
+        }
+
+        vkCmdEndRenderPass(currentCommandBuffer);
     }
 
-    vkCmdEndRenderPass(currentCommandBuffer);
     vkEnsure(vkEndCommandBuffer(currentCommandBuffer));
 
     VkPipelineStageFlags waitDstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
@@ -1484,10 +1530,11 @@ std::array<VkDescriptorSet, VK_MAX_INFLIGHT_FRAMES> Renderer::initDescriptorSets
     return descriptorSets;
 }
 
-BoundMeshInfo *Renderer::uploadMesh(const Mesh &mesh, const Texture &texture) {
+BoundMeshInfo *Renderer::uploadMesh(uint32_t renderpassIdx, const Mesh &mesh, const Texture &texture) {
     TextureData textureData = uploadTexture(texture.path);
 
     auto boundMeshInfo = new BoundMeshInfo{
+            .renderpassIdx = renderpassIdx,
             .vertexBuffer = uploadVertices(mesh.vertices),
             .indexBuffer = uploadIndices(mesh.indices),
             .texture = textureData,
@@ -1518,4 +1565,20 @@ void Renderer::freeMesh(BoundMeshInfo *meshInfo) {
     vkDestroyBuffer(this->device, meshInfo->indexBuffer.buffer, nullptr);
 
     this->meshes.erase(std::remove(this->meshes.begin(), this->meshes.end(), meshInfo));
+}
+
+Renderpass Renderer::createRenderpass() {
+    VkRenderPass renderpass = initRenderPass();
+
+    Renderpass result = {
+            .renderpass = renderpass,
+            .clearValues = initClearColors(),
+            .pipeline = initGraphicsPipeline(renderpass)
+    };
+
+    return result;
+}
+
+void Renderer::createRenderpassFramebuffers(Renderpass &renderpass) {
+    initFramebuffers(renderpass);
 }

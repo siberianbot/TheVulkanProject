@@ -14,8 +14,6 @@ src = [
     'Camera.cpp'
 ]
 
-exe = executable('thevulkanproject', src,  dependencies: [ glfw, vulkan ])
-
 # shaders compilation
 shaders = [
     'shaders/default.frag',
@@ -25,3 +23,5 @@ shaders = [
 foreach shader : shaders
     run_command('glslangValidator', '-V', shader, '-o', shader + '.spv', check: true)
 endforeach
+
+exe = executable('thevulkanproject', src,  dependencies: [ glfw, vulkan ])

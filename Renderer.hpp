@@ -66,6 +66,7 @@ struct TextureData {
 };
 
 struct BoundMeshInfo {
+    uint32_t renderpassIdx;
     BufferData vertexBuffer;
     BufferData indexBuffer;
     TextureData texture;
@@ -77,12 +78,17 @@ struct BoundMeshInfo {
 struct UniformBufferObject {
     alignas(16) glm::mat4 view;
     alignas(16) glm::mat4 proj;
-//    alignas(16) glm::vec3 cam;
-//    alignas(16) glm::vec4 clear;
 };
 
 struct Constants {
     alignas(16) glm::mat4 model;
+};
+
+struct Renderpass {
+    VkRenderPass renderpass;
+    std::array<VkClearValue, 2> clearValues;
+    VkPipeline pipeline;
+    std::vector<VkFramebuffer> framebuffers;
 };
 
 class Engine;
@@ -91,38 +97,41 @@ class Renderer {
 private:
     Engine *engine;
 
-    VkExtent2D currentExtent;
-
     VkInstance instance;
+
+    VkExtent2D currentExtent;
     VkSurfaceKHR surface;
+
     VkPhysicalDevice physicalDevice;
     PhysicalDeviceInfo physicalDeviceInfo;
     VkDevice device;
     VkQueue graphicsQueue;
     VkQueue presentQueue;
-    VkSwapchainKHR swapchain;
-    std::vector<VkImage> swapchainImages;
-    VkFormat swapchainFormat;
-    VkExtent2D swapchainExtent;
-    std::vector<VkImageView> swapchainImageViews;
-    std::vector<VkFramebuffer> swapchainFramebuffers;
-    VkRenderPass renderpass;
+
     VkCommandPool commandPool;
     std::array<VkCommandBuffer, VK_MAX_INFLIGHT_FRAMES> commandBuffers;
-    VkImage colorImage, depthImage;
-    VkImageView colorImageView, depthImageView;
-    VkDeviceMemory colorImageMemory, depthImageMemory;
     std::array<VkFence, VK_MAX_INFLIGHT_FRAMES> fences;
     std::array<VkSemaphore, VK_MAX_INFLIGHT_FRAMES> imageAvailableSemaphores, renderFinishedSemaphores;
-    std::array<VkClearValue, 2> clearValues;
-    VkPipelineLayout pipelineLayout;
-    VkPipeline pipeline;
+
     std::array<VkBuffer, VK_MAX_INFLIGHT_FRAMES> uniformBuffers;
     std::array<VkDeviceMemory, VK_MAX_INFLIGHT_FRAMES> uniformBufferMemory;
     std::array<void *, VK_MAX_INFLIGHT_FRAMES> uniformBufferMemoryMapped;
     VkSampler textureSampler;
     VkDescriptorPool descriptorPool;
+    VkPipelineLayout pipelineLayout;
     VkDescriptorSetLayout descriptorSetLayout;
+
+    VkSwapchainKHR swapchain;
+    std::vector<VkImage> swapchainImages;
+    VkFormat swapchainFormat;
+    VkExtent2D swapchainExtent;
+    std::vector<VkImageView> swapchainImageViews;
+
+    VkImage colorImage, depthImage;
+    VkImageView colorImageView, depthImageView;
+    VkDeviceMemory colorImageMemory, depthImageMemory;
+
+    std::array<Renderpass, 1> renderpasses;
 
     int currentFrame = 0;
     bool resizeRequested = false;
@@ -142,25 +151,36 @@ private:
     VkDeviceMemory allocateMemoryForBuffer(VkBuffer buffer, VkMemoryPropertyFlags memoryProperty);
 
     void initInstance();
+
     void initSurface(GLFWwindow *window);
+
     void initPhysicalDevice();
     void initDevice();
-    void initSwapchain();
-    void initRenderPass();
+
     void initCommand();
-    void initResources();
-    void initFramebuffers();
     void initSync();
-    void initClearColors();
+
     void initUniformBuffers();
     void initTextureSampler();
     void initDescriptors();
     void initLayouts();
-    void initGraphicsPipeline();
+
+    void initSwapchain();
+    void initSwapchainResources();
+
+    VkRenderPass initRenderPass();
+    VkPipeline initGraphicsPipeline(VkRenderPass renderpass);
+    std::array<VkClearValue, 2> initClearColors();
+    void initFramebuffers(Renderpass &renderpass);
 
     void cleanupSwapchain();
 
     void handleResize();
+
+    Renderpass createRenderpass();
+    void createRenderpassFramebuffers(Renderpass &renderpass);
+    void destroyRenderpass(const Renderpass& renderpass);
+    void destroyRenderpassFramebuffers(const Renderpass& renderpass);
 
     BufferData uploadVertices(const std::vector<Vertex> &vertices);
     BufferData uploadIndices(const std::vector<uint32_t> &indices);
@@ -177,7 +197,7 @@ public:
 
     void requestResize(uint32_t width, uint32_t height);
 
-    BoundMeshInfo *uploadMesh(const Mesh &mesh, const Texture &texture);
+    BoundMeshInfo *uploadMesh(uint32_t renderpassIdx, const Mesh &mesh, const Texture &texture);
     void freeMesh(BoundMeshInfo *meshInfo);
 };
 
