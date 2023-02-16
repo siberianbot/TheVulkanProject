@@ -8,6 +8,8 @@
 
 #include "Constants.hpp"
 #include "Engine.hpp"
+#include "ClearRenderpass.hpp"
+#include "FinalRenderpass.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb/stb_image.h>
@@ -18,8 +20,6 @@ static constexpr VkFormat VK_DEPTH_FORMATS[] = {
         VK_FORMAT_D24_UNORM_S8_UINT
 };
 
-static constexpr const char *VK_DEFAULT_VERTEX_SHADER = "shaders/default.vert.spv";
-static constexpr const char *VK_DEFAULT_FRAGMENT_SHADER = "shaders/default.frag.spv";
 
 static constexpr void vkEnsure(VkResult vkExpression) {
     if (vkExpression != VkResult::VK_SUCCESS) {
@@ -268,33 +268,6 @@ VkImage Renderer::createImage(uint32_t width, uint32_t height, VkFormat format, 
     return image;
 }
 
-VkShaderModule Renderer::createShaderModule(const std::string &path) {
-    std::ifstream file(path, std::ios::ate | std::ios::binary);
-    if (!file.is_open()) {
-        throw std::runtime_error("shader file read failure");
-    }
-
-    size_t size = file.tellg();
-    std::vector<char> buffer(size);
-
-    file.seekg(0);
-    file.read(buffer.data(), size);
-    file.close();
-
-    VkShaderModuleCreateInfo shaderModuleCreateInfo = {
-            .sType = VkStructureType::VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-            .pNext = nullptr,
-            .flags = 0,
-            .codeSize = buffer.size(),
-            .pCode = reinterpret_cast<const uint32_t *>(buffer.data())
-    };
-
-    VkShaderModule shaderModule;
-    vkEnsure(vkCreateShaderModule(this->device, &shaderModuleCreateInfo, nullptr, &shaderModule));
-
-    return shaderModule;
-}
-
 VkBuffer Renderer::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage) {
     VkBufferCreateInfo bufferCreateInfo = {
             .sType = VkStructureType::VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
@@ -376,9 +349,32 @@ void Renderer::init() {
     initSwapchain();
     initSwapchainResources();
 
-    for (auto & renderpass : this->renderpasses) {
-        renderpass = createRenderpass();
-        createRenderpassFramebuffers(renderpass);
+    DeviceData deviceData = {
+            .device = this->device,
+            .colorFormat = this->swapchainFormat,
+            .depthFormat = this->physicalDeviceInfo.depthFormat.value(),
+            .msaaSamples = this->physicalDeviceInfo.msaaSamples
+    };
+
+    this->_renderpasses.push_back(new ClearRenderpass(deviceData));
+    this->_sceneRenderpass = new SceneRenderpass(deviceData, this->pipelineLayout);
+    this->_renderpasses.push_back(this->_sceneRenderpass);
+    this->_renderpasses.push_back(new FinalRenderpass(deviceData));
+
+    std::vector<VkImageView> colorImageViews(this->swapchainImageViews.size(), this->colorImageView);
+    std::vector<VkImageView> depthImageViews(this->swapchainImageViews.size(), this->depthImageView);
+
+    std::vector<std::vector<VkImageView>> imageGroups = {
+            colorImageViews,
+            depthImageViews,
+            this->swapchainImageViews
+    };
+
+    for (RenderpassBase *renderpass: this->_renderpasses) {
+        renderpass->createRenderpass();
+        renderpass->createFramebuffers(this->swapchainExtent.width, this->swapchainExtent.height,
+                                       this->swapchainImageViews.size(),
+                                       imageGroups);
     }
 }
 
@@ -387,8 +383,9 @@ void Renderer::cleanup() {
 
     cleanupSwapchain();
 
-    for (const auto &renderpass: this->renderpasses) {
-        destroyRenderpass(renderpass);
+    this->_sceneRenderpass = nullptr;
+    for (RenderpassBase *renderpass: this->_renderpasses) {
+        delete renderpass;
     }
 
     vkDestroyPipelineLayout(this->device, this->pipelineLayout, nullptr);
@@ -604,108 +601,6 @@ void Renderer::initSwapchain() {
     }
 }
 
-VkRenderPass Renderer::initRenderPass() {
-    VkAttachmentDescription colorAttachment = {
-            .flags = 0,
-            .format= this->swapchainFormat,
-            .samples = this->physicalDeviceInfo.msaaSamples,
-            .loadOp = VkAttachmentLoadOp::VK_ATTACHMENT_LOAD_OP_CLEAR,
-            .storeOp = VkAttachmentStoreOp::VK_ATTACHMENT_STORE_OP_STORE,
-            .stencilLoadOp = VkAttachmentLoadOp::VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-            .stencilStoreOp = VkAttachmentStoreOp::VK_ATTACHMENT_STORE_OP_DONT_CARE,
-            .initialLayout = VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED,
-            .finalLayout = VkImageLayout::VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
-    };
-
-    VkAttachmentReference colorAttachmentReference = {
-            .attachment = 0,
-            .layout = VkImageLayout::VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
-    };
-
-    VkAttachmentDescription depthAttachment = {
-            .flags = 0,
-            .format= this->physicalDeviceInfo.depthFormat.value(),
-            .samples = this->physicalDeviceInfo.msaaSamples,
-            .loadOp = VkAttachmentLoadOp::VK_ATTACHMENT_LOAD_OP_CLEAR,
-            .storeOp = VkAttachmentStoreOp::VK_ATTACHMENT_STORE_OP_DONT_CARE,
-            .stencilLoadOp = VkAttachmentLoadOp::VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-            .stencilStoreOp = VkAttachmentStoreOp::VK_ATTACHMENT_STORE_OP_DONT_CARE,
-            .initialLayout = VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED,
-            .finalLayout = VkImageLayout::VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
-    };
-
-    VkAttachmentReference depthAttachmentReference = {
-            .attachment = 1,
-            .layout = VkImageLayout::VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
-    };
-
-    VkAttachmentDescription colorAttachmentResolve = {
-            .flags = 0,
-            .format= this->swapchainFormat,
-            .samples = VkSampleCountFlagBits::VK_SAMPLE_COUNT_1_BIT,
-            .loadOp = VkAttachmentLoadOp::VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-            .storeOp = VkAttachmentStoreOp::VK_ATTACHMENT_STORE_OP_STORE,
-            .stencilLoadOp = VkAttachmentLoadOp::VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-            .stencilStoreOp = VkAttachmentStoreOp::VK_ATTACHMENT_STORE_OP_DONT_CARE,
-            .initialLayout = VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED,
-            .finalLayout = VkImageLayout::VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
-    };
-
-    VkAttachmentReference colorAttachmentResolveReference = {
-            .attachment = 2,
-            .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
-    };
-
-    VkSubpassDescription subpass = {
-            .flags = 0,
-            .pipelineBindPoint = VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_GRAPHICS,
-            .inputAttachmentCount = 0,
-            .pInputAttachments = nullptr,
-            .colorAttachmentCount = 1,
-            .pColorAttachments = &colorAttachmentReference,
-            .pResolveAttachments = &colorAttachmentResolveReference,
-            .pDepthStencilAttachment = &depthAttachmentReference,
-            .preserveAttachmentCount = 0,
-            .pPreserveAttachments = nullptr
-    };
-
-    VkSubpassDependency subpassDependency = {
-            .srcSubpass = VK_SUBPASS_EXTERNAL,
-            .dstSubpass = 0,
-            .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
-                            VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
-            .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
-                            VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
-            .srcAccessMask = VkAccessFlagBits::VK_ACCESS_NONE,
-            .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
-                             VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-            .dependencyFlags = 0
-    };
-
-    std::array<VkAttachmentDescription, 3> attachments = {
-            colorAttachment,
-            depthAttachment,
-            colorAttachmentResolve
-    };
-
-    VkRenderPassCreateInfo renderPassCreateInfo = {
-            .sType = VkStructureType::VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
-            .pNext = nullptr,
-            .flags = 0,
-            .attachmentCount = attachments.size(),
-            .pAttachments = attachments.data(),
-            .subpassCount = 1,
-            .pSubpasses = &subpass,
-            .dependencyCount = 1,
-            .pDependencies = &subpassDependency
-    };
-
-    VkRenderPass renderpass;
-    vkEnsure(vkCreateRenderPass(this->device, &renderPassCreateInfo, nullptr, &renderpass));
-
-    return renderpass;
-}
-
 void Renderer::initCommand() {
     VkCommandPoolCreateInfo commandPoolCreateInfo = {
             .sType = VkStructureType::VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
@@ -748,34 +643,6 @@ void Renderer::initSwapchainResources() {
                                            VK_IMAGE_ASPECT_DEPTH_BIT);
 }
 
-void Renderer::initFramebuffers(Renderpass &renderpass) {
-    uint32_t count = this->swapchainImageViews.size();
-
-    renderpass.framebuffers.resize(count);
-
-    for (uint32_t idx = 0; idx < count; idx++) {
-        std::array<VkImageView, 3> attachments = {
-                this->colorImageView,
-                this->depthImageView,
-                this->swapchainImageViews[idx]
-        };
-
-        VkFramebufferCreateInfo framebufferCreateInfo = {
-                .sType = VkStructureType::VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
-                .pNext = nullptr,
-                .flags = 0,
-                .renderPass = renderpass.renderpass,
-                .attachmentCount = 3,
-                .pAttachments = attachments.data(),
-                .width = this->swapchainExtent.width,
-                .height = this->swapchainExtent.height,
-                .layers = 1
-        };
-
-        vkEnsure(vkCreateFramebuffer(this->device, &framebufferCreateInfo, nullptr, &renderpass.framebuffers[idx]));
-    }
-}
-
 void Renderer::initSync() {
     VkFenceCreateInfo fenceCreateInfo = {
             .sType = VkStructureType::VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
@@ -794,15 +661,6 @@ void Renderer::initSync() {
         vkEnsure(vkCreateSemaphore(this->device, &semaphoreCreateInfo, nullptr, &this->imageAvailableSemaphores[idx]));
         vkEnsure(vkCreateSemaphore(this->device, &semaphoreCreateInfo, nullptr, &this->renderFinishedSemaphores[idx]));
     }
-}
-
-std::array<VkClearValue, 2> Renderer::initClearColors() {
-    std::array<VkClearValue, 2> clearColors = {};
-
-    clearColors[0].color = {{0.0f, 0.0f, 0.0f, 0.0f}};
-    clearColors[1].depthStencil = {1.0f, 0};
-
-    return clearColors;
 }
 
 void Renderer::initUniformBuffers() {
@@ -916,217 +774,9 @@ void Renderer::initLayouts() {
     vkEnsure(vkCreatePipelineLayout(this->device, &pipelineLayoutInfo, nullptr, &this->pipelineLayout));
 }
 
-VkPipeline Renderer::initGraphicsPipeline(VkRenderPass renderpass) {
-    VkShaderModule vertexShaderModule = createShaderModule(VK_DEFAULT_VERTEX_SHADER);
-    VkShaderModule fragmentShaderModule = createShaderModule(VK_DEFAULT_FRAGMENT_SHADER);
-
-    VkPipelineShaderStageCreateInfo vertexShaderStage = {
-            .sType = VkStructureType::VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-            .pNext = nullptr,
-            .flags = 0,
-            .stage = VkShaderStageFlagBits::VK_SHADER_STAGE_VERTEX_BIT,
-            .module = vertexShaderModule,
-            .pName = "main",
-            .pSpecializationInfo = nullptr
-    };
-
-    VkPipelineShaderStageCreateInfo fragmentShaderStage = {
-            .sType = VkStructureType::VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-            .pNext = nullptr,
-            .flags = 0,
-            .stage = VkShaderStageFlagBits::VK_SHADER_STAGE_FRAGMENT_BIT,
-            .module = fragmentShaderModule,
-            .pName = "main",
-            .pSpecializationInfo = nullptr
-    };
-
-    std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages = {
-            vertexShaderStage,
-            fragmentShaderStage
-    };
-
-    VkVertexInputBindingDescription bindingDescription = {
-            .binding = 0,
-            .stride = sizeof(Vertex),
-            .inputRate = VkVertexInputRate::VK_VERTEX_INPUT_RATE_VERTEX
-    };
-
-    std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions = {
-            VkVertexInputAttributeDescription{
-                    .location = 0,
-                    .binding = 0,
-                    .format = VK_FORMAT_R32G32B32_SFLOAT,
-                    .offset = offsetof(Vertex, pos)
-            },
-            VkVertexInputAttributeDescription{
-                    .location = 1,
-                    .binding = 0,
-                    .format = VK_FORMAT_R32G32B32_SFLOAT,
-                    .offset = offsetof(Vertex, color)
-            },
-            VkVertexInputAttributeDescription{
-                    .location = 2,
-                    .binding = 0,
-                    .format = VK_FORMAT_R32G32_SFLOAT,
-                    .offset = offsetof(Vertex, texCoord)
-            }
-    };
-
-    VkPipelineVertexInputStateCreateInfo vertexInputStateCreateInfo = {
-            .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
-            .pNext = nullptr,
-            .flags = 0,
-            .vertexBindingDescriptionCount = 1,
-            .pVertexBindingDescriptions = &bindingDescription,
-            .vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size()),
-            .pVertexAttributeDescriptions = attributeDescriptions.data()
-    };
-
-    VkPipelineInputAssemblyStateCreateInfo inputAssemblyStateCreateInfo = {
-            .sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
-            .pNext = nullptr,
-            .flags = 0,
-            .topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
-            .primitiveRestartEnable = VK_FALSE
-    };
-
-    VkPipelineViewportStateCreateInfo viewportStateCreateInfo = {
-            .sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
-            .pNext = nullptr,
-            .flags = 0,
-            .viewportCount = 1,
-            .pViewports = nullptr,
-            .scissorCount = 1,
-            .pScissors = nullptr
-    };
-
-    VkPipelineRasterizationStateCreateInfo rasterizer = {
-            .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
-            .pNext = nullptr,
-            .flags = 0,
-            .depthClampEnable = VK_FALSE,
-            .rasterizerDiscardEnable = VK_FALSE,
-            .polygonMode = VK_POLYGON_MODE_FILL,
-            .cullMode = VK_CULL_MODE_BACK_BIT,
-            .frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
-            .depthBiasEnable = VK_FALSE,
-            .depthBiasConstantFactor = 0,
-            .depthBiasClamp = 0,
-            .depthBiasSlopeFactor = 0,
-            .lineWidth = 1.0f,
-    };
-
-    VkPipelineMultisampleStateCreateInfo multisampling = {
-            .sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
-            .pNext = nullptr,
-            .flags = 0,
-            .rasterizationSamples = this->physicalDeviceInfo.msaaSamples,
-            .sampleShadingEnable = VK_FALSE,
-            .minSampleShading = 0,
-            .pSampleMask = nullptr,
-            .alphaToCoverageEnable = VK_FALSE,
-            .alphaToOneEnable = VK_FALSE
-    };
-
-    VkPipelineDepthStencilStateCreateInfo depthStencil = {
-            .sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
-            .pNext = nullptr,
-            .flags = 0,
-            .depthTestEnable = VK_TRUE,
-            .depthWriteEnable = VK_TRUE,
-            .depthCompareOp = VK_COMPARE_OP_LESS,
-            .depthBoundsTestEnable = VK_FALSE,
-            .stencilTestEnable = VK_FALSE,
-            .front = {},
-            .back = {},
-            .minDepthBounds = 0,
-            .maxDepthBounds = 0
-    };
-
-    VkPipelineColorBlendAttachmentState colorBlendAttachment = {
-            .blendEnable = VK_FALSE,
-            .srcColorBlendFactor = {},
-            .dstColorBlendFactor = {},
-            .colorBlendOp = VkBlendOp::VK_BLEND_OP_ADD,
-            .srcAlphaBlendFactor = {},
-            .dstAlphaBlendFactor = {},
-            .alphaBlendOp = VkBlendOp::VK_BLEND_OP_ADD,
-            .colorWriteMask = VK_COLOR_COMPONENT_R_BIT |
-                              VK_COLOR_COMPONENT_G_BIT |
-                              VK_COLOR_COMPONENT_B_BIT |
-                              VK_COLOR_COMPONENT_A_BIT
-    };
-
-    VkPipelineColorBlendStateCreateInfo colorBlending = {
-            .sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
-            .pNext = nullptr,
-            .flags = 0,
-            .logicOpEnable = VK_FALSE,
-            .logicOp = VK_LOGIC_OP_COPY,
-            .attachmentCount = 1,
-            .pAttachments = &colorBlendAttachment,
-            .blendConstants = {0, 0, 0, 0}
-    };
-
-    std::array<VkDynamicState, 2> dynamicStates = {
-            VK_DYNAMIC_STATE_VIEWPORT,
-            VK_DYNAMIC_STATE_SCISSOR
-    };
-
-    VkPipelineDynamicStateCreateInfo dynamicState = {
-            .sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
-            .pNext = nullptr,
-            .flags = 0,
-            .dynamicStateCount = static_cast<uint32_t>(dynamicStates.size()),
-            .pDynamicStates = dynamicStates.data()
-    };
-
-    VkGraphicsPipelineCreateInfo pipelineInfo = {
-            .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
-            .pNext = nullptr,
-            .flags = 0,
-            .stageCount = static_cast<uint32_t>(shaderStages.size()),
-            .pStages = shaderStages.data(),
-            .pVertexInputState = &vertexInputStateCreateInfo,
-            .pInputAssemblyState = &inputAssemblyStateCreateInfo,
-            .pTessellationState = nullptr,
-            .pViewportState = &viewportStateCreateInfo,
-            .pRasterizationState = &rasterizer,
-            .pMultisampleState = &multisampling,
-            .pDepthStencilState = &depthStencil,
-            .pColorBlendState = &colorBlending,
-            .pDynamicState = &dynamicState,
-            .layout = this->pipelineLayout,
-            .renderPass = renderpass,
-            .subpass = 0,
-            .basePipelineHandle = VK_NULL_HANDLE,
-            .basePipelineIndex = 0
-    };
-
-    VkPipeline pipeline;
-    vkEnsure(vkCreateGraphicsPipelines(this->device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline));
-
-    vkDestroyShaderModule(this->device, vertexShaderModule, nullptr);
-    vkDestroyShaderModule(this->device, fragmentShaderModule, nullptr);
-
-    return pipeline;
-}
-
-void Renderer::destroyRenderpass(const Renderpass &renderpass) {
-    vkDestroyPipeline(this->device, renderpass.pipeline, nullptr);
-
-    vkDestroyRenderPass(this->device, renderpass.renderpass, nullptr);
-}
-
-void Renderer::destroyRenderpassFramebuffers(const Renderpass &renderpass) {
-    for (const VkFramebuffer &framebuffer: renderpass.framebuffers) {
-        vkDestroyFramebuffer(this->device, framebuffer, nullptr);
-    }
-}
-
 void Renderer::cleanupSwapchain() {
-    for (const Renderpass &renderpass: this->renderpasses) {
-        destroyRenderpassFramebuffers(renderpass);
+    for (RenderpassBase *renderpass: this->_renderpasses) {
+        renderpass->destroyFramebuffers();
     }
 
     vkDestroyImageView(this->device, this->colorImageView, nullptr);
@@ -1154,8 +804,19 @@ void Renderer::handleResize() {
     initSwapchain();
     initSwapchainResources();
 
-    for (auto & renderpass : this->renderpasses) {
-        createRenderpassFramebuffers(renderpass);
+    std::vector<VkImageView> colorImageViews(this->swapchainImageViews.size(), this->colorImageView);
+    std::vector<VkImageView> depthImageViews(this->swapchainImageViews.size(), this->depthImageView);
+
+    std::vector<std::vector<VkImageView>> imageGroups = {
+            colorImageViews,
+            depthImageViews,
+            this->swapchainImageViews
+    };
+
+    for (RenderpassBase *renderpass: this->_renderpasses) {
+        renderpass->createFramebuffers(this->swapchainExtent.width, this->swapchainExtent.height,
+                                       this->swapchainImageViews.size(),
+                                       imageGroups);
     }
 }
 
@@ -1196,66 +857,11 @@ void Renderer::render() {
     };
     vkEnsure(vkBeginCommandBuffer(currentCommandBuffer, &commandBufferBeginInfo));
 
-    for (uint32_t renderpassIdx = 0; renderpassIdx < this->renderpasses.size(); renderpassIdx++) {
-        Renderpass renderpass = this->renderpasses[renderpassIdx];
-
-        VkRenderPassBeginInfo renderPassBeginInfo = {
-                .sType = VkStructureType::VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-                .pNext = nullptr,
-                .renderPass = renderpass.renderpass,
-                .framebuffer = renderpass.framebuffers[imageIdx],
-                .renderArea = {
-                        .offset = {0, 0},
-                        .extent = this->swapchainExtent
-                },
-                .clearValueCount = static_cast<uint32_t>(renderpass.clearValues.size()),
-                .pClearValues = renderpass.clearValues.data()
-        };
-        vkCmdBeginRenderPass(currentCommandBuffer, &renderPassBeginInfo, VkSubpassContents::VK_SUBPASS_CONTENTS_INLINE);
-
-        vkCmdBindPipeline(currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, renderpass.pipeline);
-
-        VkViewport viewport = {
-                .x = 0,
-                .y = 0,
-                .width = (float) this->swapchainExtent.width,
-                .height = (float) this->swapchainExtent.height,
-                .minDepth = 0.0f,
-                .maxDepth = 1.0f
-        };
-        vkCmdSetViewport(currentCommandBuffer, 0, 1, &viewport);
-
-        VkRect2D scissor = {
+    for (RenderpassBase *renderpass: this->_renderpasses) {
+        renderpass->recordCommands(currentCommandBuffer, imageIdx, VkRect2D{
                 .offset = {0, 0},
                 .extent = this->swapchainExtent
-        };
-        vkCmdSetScissor(currentCommandBuffer, 0, 1, &scissor);
-
-        int idx = 0;
-        for (const auto &mesh: this->meshes) {
-//            if (mesh->renderpassIdx != renderpassIdx) {
-//                continue;
-//            }
-
-            VkDeviceSize offset = 0;
-            VkDescriptorSet descriptorSet = mesh->descriptorSets[currentFrame];
-
-            Constants constants = {
-                    .model = mesh->model
-            };
-            vkCmdPushConstants(currentCommandBuffer, pipelineLayout,
-                               VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Constants), &constants);
-
-            vkCmdBindVertexBuffers(currentCommandBuffer, 0, 1, &mesh->vertexBuffer.buffer, &offset);
-            vkCmdBindIndexBuffer(currentCommandBuffer, mesh->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
-
-            vkCmdBindDescriptorSets(currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout,
-                                    0, 1, &descriptorSet, 0, nullptr);
-
-            vkCmdDrawIndexed(currentCommandBuffer, mesh->indicesCount, 1, 0, 0, idx++);
-        }
-
-        vkCmdEndRenderPass(currentCommandBuffer);
+        });
     }
 
     vkEnsure(vkEndCommandBuffer(currentCommandBuffer));
@@ -1530,11 +1136,10 @@ std::array<VkDescriptorSet, VK_MAX_INFLIGHT_FRAMES> Renderer::initDescriptorSets
     return descriptorSets;
 }
 
-BoundMeshInfo *Renderer::uploadMesh(uint32_t renderpassIdx, const Mesh &mesh, const Texture &texture) {
+BoundMeshInfo *Renderer::uploadMesh(const Mesh &mesh, const Texture &texture) {
     TextureData textureData = uploadTexture(texture.path);
 
     auto boundMeshInfo = new BoundMeshInfo{
-            .renderpassIdx = renderpassIdx,
             .vertexBuffer = uploadVertices(mesh.vertices),
             .indexBuffer = uploadIndices(mesh.indices),
             .texture = textureData,
@@ -1543,7 +1148,7 @@ BoundMeshInfo *Renderer::uploadMesh(uint32_t renderpassIdx, const Mesh &mesh, co
             .descriptorSets = initDescriptorSets(textureData.imageView)
     };
 
-    this->meshes.push_back(boundMeshInfo);
+    this->_sceneRenderpass->addMesh(boundMeshInfo);
 
     return boundMeshInfo;
 }
@@ -1564,21 +1169,5 @@ void Renderer::freeMesh(BoundMeshInfo *meshInfo) {
     vkFreeMemory(this->device, meshInfo->indexBuffer.memory, nullptr);
     vkDestroyBuffer(this->device, meshInfo->indexBuffer.buffer, nullptr);
 
-    this->meshes.erase(std::remove(this->meshes.begin(), this->meshes.end(), meshInfo));
-}
-
-Renderpass Renderer::createRenderpass() {
-    VkRenderPass renderpass = initRenderPass();
-
-    Renderpass result = {
-            .renderpass = renderpass,
-            .clearValues = initClearColors(),
-            .pipeline = initGraphicsPipeline(renderpass)
-    };
-
-    return result;
-}
-
-void Renderer::createRenderpassFramebuffers(Renderpass &renderpass) {
-    initFramebuffers(renderpass);
+    this->_sceneRenderpass->removeMesh(meshInfo);
 }

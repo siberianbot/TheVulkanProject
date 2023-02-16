@@ -11,7 +11,11 @@ src = [
     'Renderer.cpp',
     'Input.cpp',
     'Mesh.cpp',
-    'Camera.cpp'
+    'Camera.cpp',
+    'RenderpassBase.cpp',
+    'ClearRenderpass.cpp',
+    'FinalRenderpass.cpp',
+    'SceneRenderpass.cpp'
 ]
 
 # shaders compilation
