@@ -36,7 +36,7 @@ void FinalRenderpass::createRenderpass() {
                     .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
                     .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
                     .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-                    .initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                    .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
                     .finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
             }
     };
@@ -101,7 +101,8 @@ FinalRenderpass::FinalRenderpass(const DeviceData &deviceData)
     //
 }
 
-void FinalRenderpass::recordCommands(VkCommandBuffer commandBuffer, uint32_t framebufferIdx, VkRect2D renderArea) {
+void FinalRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D renderArea, uint32_t frameIdx,
+                                     uint32_t imageIdx) {
     const std::array<VkClearValue, 2> clearValues = {
             VkClearValue{.color = {{0, 0, 0, 1}}},
             VkClearValue{.depthStencil = {1, 0}}
@@ -111,7 +112,7 @@ void FinalRenderpass::recordCommands(VkCommandBuffer commandBuffer, uint32_t fra
             .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
             .pNext = nullptr,
             .renderPass = this->_renderpass,
-            .framebuffer = this->_framebuffers[framebufferIdx],
+            .framebuffer = this->_framebuffers[imageIdx],
             .renderArea = renderArea,
             .clearValueCount = static_cast<uint32_t>(clearValues.size()),
             .pClearValues = clearValues.data()

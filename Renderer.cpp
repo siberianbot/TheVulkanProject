@@ -821,10 +821,10 @@ void Renderer::handleResize() {
 }
 
 void Renderer::render() {
-    VkFence currentFence = this->fences[currentFrame];
-    VkSemaphore currentImageAvailableSemaphore = this->imageAvailableSemaphores[currentFrame];
-    VkSemaphore currentRenderFinishedSemaphore = this->renderFinishedSemaphores[currentFrame];
-    VkCommandBuffer currentCommandBuffer = this->commandBuffers[currentFrame];
+    VkFence currentFence = this->fences[frameIdx];
+    VkSemaphore currentImageAvailableSemaphore = this->imageAvailableSemaphores[frameIdx];
+    VkSemaphore currentRenderFinishedSemaphore = this->renderFinishedSemaphores[frameIdx];
+    VkCommandBuffer currentCommandBuffer = this->commandBuffers[frameIdx];
 
     vkWaitForFences(this->device, 1, &currentFence, VK_TRUE, UINT64_MAX);
     vkResetFences(this->device, 1, &currentFence);
@@ -845,7 +845,7 @@ void Renderer::render() {
     ubo.proj = glm::perspective(glm::radians(45.0f), this->swapchainExtent.width / (float) this->swapchainExtent.height,
                                 0.1f, 10.0f);
     ubo.proj[1][1] *= -1;
-    memcpy(this->uniformBufferMemoryMapped[currentFrame], &ubo, sizeof(ubo));
+    memcpy(this->uniformBufferMemoryMapped[frameIdx], &ubo, sizeof(ubo));
 
     vkResetCommandBuffer(currentCommandBuffer, 0);
 
@@ -857,11 +857,13 @@ void Renderer::render() {
     };
     vkEnsure(vkBeginCommandBuffer(currentCommandBuffer, &commandBufferBeginInfo));
 
+    VkRect2D renderArea = VkRect2D{
+            .offset = {0, 0},
+            .extent = this->swapchainExtent
+    };
+
     for (RenderpassBase *renderpass: this->_renderpasses) {
-        renderpass->recordCommands(currentCommandBuffer, imageIdx, VkRect2D{
-                .offset = {0, 0},
-                .extent = this->swapchainExtent
-        });
+        renderpass->recordCommands(currentCommandBuffer, renderArea, frameIdx, imageIdx);
     }
 
     vkEnsure(vkEndCommandBuffer(currentCommandBuffer));
@@ -901,7 +903,7 @@ void Renderer::render() {
         throw std::runtime_error("Vulkan present failure");
     }
 
-    currentFrame = (currentFrame + 1) % VK_MAX_INFLIGHT_FRAMES;
+    frameIdx = (frameIdx + 1) % VK_MAX_INFLIGHT_FRAMES;
 }
 
 BufferData Renderer::uploadVertices(const std::vector<Vertex> &vertices) {

@@ -6,7 +6,7 @@
 class SceneRenderpass : public RenderpassBase {
 private:
     VkPipelineLayout _pipelineLayout;
-    VkPipeline _pipeline;
+    VkPipeline _pipeline = VK_NULL_HANDLE;
     std::vector<BoundMeshInfo *> _meshes;
 
     VkShaderModule createShaderModule(const std::string &path);
@@ -15,9 +15,10 @@ private:
 public:
     SceneRenderpass(const DeviceData &deviceData, VkPipelineLayout pipelineLayout);
 
-    ~SceneRenderpass() override = default;
+    ~SceneRenderpass() override;
 
-    void recordCommands(VkCommandBuffer commandBuffer, uint32_t framebufferIdx, VkRect2D renderArea) override;
+    void recordCommands(VkCommandBuffer commandBuffer, VkRect2D renderArea,
+                        uint32_t frameIdx, uint32_t imageIdx) override;
 
     void createRenderpass() override;
 

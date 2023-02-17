@@ -95,7 +95,7 @@ private:
     std::vector<RenderpassBase*> _renderpasses;
     SceneRenderpass *_sceneRenderpass;
 
-    int currentFrame = 0;
+    uint32_t frameIdx = 0;
     bool resizeRequested = false;
     UniformBufferObject ubo = {};
 

@@ -9,7 +9,8 @@ public:
 
     ~FinalRenderpass() override = default;
 
-    void recordCommands(VkCommandBuffer commandBuffer, uint32_t framebufferIdx, VkRect2D renderArea) override;
+    void
+    recordCommands(VkCommandBuffer commandBuffer, VkRect2D renderArea, uint32_t frameIdx, uint32_t imageIdx) override;
 
     void createRenderpass() override;
     void createFramebuffers(uint32_t width, uint32_t height, uint32_t targetImagesCount,

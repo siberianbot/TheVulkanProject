@@ -233,7 +233,14 @@ SceneRenderpass::SceneRenderpass(const DeviceData &deviceData, VkPipelineLayout 
     //
 }
 
-void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, uint32_t framebufferIdx, VkRect2D renderArea) {
+SceneRenderpass::~SceneRenderpass() {
+    if (_pipeline != VK_NULL_HANDLE) {
+        vkDestroyPipeline(this->_deviceData.device, this->_pipeline, nullptr);
+    }
+}
+
+void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D renderArea, uint32_t frameIdx,
+                                     uint32_t imageIdx) {
     const std::array<VkClearValue, 2> clearValues = {
             VkClearValue{.color = {{0, 0, 0, 1}}},
             VkClearValue{.depthStencil = {1, 0}}
@@ -243,7 +250,7 @@ void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, uint32_t fra
             .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
             .pNext = nullptr,
             .renderPass = this->_renderpass,
-            .framebuffer = this->_framebuffers[framebufferIdx],
+            .framebuffer = this->_framebuffers[imageIdx],
             .renderArea = renderArea,
             .clearValueCount = static_cast<uint32_t>(clearValues.size()),
             .pClearValues = clearValues.data()
@@ -272,7 +279,7 @@ void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, uint32_t fra
     int idx = 0;
     for (BoundMeshInfo *mesh: this->_meshes) {
         VkDeviceSize offset = 0;
-        VkDescriptorSet descriptorSet = mesh->descriptorSets[framebufferIdx];
+        VkDescriptorSet descriptorSet = mesh->descriptorSets[frameIdx];
 
         Constants constants = {
                 .model = mesh->model

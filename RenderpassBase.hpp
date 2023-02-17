@@ -7,11 +7,13 @@
 
 #include "RendererTypes.hpp"
 
-enum RenderpassFlags {
+enum RenderpassFlag {
     RENDERPASS_NONE = 0,
     RENDERPASS_FIRST = 0b01,
     RENDERPASS_LAST = 0b10,
 };
+
+typedef uint32_t RenderpassFlags;
 
 class RenderpassBase {
 protected:
@@ -25,7 +27,8 @@ public:
 
     virtual ~RenderpassBase();
 
-    virtual void recordCommands(VkCommandBuffer commandBuffer, uint32_t framebufferIdx, VkRect2D renderArea) = 0;
+    virtual void
+    recordCommands(VkCommandBuffer commandBuffer, VkRect2D renderArea, uint32_t frameIdx, uint32_t imageIdx) = 0;
 
     virtual void createRenderpass();
     virtual void createFramebuffers(uint32_t width, uint32_t height, uint32_t targetImagesCount,
