@@ -147,7 +147,7 @@ VkRenderPass VulkanRenderpassBuilder::build() {
     };
 
     const VkRenderPassCreateInfo renderPassCreateInfo = {
-            .sType = VkStructureType::VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
+            .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
             .pNext = nullptr,
             .flags = 0,
             .attachmentCount = static_cast<uint32_t>(attachments.size()),

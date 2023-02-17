@@ -14,7 +14,7 @@ protected:
 
 public:
     explicit RenderpassBase(const RenderingDevice &renderingDevice);
-    virtual ~RenderpassBase();
+    virtual ~RenderpassBase() = default;
 
     virtual void recordCommands(VkCommandBuffer commandBuffer, VkRect2D renderArea,
                                 uint32_t frameIdx, uint32_t imageIdx) = 0;

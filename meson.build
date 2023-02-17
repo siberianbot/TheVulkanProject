@@ -18,7 +18,8 @@ src = [
     'SceneRenderpass.cpp',
     # 'SkyboxRenderpass.cpp',
     'VulkanRenderpassBuilder.cpp',
-    'Rendering/VulkanFramebuffersBuilder.cpp'
+    'Rendering/VulkanFramebuffersBuilder.cpp',
+    'Rendering/VulkanPipelineBuilder.cpp'
 ]
 
 # shaders compilation

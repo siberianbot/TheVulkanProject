@@ -11,12 +11,9 @@ private:
     VkPipeline _pipeline = VK_NULL_HANDLE;
     std::vector<BoundMeshInfo *> _meshes;
 
-    VkShaderModule createShaderModule(const std::string &path);
-    void createPipeline();
-
 public:
     SceneRenderpass(const RenderingDevice &renderingDevice, VkPipelineLayout pipelineLayout);
-    ~SceneRenderpass() override;
+    ~SceneRenderpass() override = default;
 
     void recordCommands(VkCommandBuffer commandBuffer, VkRect2D renderArea,
                         uint32_t frameIdx, uint32_t imageIdx) override;

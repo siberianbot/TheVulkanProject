@@ -14,9 +14,6 @@ static constexpr std::array<const char *, 1> VK_DEVICE_EXTENSIONS = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
 
-static constexpr const char *VK_DEFAULT_VERTEX_SHADER = "shaders/default.vert.spv";
-static constexpr const char *VK_DEFAULT_FRAGMENT_SHADER = "shaders/default.frag.spv";
-
 struct BufferData {
     VkBuffer buffer;
     VkDeviceMemory memory;

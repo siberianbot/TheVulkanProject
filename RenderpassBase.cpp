@@ -8,12 +8,6 @@ RenderpassBase::RenderpassBase(const RenderingDevice &renderingDevice)
     //
 }
 
-RenderpassBase::~RenderpassBase() {
-    if (this->_renderpass != VK_NULL_HANDLE) {
-        vkDestroyRenderPass(this->_renderingDevice.device, this->_renderpass, nullptr);
-    }
-}
-
 void RenderpassBase::destroyRenderpass() {
     vkDestroyRenderPass(this->_renderingDevice.device, this->_renderpass, nullptr);
 }

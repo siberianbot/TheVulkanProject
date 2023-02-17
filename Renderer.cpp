@@ -326,6 +326,7 @@ void Renderer::cleanup() {
 
     this->_sceneRenderpass = nullptr;
     for (RenderpassBase *renderpass: this->_renderpasses) {
+        renderpass->destroyRenderpass();
         delete renderpass;
     }
 
