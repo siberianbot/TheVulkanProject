@@ -13,8 +13,7 @@ public:
 
     void initRenderpass() override;
 
-    void createFramebuffers(uint32_t width, uint32_t height, uint32_t targetImagesCount,
-                            const std::vector<std::vector<VkImageView>> &targetImageGroups) override;
+    void createFramebuffers(const Swapchain &swapchain, const RenderTargets &renderTargets) override;
 };
 
 #endif // FINALRENDERPASS_HPP

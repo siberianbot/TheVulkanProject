@@ -300,20 +300,22 @@ void Renderer::init() {
     this->_renderpasses.push_back(this->_sceneRenderpass);
     this->_renderpasses.push_back(new FinalRenderpass(renderingDevice));
 
-    std::vector<VkImageView> colorImageViews(this->swapchainImageViews.size(), this->colorImageView);
-    std::vector<VkImageView> depthImageViews(this->swapchainImageViews.size(), this->depthImageView);
+    uint32_t swapchainImagesCount = this->swapchainImageViews.size();
+    Swapchain swapchain_ = {
+            .width = this->swapchainExtent.width,
+            .height = this->swapchainExtent.height,
+            .swapchainImagesCount = swapchainImagesCount
+    };
 
-    std::vector<std::vector<VkImageView>> imageGroups = {
-            colorImageViews,
-            depthImageViews,
-            this->swapchainImageViews
+    RenderTargets renderTargets = {
+            .colorGroup = std::vector<VkImageView>(swapchainImagesCount, this->colorImageView),
+            .depthGroup = std::vector<VkImageView>(swapchainImagesCount, this->depthImageView),
+            .resolveGroup = this->swapchainImageViews
     };
 
     for (RenderpassBase *renderpass: this->_renderpasses) {
         renderpass->initRenderpass();
-        renderpass->createFramebuffers(this->swapchainExtent.width, this->swapchainExtent.height,
-                                       this->swapchainImageViews.size(),
-                                       imageGroups);
+        renderpass->createFramebuffers(swapchain_, renderTargets);
     }
 }
 
@@ -745,19 +747,21 @@ void Renderer::handleResize() {
     initSwapchain();
     initSwapchainResources();
 
-    std::vector<VkImageView> colorImageViews(this->swapchainImageViews.size(), this->colorImageView);
-    std::vector<VkImageView> depthImageViews(this->swapchainImageViews.size(), this->depthImageView);
+    uint32_t swapchainImagesCount = this->swapchainImageViews.size();
+    Swapchain swapchain_ = {
+            .width = this->swapchainExtent.width,
+            .height = this->swapchainExtent.height,
+            .swapchainImagesCount = swapchainImagesCount
+    };
 
-    std::vector<std::vector<VkImageView>> imageGroups = {
-            colorImageViews,
-            depthImageViews,
-            this->swapchainImageViews
+    RenderTargets renderTargets = {
+            .colorGroup = std::vector<VkImageView>(swapchainImagesCount, this->colorImageView),
+            .depthGroup = std::vector<VkImageView>(swapchainImagesCount, this->depthImageView),
+            .resolveGroup = this->swapchainImageViews
     };
 
     for (RenderpassBase *renderpass: this->_renderpasses) {
-        renderpass->createFramebuffers(this->swapchainExtent.width, this->swapchainExtent.height,
-                                       this->swapchainImageViews.size(),
-                                       imageGroups);
+        renderpass->createFramebuffers(swapchain_, renderTargets);
     }
 }
 

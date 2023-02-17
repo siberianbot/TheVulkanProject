@@ -12,4 +12,16 @@ struct RenderingDevice {
     VkSampleCountFlagBits samples;
 };
 
+struct Swapchain {
+    uint32_t width;
+    uint32_t height;
+    uint32_t swapchainImagesCount;
+};
+
+struct RenderTargets {
+    std::vector<VkImageView> colorGroup;
+    std::vector<VkImageView> depthGroup;
+    std::vector<VkImageView> resolveGroup;
+};
+
 #endif // ANOTHERVULKANTYPES_HPP

@@ -22,8 +22,7 @@ public:
     virtual void initRenderpass() = 0;
     virtual void destroyRenderpass();
 
-    virtual void createFramebuffers(uint32_t width, uint32_t height, uint32_t targetImagesCount,
-                                    const std::vector<std::vector<VkImageView>> &targetImageGroups);
+    virtual void createFramebuffers(const Swapchain &swapchain, const RenderTargets &renderTargets);
     void destroyFramebuffers();
 };
 
