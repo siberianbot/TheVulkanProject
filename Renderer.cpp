@@ -10,8 +10,10 @@
 #include "Engine.hpp"
 #include "ClearRenderpass.hpp"
 #include "FinalRenderpass.hpp"
+#include "VulkanCommon.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
+
 #include <stb/stb_image.h>
 
 static constexpr VkFormat VK_DEPTH_FORMATS[] = {
@@ -19,13 +21,6 @@ static constexpr VkFormat VK_DEPTH_FORMATS[] = {
         VK_FORMAT_D32_SFLOAT_S8_UINT,
         VK_FORMAT_D24_UNORM_S8_UINT
 };
-
-
-static constexpr void vkEnsure(VkResult vkExpression) {
-    if (vkExpression != VkResult::VK_SUCCESS) {
-        throw std::runtime_error("Vulkan runtime error");
-    }
-}
 
 VkSurfaceFormatKHR getPreferredSurfaceFormat(std::vector<VkSurfaceFormatKHR> formats) {
     auto it = std::find_if(formats.begin(), formats.end(), [](const VkSurfaceFormatKHR &format) {
@@ -62,25 +57,6 @@ VkExtent2D getPreferredExtent(VkSurfaceCapabilitiesKHR capabilities, VkExtent2D 
                                       capabilities.maxImageExtent.height);
 
     return currentExtent;
-}
-
-uint32_t Renderer::getSuitableMemoryType(uint32_t memoryType, VkMemoryPropertyFlags memoryProperty) {
-    VkPhysicalDeviceMemoryProperties memoryProperties;
-    vkGetPhysicalDeviceMemoryProperties(this->physicalDevice, &memoryProperties);
-
-    for (uint32_t idx = 0; idx < memoryProperties.memoryTypeCount; idx++) {
-        bool memoryTypeMatches = memoryType & (1 << idx);
-        bool memoryPropertyMatches =
-                (memoryProperties.memoryTypes[idx].propertyFlags & memoryProperty) == memoryProperty;
-
-        if (!memoryTypeMatches || !memoryPropertyMatches) {
-            continue;
-        }
-
-        return idx;
-    }
-
-    throw std::runtime_error("not available");
 }
 
 VkSampleCountFlagBits getSuitableSampleCount(VkPhysicalDeviceProperties deviceProperties) {
@@ -268,29 +244,12 @@ VkImage Renderer::createImage(uint32_t width, uint32_t height, VkFormat format, 
     return image;
 }
 
-VkBuffer Renderer::createBuffer(VkDeviceSize size, VkBufferUsageFlags usage) {
-    VkBufferCreateInfo bufferCreateInfo = {
-            .sType = VkStructureType::VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-            .pNext = nullptr,
-            .flags = 0,
-            .size = size,
-            .usage = usage,
-            .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-            .queueFamilyIndexCount = 0,
-            .pQueueFamilyIndices = nullptr
-    };
-
-    VkBuffer buffer;
-    vkEnsure(vkCreateBuffer(this->device, &bufferCreateInfo, nullptr, &buffer));
-
-    return buffer;
-}
-
 VkDeviceMemory Renderer::allocateMemoryForImage(VkImage image, VkMemoryPropertyFlags memoryProperty) {
     VkMemoryRequirements memoryRequirements;
     vkGetImageMemoryRequirements(this->device, image, &memoryRequirements);
 
-    uint32_t memoryType = getSuitableMemoryType(memoryRequirements.memoryTypeBits, memoryProperty);
+    uint32_t memoryType = vkGetSuitableMemoryType(this->physicalDevice,
+                                                  memoryRequirements.memoryTypeBits, memoryProperty);
 
     VkMemoryAllocateInfo memoryAllocateInfo = {
             .sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
@@ -302,26 +261,6 @@ VkDeviceMemory Renderer::allocateMemoryForImage(VkImage image, VkMemoryPropertyF
     VkDeviceMemory memory;
     vkEnsure(vkAllocateMemory(this->device, &memoryAllocateInfo, nullptr, &memory));
     vkEnsure(vkBindImageMemory(this->device, image, memory, 0));
-
-    return memory;
-}
-
-VkDeviceMemory Renderer::allocateMemoryForBuffer(VkBuffer buffer, VkMemoryPropertyFlags memoryProperty) {
-    VkMemoryRequirements memoryRequirements;
-    vkGetBufferMemoryRequirements(this->device, buffer, &memoryRequirements);
-
-    uint32_t memoryType = getSuitableMemoryType(memoryRequirements.memoryTypeBits, memoryProperty);
-
-    VkMemoryAllocateInfo memoryAllocateInfo = {
-            .sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-            .pNext = nullptr,
-            .allocationSize = memoryRequirements.size,
-            .memoryTypeIndex = memoryType
-    };
-
-    VkDeviceMemory memory;
-    vkEnsure(vkAllocateMemory(this->device, &memoryAllocateInfo, nullptr, &memory));
-    vkEnsure(vkBindBufferMemory(this->device, buffer, memory, 0));
 
     return memory;
 }
@@ -349,17 +288,17 @@ void Renderer::init() {
     initSwapchain();
     initSwapchainResources();
 
-    DeviceData deviceData = {
+    RenderingDevice renderingDevice = {
             .device = this->device,
             .colorFormat = this->swapchainFormat,
             .depthFormat = this->physicalDeviceInfo.depthFormat.value(),
-            .msaaSamples = this->physicalDeviceInfo.msaaSamples
+            .samples = this->physicalDeviceInfo.msaaSamples
     };
 
-    this->_renderpasses.push_back(new ClearRenderpass(deviceData));
-    this->_sceneRenderpass = new SceneRenderpass(deviceData, this->pipelineLayout);
+    this->_renderpasses.push_back(new ClearRenderpass(renderingDevice));
+    this->_sceneRenderpass = new SceneRenderpass(renderingDevice, this->pipelineLayout);
     this->_renderpasses.push_back(this->_sceneRenderpass);
-    this->_renderpasses.push_back(new FinalRenderpass(deviceData));
+    this->_renderpasses.push_back(new FinalRenderpass(renderingDevice));
 
     std::vector<VkImageView> colorImageViews(this->swapchainImageViews.size(), this->colorImageView);
     std::vector<VkImageView> depthImageViews(this->swapchainImageViews.size(), this->depthImageView);
@@ -371,7 +310,7 @@ void Renderer::init() {
     };
 
     for (RenderpassBase *renderpass: this->_renderpasses) {
-        renderpass->createRenderpass();
+        renderpass->initRenderpass();
         renderpass->createFramebuffers(this->swapchainExtent.width, this->swapchainExtent.height,
                                        this->swapchainImageViews.size(),
                                        imageGroups);
@@ -667,9 +606,11 @@ void Renderer::initUniformBuffers() {
     VkDeviceSize uboSize = sizeof(UniformBufferObject);
 
     for (size_t idx = 0; idx < VK_MAX_INFLIGHT_FRAMES; idx++) {
-        VkBuffer buffer = createBuffer(uboSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
-        VkDeviceMemory memory = allocateMemoryForBuffer(buffer, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                                                                VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        VkBuffer buffer = createBuffer(this->device, uboSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
+        VkDeviceMemory memory = allocateMemoryForBuffer(this->device, this->physicalDevice,
+                                                        buffer,
+                                                        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                                        VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
         this->uniformBuffers[idx] = buffer;
         this->uniformBufferMemory[idx] = memory;
@@ -911,11 +852,13 @@ BufferData Renderer::uploadVertices(const std::vector<Vertex> &vertices) {
 
     VkDeviceSize size = sizeof(vertices[0]) * vertices.size();
 
-    VkBuffer buffer = createBuffer(size, VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_SRC_BIT |
-                                         VkBufferUsageFlagBits::VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
-    VkDeviceMemory memory = allocateMemoryForBuffer(buffer, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                                                            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT |
-                                                            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    VkBuffer buffer = createBuffer(this->device, size, VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_SRC_BIT |
+                                                       VkBufferUsageFlagBits::VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+    VkDeviceMemory memory = allocateMemoryForBuffer(this->device, this->physicalDevice,
+                                                    buffer,
+                                                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                                    VK_MEMORY_PROPERTY_HOST_COHERENT_BIT |
+                                                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
     void *data;
     vkMapMemory(this->device, memory, 0, size, 0, &data);
@@ -933,11 +876,13 @@ BufferData Renderer::uploadIndices(const std::vector<uint32_t> &indices) {
 
     VkDeviceSize size = sizeof(indices[0]) * indices.size();
 
-    VkBuffer buffer = createBuffer(size, VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_SRC_BIT |
-                                         VkBufferUsageFlagBits::VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
-    VkDeviceMemory memory = allocateMemoryForBuffer(buffer, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                                                            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT |
-                                                            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    VkBuffer buffer = createBuffer(this->device, size, VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_SRC_BIT |
+                                                       VkBufferUsageFlagBits::VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+    VkDeviceMemory memory = allocateMemoryForBuffer(this->device, this->physicalDevice,
+                                                    buffer,
+                                                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                                    VK_MEMORY_PROPERTY_HOST_COHERENT_BIT |
+                                                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
     void *data;
     vkMapMemory(this->device, memory, 0, size, 0, &data);
@@ -956,9 +901,11 @@ TextureData Renderer::uploadTexture(const std::string &texturePath) {
 
     VkDeviceSize imageSize = width * height * 4;
 
-    VkBuffer stagingBuffer = createBuffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
-    VkDeviceMemory stagingBufferMemory = allocateMemoryForBuffer(stagingBuffer, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                                                                                VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    VkBuffer stagingBuffer = createBuffer(this->device, imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
+    VkDeviceMemory stagingBufferMemory = allocateMemoryForBuffer(this->device, this->physicalDevice,
+                                                                 stagingBuffer,
+                                                                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                                                 VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
     void *data;
     vkMapMemory(this->device, stagingBufferMemory, 0, imageSize, 0, &data);

@@ -100,15 +100,12 @@ private:
     UniformBufferObject ubo = {};
 
     PhysicalDeviceInfo getPhysicalDeviceInfo(VkPhysicalDevice device);
-    uint32_t getSuitableMemoryType(uint32_t memoryType, VkMemoryPropertyFlags memoryProperty);
 
     VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectMask);
     VkImage createImage(uint32_t width, uint32_t height, VkFormat format, VkImageUsageFlags usage,
                         VkSampleCountFlagBits samples);
-    VkBuffer createBuffer(VkDeviceSize size, VkBufferUsageFlags usage);
 
     VkDeviceMemory allocateMemoryForImage(VkImage image, VkMemoryPropertyFlags memoryProperty);
-    VkDeviceMemory allocateMemoryForBuffer(VkBuffer buffer, VkMemoryPropertyFlags memoryProperty);
 
     void initInstance();
 

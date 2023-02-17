@@ -2,13 +2,15 @@
 
 #include <array>
 
-ClearRenderpass::ClearRenderpass(const DeviceData &deviceData)
-        : RenderpassBase(RENDERPASS_FIRST, deviceData) {
+#include "VulkanRenderpassBuilder.hpp"
+
+ClearRenderpass::ClearRenderpass(const RenderingDevice &renderingDevice)
+        : RenderpassBase(renderingDevice) {
     //
 }
 
-void ClearRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D renderArea, uint32_t frameIdx,
-                                     uint32_t imageIdx) {
+void ClearRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D renderArea,
+                                     uint32_t frameIdx, uint32_t imageIdx) {
     const std::array<VkClearValue, 2> clearValues = {
             VkClearValue{.color = {{0, 0, 0, 1}}},
             VkClearValue{.depthStencil = {1, 0}}
@@ -26,4 +28,10 @@ void ClearRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D ren
 
     vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
     vkCmdEndRenderPass(commandBuffer);
+}
+
+void ClearRenderpass::initRenderpass() {
+    this->_renderpass = VulkanRenderpassBuilder(this->_renderingDevice)
+            .clear()
+            .build();
 }

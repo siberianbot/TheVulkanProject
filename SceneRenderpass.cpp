@@ -5,6 +5,7 @@
 
 #include "Mesh.hpp"
 #include "VulkanCommon.hpp"
+#include "VulkanRenderpassBuilder.hpp"
 
 VkShaderModule SceneRenderpass::createShaderModule(const std::string &path) {
     std::ifstream file(path, std::ios::ate | std::ios::binary);
@@ -28,7 +29,7 @@ VkShaderModule SceneRenderpass::createShaderModule(const std::string &path) {
     };
 
     VkShaderModule shaderModule;
-    vkEnsure(vkCreateShaderModule(this->_deviceData.device, &shaderModuleCreateInfo, nullptr, &shaderModule));
+    vkEnsure(vkCreateShaderModule(this->_renderingDevice.device, &shaderModuleCreateInfo, nullptr, &shaderModule));
 
     return shaderModule;
 }
@@ -137,7 +138,7 @@ void SceneRenderpass::createPipeline() {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
             .pNext = nullptr,
             .flags = 0,
-            .rasterizationSamples = this->_deviceData.msaaSamples,
+            .rasterizationSamples = this->_renderingDevice.samples,
             .sampleShadingEnable = VK_FALSE,
             .minSampleShading = 0,
             .pSampleMask = nullptr,
@@ -220,40 +221,35 @@ void SceneRenderpass::createPipeline() {
             .basePipelineIndex = 0
     };
 
-    vkEnsure(vkCreateGraphicsPipelines(this->_deviceData.device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr,
+    vkEnsure(vkCreateGraphicsPipelines(this->_renderingDevice.device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr,
                                        &this->_pipeline));
 
-    vkDestroyShaderModule(this->_deviceData.device, vertexShaderModule, nullptr);
-    vkDestroyShaderModule(this->_deviceData.device, fragmentShaderModule, nullptr);
+    vkDestroyShaderModule(this->_renderingDevice.device, vertexShaderModule, nullptr);
+    vkDestroyShaderModule(this->_renderingDevice.device, fragmentShaderModule, nullptr);
 }
 
-SceneRenderpass::SceneRenderpass(const DeviceData &deviceData, VkPipelineLayout pipelineLayout)
-        : RenderpassBase(RENDERPASS_NONE, deviceData),
+SceneRenderpass::SceneRenderpass(const RenderingDevice &renderingDevice, VkPipelineLayout pipelineLayout)
+        : RenderpassBase(renderingDevice),
           _pipelineLayout(pipelineLayout) {
     //
 }
 
 SceneRenderpass::~SceneRenderpass() {
     if (_pipeline != VK_NULL_HANDLE) {
-        vkDestroyPipeline(this->_deviceData.device, this->_pipeline, nullptr);
+        vkDestroyPipeline(this->_renderingDevice.device, this->_pipeline, nullptr);
     }
 }
 
-void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D renderArea, uint32_t frameIdx,
-                                     uint32_t imageIdx) {
-    const std::array<VkClearValue, 2> clearValues = {
-            VkClearValue{.color = {{0, 0, 0, 1}}},
-            VkClearValue{.depthStencil = {1, 0}}
-    };
-
+void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D renderArea,
+                                     uint32_t frameIdx, uint32_t imageIdx) {
     const VkRenderPassBeginInfo renderPassBeginInfo = {
             .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
             .pNext = nullptr,
             .renderPass = this->_renderpass,
             .framebuffer = this->_framebuffers[imageIdx],
             .renderArea = renderArea,
-            .clearValueCount = static_cast<uint32_t>(clearValues.size()),
-            .pClearValues = clearValues.data()
+            .clearValueCount = 0,
+            .pClearValues = nullptr
     };
 
     vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
@@ -299,9 +295,18 @@ void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D ren
     vkCmdEndRenderPass(commandBuffer);
 }
 
-void SceneRenderpass::createRenderpass() {
-    RenderpassBase::createRenderpass();
+void SceneRenderpass::initRenderpass() {
+    this->_renderpass = VulkanRenderpassBuilder(this->_renderingDevice)
+            .load()
+            .build();
+
     createPipeline();
+}
+
+void SceneRenderpass::destroyRenderpass() {
+    vkDestroyPipeline(this->_renderingDevice.device, this->_pipeline, nullptr);
+
+    RenderpassBase::destroyRenderpass();
 }
 
 void SceneRenderpass::addMesh(BoundMeshInfo *mesh) {

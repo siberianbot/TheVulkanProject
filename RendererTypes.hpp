@@ -41,11 +41,4 @@ struct Constants {
     alignas(16) glm::mat4 model;
 };
 
-struct DeviceData {
-    VkDevice device;
-    VkFormat colorFormat;
-    VkFormat depthFormat;
-    VkSampleCountFlagBits msaaSamples;
-};
-
 #endif // RENDERERTYPES_HPP
