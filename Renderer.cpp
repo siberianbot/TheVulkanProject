@@ -4,7 +4,6 @@
 #include <iostream>
 #include <array>
 #include <limits>
-#include <fstream>
 
 #include "Constants.hpp"
 #include "Engine.hpp"
@@ -13,7 +12,6 @@
 #include "VulkanCommon.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
-
 #include <stb/stb_image.h>
 
 static constexpr VkFormat VK_DEPTH_FORMATS[] = {
@@ -277,14 +275,6 @@ void Renderer::init() {
     initPhysicalDevice();
     initDevice();
 
-    initCommand();
-    initSync();
-
-    initUniformBuffers();
-    initTextureSampler();
-    initDescriptors();
-    initLayouts();
-
     initSwapchain();
     initSwapchainResources();
 
@@ -292,8 +282,19 @@ void Renderer::init() {
             .device = this->device,
             .colorFormat = this->swapchainFormat,
             .depthFormat = this->physicalDeviceInfo.depthFormat.value(),
-            .samples = this->physicalDeviceInfo.msaaSamples
+            .samples = this->physicalDeviceInfo.msaaSamples,
+            .graphicsQueue = this->graphicsQueue,
+            .graphicsQueueFamilyIdx = this->physicalDeviceInfo.graphicsFamilyIdx.value()
     };
+
+    this->_vulkanCommandExecutor = new VulkanCommandExecutor(renderingDevice);
+
+    initSync();
+
+    initUniformBuffers();
+    initTextureSampler();
+    initDescriptors();
+    initLayouts();
 
     this->_renderpasses.push_back(new ClearRenderpass(renderingDevice));
     this->_sceneRenderpass = new SceneRenderpass(renderingDevice, this->pipelineLayout);
@@ -347,8 +348,8 @@ void Renderer::cleanup() {
         vkDestroyBuffer(this->device, this->uniformBuffers[idx], nullptr);
     }
 
-    vkFreeCommandBuffers(this->device, this->commandPool, VK_MAX_INFLIGHT_FRAMES, this->commandBuffers.data());
-    vkDestroyCommandPool(this->device, this->commandPool, nullptr);
+    delete this->_vulkanCommandExecutor;
+
     vkDestroyDevice(this->device, nullptr);
     vkDestroySurfaceKHR(this->instance, this->surface, nullptr);
     vkDestroyInstance(this->instance, nullptr);
@@ -543,27 +544,6 @@ void Renderer::initSwapchain() {
     }
 }
 
-void Renderer::initCommand() {
-    VkCommandPoolCreateInfo commandPoolCreateInfo = {
-            .sType = VkStructureType::VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-            .pNext = nullptr,
-            .flags = VkCommandPoolCreateFlagBits::VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-            .queueFamilyIndex = this->physicalDeviceInfo.graphicsFamilyIdx.value()
-    };
-
-    vkEnsure(vkCreateCommandPool(this->device, &commandPoolCreateInfo, nullptr, &this->commandPool));
-
-    VkCommandBufferAllocateInfo commandBufferAllocateInfo = {
-            .sType = VkStructureType::VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-            .pNext = nullptr,
-            .commandPool = this->commandPool,
-            .level = VkCommandBufferLevel::VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-            .commandBufferCount = VK_MAX_INFLIGHT_FRAMES
-    };
-
-    vkEnsure(vkAllocateCommandBuffers(this->device, &commandBufferAllocateInfo, this->commandBuffers.data()));
-}
-
 void Renderer::initSwapchainResources() {
     // color
     this->colorImage = createImage(this->swapchainExtent.width, this->swapchainExtent.height,
@@ -743,6 +723,7 @@ void Renderer::handleResize() {
 
     cleanupSwapchain();
 
+    // TODO костыль
     this->physicalDeviceInfo = getPhysicalDeviceInfo(this->physicalDevice);
 
     initSwapchain();
@@ -770,7 +751,6 @@ void Renderer::render() {
     VkFence currentFence = this->fences[frameIdx];
     VkSemaphore currentImageAvailableSemaphore = this->imageAvailableSemaphores[frameIdx];
     VkSemaphore currentRenderFinishedSemaphore = this->renderFinishedSemaphores[frameIdx];
-    VkCommandBuffer currentCommandBuffer = this->commandBuffers[frameIdx];
 
     vkWaitForFences(this->device, 1, &currentFence, VK_TRUE, UINT64_MAX);
     vkResetFences(this->device, 1, &currentFence);
@@ -793,41 +773,21 @@ void Renderer::render() {
     ubo.proj[1][1] *= -1;
     memcpy(this->uniformBufferMemoryMapped[frameIdx], &ubo, sizeof(ubo));
 
-    vkResetCommandBuffer(currentCommandBuffer, 0);
+    this->_vulkanCommandExecutor->beginMainExecution(frameIdx, [this, &imageIdx](VkCommandBuffer cmdBuffer) {
+                VkRect2D renderArea = VkRect2D{
+                        .offset = {0, 0},
+                        .extent = this->swapchainExtent
+                };
 
-    VkCommandBufferBeginInfo commandBufferBeginInfo = {
-            .sType = VkStructureType::VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-            .pNext = nullptr,
-            .flags = 0,
-            .pInheritanceInfo = nullptr
-    };
-    vkEnsure(vkBeginCommandBuffer(currentCommandBuffer, &commandBufferBeginInfo));
-
-    VkRect2D renderArea = VkRect2D{
-            .offset = {0, 0},
-            .extent = this->swapchainExtent
-    };
-
-    for (RenderpassBase *renderpass: this->_renderpasses) {
-        renderpass->recordCommands(currentCommandBuffer, renderArea, frameIdx, imageIdx);
-    }
-
-    vkEnsure(vkEndCommandBuffer(currentCommandBuffer));
-
-    VkPipelineStageFlags waitDstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-
-    VkSubmitInfo submitInfo = {
-            .sType = VkStructureType::VK_STRUCTURE_TYPE_SUBMIT_INFO,
-            .pNext = nullptr,
-            .waitSemaphoreCount = 1,
-            .pWaitSemaphores = &currentImageAvailableSemaphore,
-            .pWaitDstStageMask = &waitDstStageMask,
-            .commandBufferCount = 1,
-            .pCommandBuffers = &currentCommandBuffer,
-            .signalSemaphoreCount = 1,
-            .pSignalSemaphores = &currentRenderFinishedSemaphore
-    };
-    vkEnsure(vkQueueSubmit(this->graphicsQueue, 1, &submitInfo, currentFence));
+                for (RenderpassBase *renderpass: this->_renderpasses) {
+                    renderpass->recordCommands(cmdBuffer, renderArea, frameIdx, imageIdx);
+                }
+            })
+            .withFence(currentFence)
+            .withWaitSemaphore(currentImageAvailableSemaphore)
+            .withSignalSemaphore(currentRenderFinishedSemaphore)
+            .withWaitDstStageMask(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT)
+            .submit(false);
 
     VkPresentInfoKHR presentInfo = {
             .sType = VkStructureType::VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
@@ -925,99 +885,71 @@ TextureData Renderer::uploadTexture(const std::string &texturePath) {
                                 VK_SAMPLE_COUNT_1_BIT);
     VkDeviceMemory imageMemory = allocateMemoryForImage(image, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-    VkCommandBuffer tempCommandBuffer;
-    VkCommandBufferAllocateInfo tempCommandBufferAllocateInfo = {
-            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-            .pNext = nullptr,
-            .commandPool = this->commandPool,
-            .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-            .commandBufferCount = 1
-    };
-    vkEnsure(vkAllocateCommandBuffers(this->device, &tempCommandBufferAllocateInfo, &tempCommandBuffer));
+    this->_vulkanCommandExecutor->beginOneTimeExecution(
+                    [&image, &width, &height, &stagingBuffer](VkCommandBuffer cmdBuffer) {
+                        VkImageMemoryBarrier imageMemoryBarrier = {
+                                .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                                .pNext = nullptr,
+                                .srcAccessMask = 0,
+                                .dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
+                                .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+                                .newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                                .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                                .image = image,
+                                .subresourceRange = {
+                                        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                                        .baseMipLevel = 0,
+                                        .levelCount = 1,
+                                        .baseArrayLayer = 0,
+                                        .layerCount = 1
+                                }
+                        };
+                        vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                                             VK_PIPELINE_STAGE_TRANSFER_BIT,
+                                             0, 0, nullptr, 0, nullptr, 1, &imageMemoryBarrier);
 
-    VkCommandBufferBeginInfo tempCommandBufferBeginInfo = {
-            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-            .pNext = nullptr,
-            .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
-            .pInheritanceInfo = nullptr
-    };
-    vkEnsure(vkBeginCommandBuffer(tempCommandBuffer, &tempCommandBufferBeginInfo));
+                        VkBufferImageCopy bufferImageCopy = {
+                                .bufferOffset = 0,
+                                .bufferRowLength = 0,
+                                .bufferImageHeight = 0,
+                                .imageSubresource = {
+                                        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                                        .mipLevel = 0,
+                                        .baseArrayLayer = 0,
+                                        .layerCount = 1
+                                },
+                                .imageOffset = {0, 0, 0},
+                                .imageExtent = {(uint32_t) width, (uint32_t) height, 1}
+                        };
+                        vkCmdCopyBufferToImage(cmdBuffer, stagingBuffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1,
+                                               &bufferImageCopy);
 
-    VkImageMemoryBarrier imageMemoryBarrier = {
-            .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-            .pNext = nullptr,
-            .srcAccessMask = 0,
-            .dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
-            .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-            .newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-            .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-            .image = image,
-            .subresourceRange = {
-                    .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-                    .baseMipLevel = 0,
-                    .levelCount = 1,
-                    .baseArrayLayer = 0,
-                    .layerCount = 1
-            }
-    };
-    vkCmdPipelineBarrier(tempCommandBuffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
-                         0, 0, nullptr, 0, nullptr, 1, &imageMemoryBarrier);
+                        VkImageMemoryBarrier anotherImageMemoryBarrier = {
+                                .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                                .pNext = nullptr,
+                                .srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
+                                .dstAccessMask = VK_ACCESS_SHADER_READ_BIT,
+                                .oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                                .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                                .image = image,
+                                .subresourceRange = {
+                                        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                                        .baseMipLevel = 0,
+                                        .levelCount = 1,
+                                        .baseArrayLayer = 0,
+                                        .layerCount = 1
+                                }
+                        };
+                        vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT,
+                                             VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                                             0, 0, nullptr, 0, nullptr, 1, &anotherImageMemoryBarrier);
 
-    VkBufferImageCopy bufferImageCopy = {
-            .bufferOffset = 0,
-            .bufferRowLength = 0,
-            .bufferImageHeight = 0,
-            .imageSubresource = {
-                    .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-                    .mipLevel = 0,
-                    .baseArrayLayer = 0,
-                    .layerCount = 1
-            },
-            .imageOffset = {0, 0, 0},
-            .imageExtent = {(uint32_t) width, (uint32_t) height, 1}
-    };
-    vkCmdCopyBufferToImage(tempCommandBuffer, stagingBuffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1,
-                           &bufferImageCopy);
+                    })
+            .submit(true);
 
-    VkImageMemoryBarrier anotherImageMemoryBarrier = {
-            .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-            .pNext = nullptr,
-            .srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
-            .dstAccessMask = VK_ACCESS_SHADER_READ_BIT,
-            .oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-            .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-            .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-            .image = image,
-            .subresourceRange = {
-                    .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-                    .baseMipLevel = 0,
-                    .levelCount = 1,
-                    .baseArrayLayer = 0,
-                    .layerCount = 1
-            }
-    };
-    vkCmdPipelineBarrier(tempCommandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-                         0, 0, nullptr, 0, nullptr, 1, &anotherImageMemoryBarrier);
-
-    vkEnsure(vkEndCommandBuffer(tempCommandBuffer));
-
-    VkSubmitInfo submitInfo = {
-            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-            .pNext = nullptr,
-            .waitSemaphoreCount = 0,
-            .pWaitSemaphores = nullptr,
-            .pWaitDstStageMask = nullptr,
-            .commandBufferCount = 1,
-            .pCommandBuffers = &tempCommandBuffer,
-            .signalSemaphoreCount = 0,
-            .pSignalSemaphores = nullptr
-    };
-    vkEnsure(vkQueueSubmit(this->graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE));
-    vkEnsure(vkQueueWaitIdle(this->graphicsQueue));
-
-    vkFreeCommandBuffers(this->device, this->commandPool, 1, &tempCommandBuffer);
     vkFreeMemory(this->device, stagingBufferMemory, nullptr);
     vkDestroyBuffer(this->device, stagingBuffer, nullptr);
 

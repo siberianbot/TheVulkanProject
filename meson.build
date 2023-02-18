@@ -19,7 +19,8 @@ src = [
     # 'SkyboxRenderpass.cpp',
     'VulkanRenderpassBuilder.cpp',
     'Rendering/VulkanFramebuffersBuilder.cpp',
-    'Rendering/VulkanPipelineBuilder.cpp'
+    'Rendering/VulkanPipelineBuilder.cpp',
+    'Rendering/VulkanCommandExecutor.cpp'
 ]
 
 # shaders compilation

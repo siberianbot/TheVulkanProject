@@ -13,6 +13,7 @@
 #include "RenderpassBase.hpp"
 #include "RendererTypes.hpp"
 #include "SceneRenderpass.hpp"
+#include "Rendering/VulkanCommandExecutor.hpp"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -69,8 +70,8 @@ private:
     VkQueue graphicsQueue;
     VkQueue presentQueue;
 
-    VkCommandPool commandPool;
-    std::array<VkCommandBuffer, VK_MAX_INFLIGHT_FRAMES> commandBuffers;
+    VulkanCommandExecutor *_vulkanCommandExecutor;
+
     std::array<VkFence, VK_MAX_INFLIGHT_FRAMES> fences;
     std::array<VkSemaphore, VK_MAX_INFLIGHT_FRAMES> imageAvailableSemaphores, renderFinishedSemaphores;
 
@@ -114,7 +115,6 @@ private:
     void initPhysicalDevice();
     void initDevice();
 
-    void initCommand();
     void initSync();
 
     void initUniformBuffers();

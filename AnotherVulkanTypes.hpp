@@ -10,6 +10,8 @@ struct RenderingDevice {
     VkFormat colorFormat;
     VkFormat depthFormat;
     VkSampleCountFlagBits samples;
+    VkQueue graphicsQueue;
+    uint32_t graphicsQueueFamilyIdx;
 };
 
 struct Swapchain {
