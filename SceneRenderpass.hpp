@@ -12,7 +12,7 @@ private:
     std::vector<BoundMeshInfo *> _meshes;
 
 public:
-    SceneRenderpass(const RenderingDevice &renderingDevice, VkPipelineLayout pipelineLayout);
+    SceneRenderpass(RenderingDevice *renderingDevice, VkPipelineLayout pipelineLayout);
     ~SceneRenderpass() override = default;
 
     void recordCommands(VkCommandBuffer commandBuffer, VkRect2D renderArea,

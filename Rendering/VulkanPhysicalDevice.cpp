@@ -1,5 +1,7 @@
 #include "VulkanPhysicalDevice.hpp"
 
+#include <set>
+
 #include "VulkanConstants.hpp"
 #include "VulkanCommon.hpp"
 
@@ -212,4 +214,53 @@ VulkanPhysicalDevice *VulkanPhysicalDevice::selectSuitable(VkInstance instance, 
     }
 
     throw std::runtime_error("No supported physical device available");
+}
+
+RenderingDevice *VulkanPhysicalDevice::createRenderingDevice() {
+    const float queuePriority = 1.0f;
+
+    std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+    std::set<uint32_t> familyIndices = {
+            this->_graphicsQueueFamilyIdx,
+            this->_presentQueueFamilyIdx
+    };
+
+    for (uint32_t familyIdx: familyIndices) {
+        VkDeviceQueueCreateInfo queueCreateInfo = {
+                .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+                .pNext = nullptr,
+                .flags = 0,
+                .queueFamilyIndex = familyIdx,
+                .queueCount = 1,
+                .pQueuePriorities = &queuePriority
+        };
+
+        queueCreateInfos.push_back(queueCreateInfo);
+    }
+
+    VkPhysicalDeviceFeatures physicalDeviceFeatures = {
+            .samplerAnisotropy = VK_TRUE
+    };
+
+    VkDeviceCreateInfo deviceCreateInfo = {
+            .sType = VkStructureType::VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0,
+            .queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size()),
+            .pQueueCreateInfos = queueCreateInfos.data(),
+            .enabledLayerCount = static_cast<uint32_t>(VALIDATION_LAYERS.size()),
+            .ppEnabledLayerNames = VALIDATION_LAYERS.data(),
+            .enabledExtensionCount = static_cast<uint32_t>(DEVICE_EXTENSIONS.size()),
+            .ppEnabledExtensionNames = DEVICE_EXTENSIONS.data(),
+            .pEnabledFeatures = &physicalDeviceFeatures
+    };
+
+    VkDevice device;
+    vkEnsure(vkCreateDevice(this->_physicalDevice, &deviceCreateInfo, nullptr, &device));
+
+    VkQueue graphicsQueue, presentQueue;
+    vkGetDeviceQueue(device, this->_graphicsQueueFamilyIdx, 0, &graphicsQueue);
+    vkGetDeviceQueue(device, this->_presentQueueFamilyIdx, 0, &presentQueue);
+
+    return new RenderingDevice(this, device, graphicsQueue, presentQueue);
 }

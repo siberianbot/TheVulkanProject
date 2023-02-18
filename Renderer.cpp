@@ -12,6 +12,7 @@
 #include "VulkanCommon.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
+
 #include <stb/stb_image.h>
 
 VkExtent2D getPreferredExtent(VkSurfaceCapabilitiesKHR capabilities, VkExtent2D currentExtent) {
@@ -96,7 +97,7 @@ VkImageView Renderer::createImageView(VkImage image, VkFormat format, VkImageAsp
     };
 
     VkImageView imageView;
-    vkEnsure(vkCreateImageView(this->device, &imageViewCreateInfo, nullptr, &imageView));
+    vkEnsure(vkCreateImageView(this->_renderingDevice->getHandle(), &imageViewCreateInfo, nullptr, &imageView));
 
     return imageView;
 }
@@ -126,14 +127,14 @@ VkImage Renderer::createImage(uint32_t width, uint32_t height, VkFormat format, 
     };
 
     VkImage image;
-    vkEnsure(vkCreateImage(this->device, &imageCreateInfo, nullptr, &image));
+    vkEnsure(vkCreateImage(this->_renderingDevice->getHandle(), &imageCreateInfo, nullptr, &image));
 
     return image;
 }
 
 VkDeviceMemory Renderer::allocateMemoryForImage(VkImage image, VkMemoryPropertyFlags memoryProperty) {
     VkMemoryRequirements memoryRequirements;
-    vkGetImageMemoryRequirements(this->device, image, &memoryRequirements);
+    vkGetImageMemoryRequirements(this->_renderingDevice->getHandle(), image, &memoryRequirements);
 
     uint32_t memoryType = this->_physicalDevice->getSuitableMemoryType(memoryRequirements.memoryTypeBits,
                                                                        memoryProperty);
@@ -146,8 +147,8 @@ VkDeviceMemory Renderer::allocateMemoryForImage(VkImage image, VkMemoryPropertyF
     };
 
     VkDeviceMemory memory;
-    vkEnsure(vkAllocateMemory(this->device, &memoryAllocateInfo, nullptr, &memory));
-    vkEnsure(vkBindImageMemory(this->device, image, memory, 0));
+    vkEnsure(vkAllocateMemory(this->_renderingDevice->getHandle(), &memoryAllocateInfo, nullptr, &memory));
+    vkEnsure(vkBindImageMemory(this->_renderingDevice->getHandle(), image, memory, 0));
 
     return memory;
 }
@@ -161,22 +162,12 @@ void Renderer::init() {
     initSurface(this->engine->window());
 
     this->_physicalDevice = VulkanPhysicalDevice::selectSuitable(this->instance, this->surface);
-
-    initDevice();
+    this->_renderingDevice = this->_physicalDevice->createRenderingDevice();
 
     initSwapchain();
     initSwapchainResources();
 
-    RenderingDevice renderingDevice = {
-            .device = this->device,
-            .colorFormat = this->_physicalDevice->getColorFormat(),
-            .depthFormat = this->_physicalDevice->getDepthFormat(),
-            .samples = this->_physicalDevice->getMsaaSamples(),
-            .graphicsQueue = this->graphicsQueue,
-            .graphicsQueueFamilyIdx = this->_physicalDevice->getGraphicsQueueFamilyIdx()
-    };
-
-    this->_vulkanCommandExecutor = new VulkanCommandExecutor(renderingDevice);
+    this->_commandExecutor = new VulkanCommandExecutor(this->_renderingDevice);
 
     initSync();
 
@@ -185,10 +176,10 @@ void Renderer::init() {
     initDescriptors();
     initLayouts();
 
-    this->_renderpasses.push_back(new ClearRenderpass(renderingDevice));
-    this->_sceneRenderpass = new SceneRenderpass(renderingDevice, this->pipelineLayout);
+    this->_renderpasses.push_back(new ClearRenderpass(this->_renderingDevice));
+    this->_sceneRenderpass = new SceneRenderpass(this->_renderingDevice, this->pipelineLayout);
     this->_renderpasses.push_back(this->_sceneRenderpass);
-    this->_renderpasses.push_back(new FinalRenderpass(renderingDevice));
+    this->_renderpasses.push_back(new FinalRenderpass(this->_renderingDevice));
 
     uint32_t swapchainImagesCount = this->swapchainImageViews.size();
     Swapchain swapchain_ = {
@@ -210,7 +201,7 @@ void Renderer::init() {
 }
 
 void Renderer::cleanup() {
-    vkEnsure(vkDeviceWaitIdle(this->device));
+    vkEnsure(vkDeviceWaitIdle(this->_renderingDevice->getHandle()));
 
     cleanupSwapchain();
 
@@ -220,26 +211,27 @@ void Renderer::cleanup() {
         delete renderpass;
     }
 
-    vkDestroyPipelineLayout(this->device, this->pipelineLayout, nullptr);
+    vkDestroyPipelineLayout(this->_renderingDevice->getHandle(), this->pipelineLayout, nullptr);
 
-    vkDestroyDescriptorSetLayout(this->device, this->descriptorSetLayout, nullptr);
-    vkDestroyDescriptorPool(this->device, this->descriptorPool, nullptr);
+    vkDestroyDescriptorSetLayout(this->_renderingDevice->getHandle(), this->descriptorSetLayout, nullptr);
+    vkDestroyDescriptorPool(this->_renderingDevice->getHandle(), this->descriptorPool, nullptr);
 
-    vkDestroySampler(this->device, this->textureSampler, nullptr);
+    vkDestroySampler(this->_renderingDevice->getHandle(), this->textureSampler, nullptr);
 
     for (int idx = 0; idx < VK_MAX_INFLIGHT_FRAMES; idx++) {
-        vkDestroySemaphore(this->device, this->renderFinishedSemaphores[idx], nullptr);
-        vkDestroySemaphore(this->device, this->imageAvailableSemaphores[idx], nullptr);
-        vkDestroyFence(this->device, this->fences[idx], nullptr);
+        vkDestroySemaphore(this->_renderingDevice->getHandle(), this->renderFinishedSemaphores[idx], nullptr);
+        vkDestroySemaphore(this->_renderingDevice->getHandle(), this->imageAvailableSemaphores[idx], nullptr);
+        vkDestroyFence(this->_renderingDevice->getHandle(), this->fences[idx], nullptr);
 
-        vkUnmapMemory(this->device, this->uniformBufferMemory[idx]);
-        vkFreeMemory(this->device, this->uniformBufferMemory[idx], nullptr);
-        vkDestroyBuffer(this->device, this->uniformBuffers[idx], nullptr);
+        vkUnmapMemory(this->_renderingDevice->getHandle(), this->uniformBufferMemory[idx]);
+        vkFreeMemory(this->_renderingDevice->getHandle(), this->uniformBufferMemory[idx], nullptr);
+        vkDestroyBuffer(this->_renderingDevice->getHandle(), this->uniformBuffers[idx], nullptr);
     }
 
-    delete this->_vulkanCommandExecutor;
+    delete this->_commandExecutor;
+    delete this->_renderingDevice;
+    delete this->_physicalDevice;
 
-    vkDestroyDevice(this->device, nullptr);
     vkDestroySurfaceKHR(this->instance, this->surface, nullptr);
     vkDestroyInstance(this->instance, nullptr);
 }
@@ -301,50 +293,6 @@ void Renderer::initSurface(GLFWwindow *window) {
     vkEnsure(glfwCreateWindowSurface(this->instance, window, nullptr, &this->surface));
 }
 
-void Renderer::initDevice() {
-    const float queuePriority = 1.0f;
-
-    std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-    std::set<uint32_t> familyIndices = {
-            this->_physicalDevice->getGraphicsQueueFamilyIdx(),
-            this->_physicalDevice->getPresentQueueFamilyIdx()
-    };
-
-    for (uint32_t familyIdx: familyIndices) {
-        VkDeviceQueueCreateInfo queueCreateInfo = {
-                .sType = VkStructureType::VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-                .pNext = nullptr,
-                .flags = 0,
-                .queueFamilyIndex = familyIdx,
-                .queueCount = 1,
-                .pQueuePriorities = &queuePriority
-        };
-
-        queueCreateInfos.push_back(queueCreateInfo);
-    }
-
-    VkPhysicalDeviceFeatures physicalDeviceFeatures = {
-            .samplerAnisotropy = VK_TRUE
-    };
-
-    VkDeviceCreateInfo deviceCreateInfo = {
-            .sType = VkStructureType::VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-            .pNext = nullptr,
-            .flags = 0,
-            .queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size()),
-            .pQueueCreateInfos = queueCreateInfos.data(),
-            .enabledLayerCount = static_cast<uint32_t>(VK_VALIDATION_LAYERS.size()),
-            .ppEnabledLayerNames = VK_VALIDATION_LAYERS.data(),
-            .enabledExtensionCount = static_cast<uint32_t>(VK_DEVICE_EXTENSIONS.size()),
-            .ppEnabledExtensionNames = VK_DEVICE_EXTENSIONS.data(),
-            .pEnabledFeatures = &physicalDeviceFeatures
-    };
-
-    vkEnsure(vkCreateDevice(this->_physicalDevice->getHandle(), &deviceCreateInfo, nullptr, &this->device));
-    vkGetDeviceQueue(this->device, this->_physicalDevice->getGraphicsQueueFamilyIdx(), 0, &this->graphicsQueue);
-    vkGetDeviceQueue(this->device, this->_physicalDevice->getPresentQueueFamilyIdx(), 0, &this->presentQueue);
-}
-
 void Renderer::initSwapchain() {
     VkSurfaceFormatKHR surfaceFormat = this->_physicalDevice->getPreferredSurfaceFormat();
     VkPresentModeKHR presentMode = this->_physicalDevice->getPreferredPresentMode();
@@ -391,13 +339,15 @@ void Renderer::initSwapchain() {
             .oldSwapchain = VK_NULL_HANDLE
     };
 
-    vkEnsure(vkCreateSwapchainKHR(this->device, &swapchainCreateInfo, nullptr, &this->swapchain));
+    vkEnsure(vkCreateSwapchainKHR(this->_renderingDevice->getHandle(), &swapchainCreateInfo, nullptr,
+                                  &this->swapchain));
     this->swapchainExtent = extent;
 
     uint32_t imageCount;
-    vkEnsure(vkGetSwapchainImagesKHR(this->device, this->swapchain, &imageCount, nullptr));
+    vkEnsure(vkGetSwapchainImagesKHR(this->_renderingDevice->getHandle(), this->swapchain, &imageCount, nullptr));
     this->swapchainImages.resize(imageCount);
-    vkEnsure(vkGetSwapchainImagesKHR(this->device, this->swapchain, &imageCount, this->swapchainImages.data()));
+    vkEnsure(vkGetSwapchainImagesKHR(this->_renderingDevice->getHandle(), this->swapchain, &imageCount,
+                                     this->swapchainImages.data()));
 
     this->swapchainImageViews.resize(imageCount);
     for (uint32_t idx = 0; idx < imageCount; idx++) {
@@ -444,9 +394,11 @@ void Renderer::initSync() {
     };
 
     for (int idx = 0; idx < VK_MAX_INFLIGHT_FRAMES; idx++) {
-        vkEnsure(vkCreateFence(this->device, &fenceCreateInfo, nullptr, &this->fences[idx]));
-        vkEnsure(vkCreateSemaphore(this->device, &semaphoreCreateInfo, nullptr, &this->imageAvailableSemaphores[idx]));
-        vkEnsure(vkCreateSemaphore(this->device, &semaphoreCreateInfo, nullptr, &this->renderFinishedSemaphores[idx]));
+        vkEnsure(vkCreateFence(this->_renderingDevice->getHandle(), &fenceCreateInfo, nullptr, &this->fences[idx]));
+        vkEnsure(vkCreateSemaphore(this->_renderingDevice->getHandle(), &semaphoreCreateInfo, nullptr,
+                                   &this->imageAvailableSemaphores[idx]));
+        vkEnsure(vkCreateSemaphore(this->_renderingDevice->getHandle(), &semaphoreCreateInfo, nullptr,
+                                   &this->renderFinishedSemaphores[idx]));
     }
 }
 
@@ -454,15 +406,17 @@ void Renderer::initUniformBuffers() {
     VkDeviceSize uboSize = sizeof(UniformBufferObject);
 
     for (size_t idx = 0; idx < VK_MAX_INFLIGHT_FRAMES; idx++) {
-        VkBuffer buffer = createBuffer(this->device, uboSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
-        VkDeviceMemory memory = allocateMemoryForBuffer(this->device, this->_physicalDevice->getHandle(),
+        VkBuffer buffer = createBuffer(this->_renderingDevice->getHandle(), uboSize,
+                                       VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
+        VkDeviceMemory memory = allocateMemoryForBuffer(this->_renderingDevice->getHandle(),
+                                                        this->_physicalDevice->getHandle(),
                                                         buffer,
                                                         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
                                                         VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
         this->uniformBuffers[idx] = buffer;
         this->uniformBufferMemory[idx] = memory;
-        vkMapMemory(this->device, memory, 0, uboSize, 0, &this->uniformBufferMemoryMapped[idx]);
+        vkMapMemory(this->_renderingDevice->getHandle(), memory, 0, uboSize, 0, &this->uniformBufferMemoryMapped[idx]);
     }
 }
 
@@ -488,7 +442,7 @@ void Renderer::initTextureSampler() {
             .unnormalizedCoordinates = VK_FALSE
     };
 
-    vkEnsure(vkCreateSampler(this->device, &samplerCreateInfo, nullptr, &this->textureSampler));
+    vkEnsure(vkCreateSampler(this->_renderingDevice->getHandle(), &samplerCreateInfo, nullptr, &this->textureSampler));
 }
 
 void Renderer::initDescriptors() {
@@ -512,7 +466,8 @@ void Renderer::initDescriptors() {
             .pPoolSizes = descriptorPoolSizes.data()
     };
 
-    vkEnsure(vkCreateDescriptorPool(this->device, &descriptorPoolCreateInfo, nullptr, &this->descriptorPool));
+    vkEnsure(vkCreateDescriptorPool(this->_renderingDevice->getHandle(), &descriptorPoolCreateInfo, nullptr,
+                                    &this->descriptorPool));
 }
 
 void Renderer::initLayouts() {
@@ -541,7 +496,7 @@ void Renderer::initLayouts() {
             .pBindings = bindings.data()
     };
 
-    vkEnsure(vkCreateDescriptorSetLayout(this->device, &descriptorSetLayoutCreateInfo, nullptr,
+    vkEnsure(vkCreateDescriptorSetLayout(this->_renderingDevice->getHandle(), &descriptorSetLayoutCreateInfo, nullptr,
                                          &this->descriptorSetLayout));
 
     VkPushConstantRange constantRange = {
@@ -560,7 +515,8 @@ void Renderer::initLayouts() {
             .pPushConstantRanges = &constantRange
     };
 
-    vkEnsure(vkCreatePipelineLayout(this->device, &pipelineLayoutInfo, nullptr, &this->pipelineLayout));
+    vkEnsure(vkCreatePipelineLayout(this->_renderingDevice->getHandle(), &pipelineLayoutInfo, nullptr,
+                                    &this->pipelineLayout));
 }
 
 void Renderer::cleanupSwapchain() {
@@ -568,23 +524,23 @@ void Renderer::cleanupSwapchain() {
         renderpass->destroyFramebuffers();
     }
 
-    vkDestroyImageView(this->device, this->colorImageView, nullptr);
-    vkFreeMemory(this->device, this->colorImageMemory, nullptr);
-    vkDestroyImage(this->device, this->colorImage, nullptr);
+    vkDestroyImageView(this->_renderingDevice->getHandle(), this->colorImageView, nullptr);
+    vkFreeMemory(this->_renderingDevice->getHandle(), this->colorImageMemory, nullptr);
+    vkDestroyImage(this->_renderingDevice->getHandle(), this->colorImage, nullptr);
 
-    vkDestroyImageView(this->device, this->depthImageView, nullptr);
-    vkFreeMemory(this->device, this->depthImageMemory, nullptr);
-    vkDestroyImage(this->device, this->depthImage, nullptr);
+    vkDestroyImageView(this->_renderingDevice->getHandle(), this->depthImageView, nullptr);
+    vkFreeMemory(this->_renderingDevice->getHandle(), this->depthImageMemory, nullptr);
+    vkDestroyImage(this->_renderingDevice->getHandle(), this->depthImage, nullptr);
 
     for (const VkImageView &imageView: this->swapchainImageViews) {
-        vkDestroyImageView(this->device, imageView, nullptr);
+        vkDestroyImageView(this->_renderingDevice->getHandle(), imageView, nullptr);
     }
 
-    vkDestroySwapchainKHR(this->device, this->swapchain, nullptr);
+    vkDestroySwapchainKHR(this->_renderingDevice->getHandle(), this->swapchain, nullptr);
 }
 
 void Renderer::handleResize() {
-    vkDeviceWaitIdle(this->device);
+    vkDeviceWaitIdle(this->_renderingDevice->getHandle());
 
     cleanupSwapchain();
 
@@ -614,11 +570,11 @@ void Renderer::render() {
     VkSemaphore currentImageAvailableSemaphore = this->imageAvailableSemaphores[frameIdx];
     VkSemaphore currentRenderFinishedSemaphore = this->renderFinishedSemaphores[frameIdx];
 
-    vkWaitForFences(this->device, 1, &currentFence, VK_TRUE, UINT64_MAX);
-    vkResetFences(this->device, 1, &currentFence);
+    vkWaitForFences(this->_renderingDevice->getHandle(), 1, &currentFence, VK_TRUE, UINT64_MAX);
+    vkResetFences(this->_renderingDevice->getHandle(), 1, &currentFence);
 
     uint32_t imageIdx;
-    VkResult result = vkAcquireNextImageKHR(this->device, this->swapchain, UINT64_MAX,
+    VkResult result = vkAcquireNextImageKHR(this->_renderingDevice->getHandle(), this->swapchain, UINT64_MAX,
                                             currentImageAvailableSemaphore,
                                             VK_NULL_HANDLE, &imageIdx);
 
@@ -635,7 +591,7 @@ void Renderer::render() {
     ubo.proj[1][1] *= -1;
     memcpy(this->uniformBufferMemoryMapped[frameIdx], &ubo, sizeof(ubo));
 
-    this->_vulkanCommandExecutor->beginMainExecution(frameIdx, [this, &imageIdx](VkCommandBuffer cmdBuffer) {
+    this->_commandExecutor->beginMainExecution(frameIdx, [this, &imageIdx](VkCommandBuffer cmdBuffer) {
                 VkRect2D renderArea = VkRect2D{
                         .offset = {0, 0},
                         .extent = this->swapchainExtent
@@ -662,7 +618,7 @@ void Renderer::render() {
             .pResults = nullptr
     };
 
-    result = vkQueuePresentKHR(this->presentQueue, &presentInfo);
+    result = vkQueuePresentKHR(this->_renderingDevice->getPresentQueue(), &presentInfo);
 
     if (result == VkResult::VK_ERROR_OUT_OF_DATE_KHR || result == VkResult::VK_SUBOPTIMAL_KHR || resizeRequested) {
         resizeRequested = false;
@@ -679,18 +635,20 @@ BufferData Renderer::uploadVertices(const std::vector<Vertex> &vertices) {
 
     VkDeviceSize size = sizeof(vertices[0]) * vertices.size();
 
-    VkBuffer buffer = createBuffer(this->device, size, VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_SRC_BIT |
-                                                       VkBufferUsageFlagBits::VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
-    VkDeviceMemory memory = allocateMemoryForBuffer(this->device, this->_physicalDevice->getHandle(),
+    VkBuffer buffer = createBuffer(this->_renderingDevice->getHandle(), size,
+                                   VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_SRC_BIT |
+                                   VkBufferUsageFlagBits::VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+    VkDeviceMemory memory = allocateMemoryForBuffer(this->_renderingDevice->getHandle(),
+                                                    this->_physicalDevice->getHandle(),
                                                     buffer,
                                                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
                                                     VK_MEMORY_PROPERTY_HOST_COHERENT_BIT |
                                                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
     void *data;
-    vkMapMemory(this->device, memory, 0, size, 0, &data);
+    vkMapMemory(this->_renderingDevice->getHandle(), memory, 0, size, 0, &data);
     memcpy(data, vertices.data(), size);
-    vkUnmapMemory(this->device, memory);
+    vkUnmapMemory(this->_renderingDevice->getHandle(), memory);
 
     return {
             .buffer = buffer,
@@ -703,18 +661,20 @@ BufferData Renderer::uploadIndices(const std::vector<uint32_t> &indices) {
 
     VkDeviceSize size = sizeof(indices[0]) * indices.size();
 
-    VkBuffer buffer = createBuffer(this->device, size, VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_SRC_BIT |
-                                                       VkBufferUsageFlagBits::VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
-    VkDeviceMemory memory = allocateMemoryForBuffer(this->device, this->_physicalDevice->getHandle(),
+    VkBuffer buffer = createBuffer(this->_renderingDevice->getHandle(), size,
+                                   VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_SRC_BIT |
+                                   VkBufferUsageFlagBits::VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
+    VkDeviceMemory memory = allocateMemoryForBuffer(this->_renderingDevice->getHandle(),
+                                                    this->_physicalDevice->getHandle(),
                                                     buffer,
                                                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
                                                     VK_MEMORY_PROPERTY_HOST_COHERENT_BIT |
                                                     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
     void *data;
-    vkMapMemory(this->device, memory, 0, size, 0, &data);
+    vkMapMemory(this->_renderingDevice->getHandle(), memory, 0, size, 0, &data);
     memcpy(data, indices.data(), size);
-    vkUnmapMemory(this->device, memory);
+    vkUnmapMemory(this->_renderingDevice->getHandle(), memory);
 
     return {
             .buffer = buffer,
@@ -728,16 +688,18 @@ TextureData Renderer::uploadTexture(const std::string &texturePath) {
 
     VkDeviceSize imageSize = width * height * 4;
 
-    VkBuffer stagingBuffer = createBuffer(this->device, imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
-    VkDeviceMemory stagingBufferMemory = allocateMemoryForBuffer(this->device, this->_physicalDevice->getHandle(),
+    VkBuffer stagingBuffer = createBuffer(this->_renderingDevice->getHandle(), imageSize,
+                                          VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
+    VkDeviceMemory stagingBufferMemory = allocateMemoryForBuffer(this->_renderingDevice->getHandle(),
+                                                                 this->_physicalDevice->getHandle(),
                                                                  stagingBuffer,
                                                                  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
                                                                  VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
     void *data;
-    vkMapMemory(this->device, stagingBufferMemory, 0, imageSize, 0, &data);
+    vkMapMemory(this->_renderingDevice->getHandle(), stagingBufferMemory, 0, imageSize, 0, &data);
     memcpy(data, pixels, static_cast<size_t>(imageSize));
-    vkUnmapMemory(this->device, stagingBufferMemory);
+    vkUnmapMemory(this->_renderingDevice->getHandle(), stagingBufferMemory);
     stbi_image_free(pixels);
 
     VkImage image = createImage(width, height, VK_FORMAT_R8G8B8A8_SRGB,
@@ -747,7 +709,7 @@ TextureData Renderer::uploadTexture(const std::string &texturePath) {
                                 VK_SAMPLE_COUNT_1_BIT);
     VkDeviceMemory imageMemory = allocateMemoryForImage(image, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-    this->_vulkanCommandExecutor->beginOneTimeExecution(
+    this->_commandExecutor->beginOneTimeExecution(
                     [&image, &width, &height, &stagingBuffer](VkCommandBuffer cmdBuffer) {
                         VkImageMemoryBarrier imageMemoryBarrier = {
                                 .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
@@ -812,8 +774,8 @@ TextureData Renderer::uploadTexture(const std::string &texturePath) {
                     })
             .submit(true);
 
-    vkFreeMemory(this->device, stagingBufferMemory, nullptr);
-    vkDestroyBuffer(this->device, stagingBuffer, nullptr);
+    vkFreeMemory(this->_renderingDevice->getHandle(), stagingBufferMemory, nullptr);
+    vkDestroyBuffer(this->_renderingDevice->getHandle(), stagingBuffer, nullptr);
 
     VkImageView imageView = createImageView(image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
 
@@ -836,7 +798,8 @@ std::array<VkDescriptorSet, VK_MAX_INFLIGHT_FRAMES> Renderer::initDescriptorSets
             .pSetLayouts = layouts.data()
     };
 
-    vkEnsure(vkAllocateDescriptorSets(this->device, &descriptorSetAllocateInfo, descriptorSets.data()));
+    vkEnsure(vkAllocateDescriptorSets(this->_renderingDevice->getHandle(), &descriptorSetAllocateInfo,
+                                      descriptorSets.data()));
 
     for (uint32_t idx = 0; idx < VK_MAX_INFLIGHT_FRAMES; idx++) {
         VkDescriptorBufferInfo bufferInfo = {
@@ -878,7 +841,8 @@ std::array<VkDescriptorSet, VK_MAX_INFLIGHT_FRAMES> Renderer::initDescriptorSets
                 }
         };
 
-        vkUpdateDescriptorSets(this->device, static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
+        vkUpdateDescriptorSets(this->_renderingDevice->getHandle(), static_cast<uint32_t>(writes.size()), writes.data(),
+                               0, nullptr);
     }
 
     return descriptorSets;
@@ -902,20 +866,21 @@ BoundMeshInfo *Renderer::uploadMesh(const Mesh &mesh, const Texture &texture) {
 }
 
 void Renderer::freeMesh(BoundMeshInfo *meshInfo) {
-    vkEnsure(vkDeviceWaitIdle(this->device));
+    vkEnsure(vkDeviceWaitIdle(this->_renderingDevice->getHandle()));
 
-    vkFreeDescriptorSets(this->device, this->descriptorPool, static_cast<uint32_t>(meshInfo->descriptorSets.size()),
+    vkFreeDescriptorSets(this->_renderingDevice->getHandle(), this->descriptorPool,
+                         static_cast<uint32_t>(meshInfo->descriptorSets.size()),
                          meshInfo->descriptorSets.data());
 
-    vkFreeMemory(this->device, meshInfo->texture.memory, nullptr);
-    vkDestroyImageView(this->device, meshInfo->texture.imageView, nullptr);
-    vkDestroyImage(this->device, meshInfo->texture.image, nullptr);
+    vkFreeMemory(this->_renderingDevice->getHandle(), meshInfo->texture.memory, nullptr);
+    vkDestroyImageView(this->_renderingDevice->getHandle(), meshInfo->texture.imageView, nullptr);
+    vkDestroyImage(this->_renderingDevice->getHandle(), meshInfo->texture.image, nullptr);
 
-    vkFreeMemory(this->device, meshInfo->vertexBuffer.memory, nullptr);
-    vkDestroyBuffer(this->device, meshInfo->vertexBuffer.buffer, nullptr);
+    vkFreeMemory(this->_renderingDevice->getHandle(), meshInfo->vertexBuffer.memory, nullptr);
+    vkDestroyBuffer(this->_renderingDevice->getHandle(), meshInfo->vertexBuffer.buffer, nullptr);
 
-    vkFreeMemory(this->device, meshInfo->indexBuffer.memory, nullptr);
-    vkDestroyBuffer(this->device, meshInfo->indexBuffer.buffer, nullptr);
+    vkFreeMemory(this->_renderingDevice->getHandle(), meshInfo->indexBuffer.memory, nullptr);
+    vkDestroyBuffer(this->_renderingDevice->getHandle(), meshInfo->indexBuffer.buffer, nullptr);
 
     this->_sceneRenderpass->removeMesh(meshInfo);
 }

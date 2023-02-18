@@ -4,16 +4,17 @@
 #include <vector>
 
 #include "AnotherVulkanTypes.hpp"
+#include "Rendering/RenderingDevice.hpp"
 
 class RenderpassBase {
 protected:
-    RenderingDevice _renderingDevice;
+    RenderingDevice *_renderingDevice;
 
     VkRenderPass _renderpass = VK_NULL_HANDLE;
     std::vector<VkFramebuffer> _framebuffers;
 
 public:
-    explicit RenderpassBase(const RenderingDevice &renderingDevice);
+    explicit RenderpassBase(RenderingDevice *renderingDevice);
     virtual ~RenderpassBase() = default;
 
     virtual void recordCommands(VkCommandBuffer commandBuffer, VkRect2D renderArea,

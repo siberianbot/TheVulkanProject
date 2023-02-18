@@ -6,9 +6,11 @@
 
 #include "AnotherVulkanTypes.hpp"
 #include "VulkanConstants.hpp"
+#include "Rendering/RenderingDevice.hpp"
 
 using VulkanCommand = std::function<void(VkCommandBuffer cmdBuffer)>;
 
+// TODO naming - remove Vulkan prefix
 class VulkanCommandExecution {
 private:
     VulkanCommand _command;
@@ -42,12 +44,12 @@ public:
 
 class VulkanCommandExecutor {
 private:
-    RenderingDevice _renderingDevice;
+    RenderingDevice *_renderingDevice;
     VkCommandPool _commandPool;
     std::array<VkCommandBuffer, MAX_INFLIGHT_FRAMES> _mainBuffers;
 
 public:
-    explicit VulkanCommandExecutor(const RenderingDevice &renderingDevice);
+    explicit VulkanCommandExecutor(RenderingDevice *renderingDevice);
     ~VulkanCommandExecutor();
 
     VulkanCommandExecution beginMainExecution(uint32_t frameIdx, VulkanCommand command);

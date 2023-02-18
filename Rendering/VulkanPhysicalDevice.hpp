@@ -3,8 +3,11 @@
 
 #include <optional>
 
-#include "AnotherVulkanTypes.hpp"
+#include <vulkan/vulkan.hpp>
 
+#include "Rendering/RenderingDevice.hpp"
+
+// TODO naming - remove Vulkan prefix
 class VulkanPhysicalDevice {
 private:
     struct QueueFamilies {
@@ -47,6 +50,8 @@ public:
     float getMaxSamplerAnisotropy();
 
     uint32_t getSuitableMemoryType(uint32_t memoryTypeBits, VkMemoryPropertyFlags memoryProperty);
+
+    RenderingDevice *createRenderingDevice();
 
     static VulkanPhysicalDevice *selectSuitable(VkInstance instance, VkSurfaceKHR surface);
 };

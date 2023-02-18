@@ -5,15 +5,6 @@
 
 #include <vulkan/vulkan.hpp>
 
-struct RenderingDevice {
-    VkDevice device;
-    VkFormat colorFormat; // TODO part of physical device
-    VkFormat depthFormat; // TODO part of physical device
-    VkSampleCountFlagBits samples; // TODO part of physical device
-    VkQueue graphicsQueue;
-    uint32_t graphicsQueueFamilyIdx; // TODO part of physical device
-};
-
 struct Swapchain {
     uint32_t width;
     uint32_t height;

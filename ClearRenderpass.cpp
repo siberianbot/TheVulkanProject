@@ -2,9 +2,9 @@
 
 #include <array>
 
-#include "VulkanRenderpassBuilder.hpp"
+#include "Rendering/VulkanRenderpassBuilder.hpp"
 
-ClearRenderpass::ClearRenderpass(const RenderingDevice &renderingDevice)
+ClearRenderpass::ClearRenderpass(RenderingDevice *renderingDevice)
         : RenderpassBase(renderingDevice) {
     //
 }

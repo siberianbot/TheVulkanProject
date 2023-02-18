@@ -3,9 +3,12 @@
 
 #include "AnotherVulkanTypes.hpp"
 
+#include "Rendering/RenderingDevice.hpp"
+
+// TODO naming - remove Vulkan prefix
 class VulkanFramebuffersBuilder {
 private:
-    RenderingDevice _renderingDevice;
+    RenderingDevice *_renderingDevice;
     Swapchain _swapchain;
     RenderTargets _renderTargets;
     VkRenderPass _renderpass;
@@ -13,7 +16,7 @@ private:
     bool _withResolveTargets = false;
 
 public:
-    VulkanFramebuffersBuilder(const RenderingDevice &renderingDevice,
+    VulkanFramebuffersBuilder(RenderingDevice *renderingDevice,
                               const Swapchain &swapchain,
                               const RenderTargets &renderTargets,
                               VkRenderPass renderpass);

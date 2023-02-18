@@ -2,8 +2,9 @@
 
 #include "VulkanCommon.hpp"
 #include "VulkanConstants.hpp"
+#include "Rendering/VulkanPhysicalDevice.hpp"
 
-VulkanRenderpassBuilder::VulkanRenderpassBuilder(const RenderingDevice &renderingDevice)
+VulkanRenderpassBuilder::VulkanRenderpassBuilder(RenderingDevice *renderingDevice)
         : _renderingDevice(renderingDevice) {
     //
 }
@@ -67,8 +68,8 @@ VkRenderPass VulkanRenderpassBuilder::build() {
     std::vector<VkAttachmentDescription> attachments = {
             VkAttachmentDescription{
                     .flags = 0,
-                    .format = this->_renderingDevice.colorFormat,
-                    .samples = this->_renderingDevice.samples,
+                    .format = this->_renderingDevice->getPhysicalDevice()->getColorFormat(),
+                    .samples = this->_renderingDevice->getPhysicalDevice()->getMsaaSamples(),
                     .loadOp = this->_loadOp.value(),
                     .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
                     .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
@@ -78,8 +79,8 @@ VkRenderPass VulkanRenderpassBuilder::build() {
             },
             VkAttachmentDescription{
                     .flags = 0,
-                    .format = this->_renderingDevice.depthFormat,
-                    .samples = this->_renderingDevice.samples,
+                    .format = this->_renderingDevice->getPhysicalDevice()->getDepthFormat(),
+                    .samples = this->_renderingDevice->getPhysicalDevice()->getMsaaSamples(),
                     .loadOp = this->_loadOp.value(),
                     .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
                     .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
@@ -103,7 +104,7 @@ VkRenderPass VulkanRenderpassBuilder::build() {
     if (_resolveAttachment.has_value()) {
         attachments.push_back(VkAttachmentDescription{
                 .flags = 0,
-                .format = this->_renderingDevice.colorFormat,
+                .format = this->_renderingDevice->getPhysicalDevice()->getColorFormat(),
                 .samples = VK_SAMPLE_COUNT_1_BIT,
                 .loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
                 .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
@@ -159,7 +160,7 @@ VkRenderPass VulkanRenderpassBuilder::build() {
     };
 
     VkRenderPass renderpass;
-    vkEnsure(vkCreateRenderPass(this->_renderingDevice.device, &renderPassCreateInfo, nullptr, &renderpass));
+    vkEnsure(vkCreateRenderPass(this->_renderingDevice->getHandle(), &renderPassCreateInfo, nullptr, &renderpass));
 
     return renderpass;
 }

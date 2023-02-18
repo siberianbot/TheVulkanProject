@@ -4,13 +4,13 @@
 
 #include "Mesh.hpp"
 #include "VulkanCommon.hpp"
-#include "VulkanRenderpassBuilder.hpp"
+#include "Rendering/VulkanRenderpassBuilder.hpp"
 #include "Rendering/VulkanPipelineBuilder.hpp"
 
 static constexpr const char *DEFAULT_VERTEX_SHADER = "shaders/default.vert.spv";
 static constexpr const char *DEFAULT_FRAGMENT_SHADER = "shaders/default.frag.spv";
 
-SceneRenderpass::SceneRenderpass(const RenderingDevice &renderingDevice, VkPipelineLayout pipelineLayout)
+SceneRenderpass::SceneRenderpass(RenderingDevice *renderingDevice, VkPipelineLayout pipelineLayout)
         : RenderpassBase(renderingDevice),
           _pipelineLayout(pipelineLayout) {
     //
@@ -87,7 +87,7 @@ void SceneRenderpass::initRenderpass() {
 }
 
 void SceneRenderpass::destroyRenderpass() {
-    vkDestroyPipeline(this->_renderingDevice.device, this->_pipeline, nullptr);
+    vkDestroyPipeline(this->_renderingDevice->getHandle(), this->_pipeline, nullptr);
 
     RenderpassBase::destroyRenderpass();
 }

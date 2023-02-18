@@ -1,7 +1,7 @@
 #include "VulkanFramebuffersBuilder.hpp"
 #include "VulkanCommon.hpp"
 
-VulkanFramebuffersBuilder::VulkanFramebuffersBuilder(const RenderingDevice &renderingDevice,
+VulkanFramebuffersBuilder::VulkanFramebuffersBuilder(RenderingDevice *renderingDevice,
                                                      const Swapchain &swapchain,
                                                      const RenderTargets &renderTargets,
                                                      VkRenderPass renderpass)
@@ -43,7 +43,7 @@ std::vector<VkFramebuffer> VulkanFramebuffersBuilder::build() {
                 .layers = 1
         };
 
-        vkEnsure(vkCreateFramebuffer(this->_renderingDevice.device, &framebufferCreateInfo, nullptr,
+        vkEnsure(vkCreateFramebuffer(this->_renderingDevice->getHandle(), &framebufferCreateInfo, nullptr,
                                      &framebuffers[idx]));
     }
 

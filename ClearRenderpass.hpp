@@ -5,7 +5,7 @@
 
 class ClearRenderpass : public RenderpassBase {
 public:
-    explicit ClearRenderpass(const RenderingDevice &renderingDevice);
+    explicit ClearRenderpass(RenderingDevice *renderingDevice);
     ~ClearRenderpass() override = default;
 
     void recordCommands(VkCommandBuffer commandBuffer, VkRect2D renderArea,

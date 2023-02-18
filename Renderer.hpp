@@ -37,14 +37,10 @@ private:
     VkSurfaceKHR surface;
 
     VulkanPhysicalDevice *_physicalDevice;
-    VulkanCommandExecutor *_vulkanCommandExecutor;
+    RenderingDevice *_renderingDevice;
+    VulkanCommandExecutor *_commandExecutor;
 
     VkExtent2D currentExtent;
-
-
-    VkDevice device;
-    VkQueue graphicsQueue;
-    VkQueue presentQueue;
 
     std::array<VkFence, VK_MAX_INFLIGHT_FRAMES> fences;
     std::array<VkSemaphore, VK_MAX_INFLIGHT_FRAMES> imageAvailableSemaphores, renderFinishedSemaphores;
@@ -66,7 +62,7 @@ private:
     VkImageView colorImageView, depthImageView;
     VkDeviceMemory colorImageMemory, depthImageMemory;
 
-    std::vector<RenderpassBase*> _renderpasses;
+    std::vector<RenderpassBase *> _renderpasses;
     SceneRenderpass *_sceneRenderpass;
 
     uint32_t frameIdx = 0;
@@ -81,8 +77,6 @@ private:
 
     void initInstance();
     void initSurface(GLFWwindow *window);
-
-    void initDevice();
 
     void initSync();
 

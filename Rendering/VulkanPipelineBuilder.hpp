@@ -1,11 +1,12 @@
 #ifndef RENDERING_VULKANPIPELINEBUILDER_HPP
 #define RENDERING_VULKANPIPELINEBUILDER_HPP
 
-#include "AnotherVulkanTypes.hpp"
+#include "Rendering/RenderingDevice.hpp"
 
+// TODO naming - remove Vulkan prefix
 class VulkanPipelineBuilder {
 private:
-    RenderingDevice _renderingDevice;
+    RenderingDevice *_renderingDevice;
     VkRenderPass _renderpass;
     VkPipelineLayout _pipelineLayout;
 
@@ -17,8 +18,7 @@ private:
     VkShaderModule createShaderModule(const std::string &path);
 
 public:
-    VulkanPipelineBuilder(const RenderingDevice &renderingDevice, VkRenderPass renderpass,
-                          VkPipelineLayout pipelineLayout);
+    VulkanPipelineBuilder(RenderingDevice *renderingDevice, VkRenderPass renderpass, VkPipelineLayout pipelineLayout);
     ~VulkanPipelineBuilder();
 
     VulkanPipelineBuilder &addVertexShader(const std::string &path);

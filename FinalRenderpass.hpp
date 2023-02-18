@@ -5,7 +5,7 @@
 
 class FinalRenderpass : public RenderpassBase {
 public:
-    explicit FinalRenderpass(const RenderingDevice &renderingDevice);
+    explicit FinalRenderpass(RenderingDevice *renderingDevice);
     ~FinalRenderpass() override = default;
 
     void recordCommands(VkCommandBuffer commandBuffer, VkRect2D renderArea,

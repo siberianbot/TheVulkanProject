@@ -3,6 +3,7 @@
 #include <utility>
 
 #include "VulkanCommon.hpp"
+#include "Rendering/VulkanPhysicalDevice.hpp"
 
 VulkanCommandExecution::VulkanCommandExecution(VulkanCommand command,
                                                VkDevice device,
@@ -98,16 +99,17 @@ void VulkanCommandExecution::submit(bool waitQueueIdle) {
     vkEnsure(vkQueueWaitIdle(this->_queue));
 }
 
-VulkanCommandExecutor::VulkanCommandExecutor(const RenderingDevice &renderingDevice)
+VulkanCommandExecutor::VulkanCommandExecutor(RenderingDevice *renderingDevice)
         : _renderingDevice(renderingDevice) {
     VkCommandPoolCreateInfo commandPoolCreateInfo = {
             .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
             .pNext = nullptr,
             .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-            .queueFamilyIndex = this->_renderingDevice.graphicsQueueFamilyIdx
+            .queueFamilyIndex = this->_renderingDevice->getPhysicalDevice()->getGraphicsQueueFamilyIdx()
     };
 
-    vkEnsure(vkCreateCommandPool(this->_renderingDevice.device, &commandPoolCreateInfo, nullptr, &this->_commandPool));
+    vkEnsure(vkCreateCommandPool(this->_renderingDevice->getHandle(), &commandPoolCreateInfo, nullptr,
+                                 &this->_commandPool));
 
     VkCommandBufferAllocateInfo commandBufferAllocateInfo = {
             .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
@@ -117,14 +119,14 @@ VulkanCommandExecutor::VulkanCommandExecutor(const RenderingDevice &renderingDev
             .commandBufferCount = static_cast<uint32_t>(this->_mainBuffers.size())
     };
 
-    vkEnsure(vkAllocateCommandBuffers(this->_renderingDevice.device, &commandBufferAllocateInfo,
+    vkEnsure(vkAllocateCommandBuffers(this->_renderingDevice->getHandle(), &commandBufferAllocateInfo,
                                       this->_mainBuffers.data()));
 }
 
 VulkanCommandExecutor::~VulkanCommandExecutor() {
-    vkFreeCommandBuffers(this->_renderingDevice.device, this->_commandPool,
+    vkFreeCommandBuffers(this->_renderingDevice->getHandle(), this->_commandPool,
                          static_cast<uint32_t>(this->_mainBuffers.size()), this->_mainBuffers.data());
-    vkDestroyCommandPool(this->_renderingDevice.device, this->_commandPool, nullptr);
+    vkDestroyCommandPool(this->_renderingDevice->getHandle(), this->_commandPool, nullptr);
 }
 
 VulkanCommandExecution VulkanCommandExecutor::beginMainExecution(uint32_t frameIdx, VulkanCommand command) {
@@ -133,8 +135,8 @@ VulkanCommandExecution VulkanCommandExecutor::beginMainExecution(uint32_t frameI
     vkEnsure(vkResetCommandBuffer(commandBuffer, 0));
 
     return {
-            std::move(command), this->_renderingDevice.device,
-            this->_commandPool, commandBuffer, this->_renderingDevice.graphicsQueue,
+            std::move(command), this->_renderingDevice->getHandle(),
+            this->_commandPool, commandBuffer, this->_renderingDevice->getGraphicsQueue(),
             false
     };
 }
@@ -149,11 +151,11 @@ VulkanCommandExecution VulkanCommandExecutor::beginOneTimeExecution(VulkanComman
             .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
             .commandBufferCount = 1
     };
-    vkEnsure(vkAllocateCommandBuffers(this->_renderingDevice.device, &allocateInfo, &commandBuffer));
+    vkEnsure(vkAllocateCommandBuffers(this->_renderingDevice->getHandle(), &allocateInfo, &commandBuffer));
 
     return {
-            std::move(command), this->_renderingDevice.device,
-            this->_commandPool, commandBuffer, this->_renderingDevice.graphicsQueue,
+            std::move(command), this->_renderingDevice->getHandle(),
+            this->_commandPool, commandBuffer, this->_renderingDevice->getGraphicsQueue(),
             true
     };
 }

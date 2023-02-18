@@ -3,13 +3,13 @@
 #include "VulkanCommon.hpp"
 #include "Rendering/VulkanFramebuffersBuilder.hpp"
 
-RenderpassBase::RenderpassBase(const RenderingDevice &renderingDevice)
+RenderpassBase::RenderpassBase(RenderingDevice *renderingDevice)
         : _renderingDevice(renderingDevice) {
     //
 }
 
 void RenderpassBase::destroyRenderpass() {
-    vkDestroyRenderPass(this->_renderingDevice.device, this->_renderpass, nullptr);
+    vkDestroyRenderPass(this->_renderingDevice->getHandle(), this->_renderpass, nullptr);
 }
 
 void RenderpassBase::createFramebuffers(const Swapchain &swapchain, const RenderTargets &renderTargets) {
@@ -20,6 +20,6 @@ void RenderpassBase::createFramebuffers(const Swapchain &swapchain, const Render
 
 void RenderpassBase::destroyFramebuffers() {
     for (const VkFramebuffer &framebuffer: this->_framebuffers) {
-        vkDestroyFramebuffer(this->_renderingDevice.device, framebuffer, nullptr);
+        vkDestroyFramebuffer(this->_renderingDevice->getHandle(), framebuffer, nullptr);
     }
 }

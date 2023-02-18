@@ -3,6 +3,7 @@
 #include <fstream>
 
 #include "VulkanCommon.hpp"
+#include "Rendering/VulkanPhysicalDevice.hpp"
 
 VkShaderModule VulkanPipelineBuilder::createShaderModule(const std::string &path) {
     std::ifstream file(path, std::ios::ate | std::ios::binary);
@@ -26,13 +27,14 @@ VkShaderModule VulkanPipelineBuilder::createShaderModule(const std::string &path
     };
 
     VkShaderModule shaderModule;
-    vkEnsure(vkCreateShaderModule(this->_renderingDevice.device, &shaderModuleCreateInfo, nullptr, &shaderModule));
+    vkEnsure(vkCreateShaderModule(this->_renderingDevice->getHandle(), &shaderModuleCreateInfo, nullptr,
+                                  &shaderModule));
 
     return shaderModule;
 }
 
-VulkanPipelineBuilder::VulkanPipelineBuilder(const RenderingDevice &renderingDevice, VkRenderPass renderpass,
-                                             VkPipelineLayout pipelineLayout)
+VulkanPipelineBuilder::VulkanPipelineBuilder(RenderingDevice *renderingDevice,
+                                             VkRenderPass renderpass, VkPipelineLayout pipelineLayout)
         : _renderingDevice(renderingDevice),
           _renderpass(renderpass),
           _pipelineLayout(pipelineLayout) {
@@ -41,11 +43,11 @@ VulkanPipelineBuilder::VulkanPipelineBuilder(const RenderingDevice &renderingDev
 
 VulkanPipelineBuilder::~VulkanPipelineBuilder() {
     if (this->_vertexShader != VK_NULL_HANDLE) {
-        vkDestroyShaderModule(this->_renderingDevice.device, this->_vertexShader, nullptr);
+        vkDestroyShaderModule(this->_renderingDevice->getHandle(), this->_vertexShader, nullptr);
     }
 
     if (this->_fragmentShader != VK_NULL_HANDLE) {
-        vkDestroyShaderModule(this->_renderingDevice.device, this->_fragmentShader, nullptr);
+        vkDestroyShaderModule(this->_renderingDevice->getHandle(), this->_fragmentShader, nullptr);
     }
 }
 
@@ -158,7 +160,7 @@ VkPipeline VulkanPipelineBuilder::build() {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
             .pNext = nullptr,
             .flags = 0,
-            .rasterizationSamples = this->_renderingDevice.samples,
+            .rasterizationSamples = this->_renderingDevice->getPhysicalDevice()->getMsaaSamples(),
             .sampleShadingEnable = VK_FALSE,
             .minSampleShading = 0,
             .pSampleMask = nullptr,
@@ -242,7 +244,7 @@ VkPipeline VulkanPipelineBuilder::build() {
     };
 
     VkPipeline pipeline;
-    vkEnsure(vkCreateGraphicsPipelines(this->_renderingDevice.device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr,
+    vkEnsure(vkCreateGraphicsPipelines(this->_renderingDevice->getHandle(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr,
                                        &pipeline));
 
     return pipeline;

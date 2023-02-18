@@ -3,10 +3,10 @@
 #include <array>
 
 #include "VulkanCommon.hpp"
-#include "VulkanRenderpassBuilder.hpp"
+#include "Rendering/VulkanRenderpassBuilder.hpp"
 #include "Rendering/VulkanFramebuffersBuilder.hpp"
 
-FinalRenderpass::FinalRenderpass(const RenderingDevice &renderingDevice)
+FinalRenderpass::FinalRenderpass(RenderingDevice *renderingDevice)
         : RenderpassBase(renderingDevice) {
     //
 }
