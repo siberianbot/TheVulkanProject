@@ -20,7 +20,8 @@ src = [
     'VulkanRenderpassBuilder.cpp',
     'Rendering/VulkanFramebuffersBuilder.cpp',
     'Rendering/VulkanPipelineBuilder.cpp',
-    'Rendering/VulkanCommandExecutor.cpp'
+    'Rendering/VulkanCommandExecutor.cpp',
+    'Rendering/VulkanPhysicalDevice.cpp'
 ]
 
 # shaders compilation

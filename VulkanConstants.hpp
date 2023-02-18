@@ -3,6 +3,14 @@
 
 #include <cstdint>
 
+static constexpr std::array<const char *, 1> VALIDATION_LAYERS = {
+        "VK_LAYER_KHRONOS_validation"
+};
+
+static constexpr std::array<const char *, 1> DEVICE_EXTENSIONS = {
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME
+};
+
 static constexpr const uint32_t MAX_INFLIGHT_FRAMES = 2;
 
 static constexpr const uint32_t MAX_ATTACHMENT_COUNT = 3; // TODO: ?

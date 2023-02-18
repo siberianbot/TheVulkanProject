@@ -14,39 +14,13 @@
 #include "RendererTypes.hpp"
 #include "SceneRenderpass.hpp"
 #include "Rendering/VulkanCommandExecutor.hpp"
+#include "Rendering/VulkanPhysicalDevice.hpp"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-
-struct PhysicalDeviceInfo {
-    std::optional<uint32_t> graphicsFamilyIdx;
-    std::optional<uint32_t> presentFamilyIdx;
-    std::vector<std::string> extensions;
-    VkSurfaceCapabilitiesKHR capabilities;
-    std::vector<VkSurfaceFormatKHR> surfaceFormats;
-    std::vector<VkPresentModeKHR> presentModes;
-    std::optional<VkFormat> depthFormat;
-    VkSampleCountFlagBits msaaSamples;
-    float maxSamplerAnisotropy;
-
-    [[nodiscard]] bool isSuitable() const {
-        bool requiredExtensionsSupported = std::all_of(VK_DEVICE_EXTENSIONS.begin(), VK_DEVICE_EXTENSIONS.end(),
-                                                       [this](const char *requiredExtension) {
-                                                           return std::find(extensions.begin(), extensions.end(),
-                                                                            requiredExtension) != extensions.end();
-                                                       });
-
-        return graphicsFamilyIdx.has_value() &&
-               presentFamilyIdx.has_value() &&
-               requiredExtensionsSupported &&
-               !surfaceFormats.empty() &&
-               !presentModes.empty() &&
-               depthFormat.has_value();
-    }
-};
 
 struct UniformBufferObject {
     alignas(16) glm::mat4 view;
@@ -60,17 +34,17 @@ private:
     Engine *engine;
 
     VkInstance instance;
-
-    VkExtent2D currentExtent;
     VkSurfaceKHR surface;
 
-    VkPhysicalDevice physicalDevice;
-    PhysicalDeviceInfo physicalDeviceInfo;
+    VulkanPhysicalDevice *_physicalDevice;
+    VulkanCommandExecutor *_vulkanCommandExecutor;
+
+    VkExtent2D currentExtent;
+
+
     VkDevice device;
     VkQueue graphicsQueue;
     VkQueue presentQueue;
-
-    VulkanCommandExecutor *_vulkanCommandExecutor;
 
     std::array<VkFence, VK_MAX_INFLIGHT_FRAMES> fences;
     std::array<VkSemaphore, VK_MAX_INFLIGHT_FRAMES> imageAvailableSemaphores, renderFinishedSemaphores;
@@ -85,7 +59,6 @@ private:
 
     VkSwapchainKHR swapchain;
     std::vector<VkImage> swapchainImages;
-    VkFormat swapchainFormat;
     VkExtent2D swapchainExtent;
     std::vector<VkImageView> swapchainImageViews;
 
@@ -100,8 +73,6 @@ private:
     bool resizeRequested = false;
     UniformBufferObject ubo = {};
 
-    PhysicalDeviceInfo getPhysicalDeviceInfo(VkPhysicalDevice device);
-
     VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectMask);
     VkImage createImage(uint32_t width, uint32_t height, VkFormat format, VkImageUsageFlags usage,
                         VkSampleCountFlagBits samples);
@@ -109,10 +80,8 @@ private:
     VkDeviceMemory allocateMemoryForImage(VkImage image, VkMemoryPropertyFlags memoryProperty);
 
     void initInstance();
-
     void initSurface(GLFWwindow *window);
 
-    void initPhysicalDevice();
     void initDevice();
 
     void initSync();

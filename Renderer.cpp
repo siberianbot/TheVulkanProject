@@ -14,31 +14,6 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb/stb_image.h>
 
-static constexpr VkFormat VK_DEPTH_FORMATS[] = {
-        VK_FORMAT_D32_SFLOAT,
-        VK_FORMAT_D32_SFLOAT_S8_UINT,
-        VK_FORMAT_D24_UNORM_S8_UINT
-};
-
-VkSurfaceFormatKHR getPreferredSurfaceFormat(std::vector<VkSurfaceFormatKHR> formats) {
-    auto it = std::find_if(formats.begin(), formats.end(), [](const VkSurfaceFormatKHR &format) {
-        return format.colorSpace == VkColorSpaceKHR::VK_COLOR_SPACE_SRGB_NONLINEAR_KHR &&
-               format.format == VkFormat::VK_FORMAT_B8G8R8A8_SRGB;
-    });
-
-    return it != formats.end()
-           ? *it
-           : formats[0];
-}
-
-VkPresentModeKHR getPreferredPresentMode(std::vector<VkPresentModeKHR> presentModes) {
-    auto it = std::find(presentModes.begin(), presentModes.end(), VkPresentModeKHR::VK_PRESENT_MODE_MAILBOX_KHR);
-
-    return it != presentModes.end()
-           ? *it
-           : VkPresentModeKHR::VK_PRESENT_MODE_FIFO_KHR;
-}
-
 VkExtent2D getPreferredExtent(VkSurfaceCapabilitiesKHR capabilities, VkExtent2D currentExtent) {
     const uint32_t uint32max = std::numeric_limits<uint32_t>::max();
 
@@ -55,20 +30,6 @@ VkExtent2D getPreferredExtent(VkSurfaceCapabilitiesKHR capabilities, VkExtent2D 
                                       capabilities.maxImageExtent.height);
 
     return currentExtent;
-}
-
-VkSampleCountFlagBits getSuitableSampleCount(VkPhysicalDeviceProperties deviceProperties) {
-    VkSampleCountFlags counts = deviceProperties.limits.framebufferColorSampleCounts &
-                                deviceProperties.limits.framebufferDepthSampleCounts;
-
-    if (counts & VK_SAMPLE_COUNT_64_BIT) { return VK_SAMPLE_COUNT_64_BIT; }
-    if (counts & VK_SAMPLE_COUNT_32_BIT) { return VK_SAMPLE_COUNT_32_BIT; }
-    if (counts & VK_SAMPLE_COUNT_16_BIT) { return VK_SAMPLE_COUNT_16_BIT; }
-    if (counts & VK_SAMPLE_COUNT_8_BIT) { return VK_SAMPLE_COUNT_8_BIT; }
-    if (counts & VK_SAMPLE_COUNT_4_BIT) { return VK_SAMPLE_COUNT_4_BIT; }
-    if (counts & VK_SAMPLE_COUNT_2_BIT) { return VK_SAMPLE_COUNT_2_BIT; }
-
-    return VK_SAMPLE_COUNT_1_BIT;
 }
 
 std::vector<const char *> vkRequiredExtensions() {
@@ -114,78 +75,6 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL vkDebugCallback(VkDebugUtilsMessageSeverit
     }
 
     return VK_FALSE;
-}
-
-PhysicalDeviceInfo Renderer::getPhysicalDeviceInfo(VkPhysicalDevice device) {
-    PhysicalDeviceInfo info = {};
-    uint32_t count;
-
-    vkGetPhysicalDeviceQueueFamilyProperties(device, &count, nullptr);
-    std::vector<VkQueueFamilyProperties> familyProperties(count);
-    vkGetPhysicalDeviceQueueFamilyProperties(device, &count, familyProperties.data());
-
-    for (uint32_t idx = 0; idx < count; idx++) {
-        VkQueueFamilyProperties props = familyProperties[idx];
-
-        if (props.queueFlags & VkQueueFlagBits::VK_QUEUE_GRAPHICS_BIT) {
-            info.graphicsFamilyIdx = idx;
-        }
-
-        VkBool32 isPresentSupported = false;
-        vkEnsure(vkGetPhysicalDeviceSurfaceSupportKHR(device, idx, this->surface, &isPresentSupported));
-
-        if (isPresentSupported) {
-            info.presentFamilyIdx = idx;
-        }
-
-        if (info.graphicsFamilyIdx.has_value() && info.presentFamilyIdx.has_value()) {
-            break;
-        }
-    }
-
-    vkEnsure(vkEnumerateDeviceExtensionProperties(device, nullptr, &count, nullptr));
-    std::vector<VkExtensionProperties> extensions(count);
-    vkEnsure(vkEnumerateDeviceExtensionProperties(device, nullptr, &count, extensions.data()));
-
-    for (VkExtensionProperties extension: extensions) {
-        info.extensions.emplace_back(extension.extensionName);
-    }
-
-    vkEnsure(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, this->surface, &info.capabilities));
-
-    vkEnsure(vkGetPhysicalDeviceSurfaceFormatsKHR(device, this->surface, &count, nullptr));
-    if (count > 0) {
-        info.surfaceFormats.resize(count);
-        vkEnsure(vkGetPhysicalDeviceSurfaceFormatsKHR(device, this->surface, &count, info.surfaceFormats.data()));
-    }
-
-    vkEnsure(vkGetPhysicalDeviceSurfacePresentModesKHR(device, this->surface, &count, nullptr));
-    if (count > 0) {
-        info.presentModes.resize(count);
-        vkEnsure(vkGetPhysicalDeviceSurfacePresentModesKHR(device, this->surface, &count, info.presentModes.data()));
-    }
-
-    for (VkFormat depthFormat: VK_DEPTH_FORMATS) {
-        VkFormatProperties formatProps;
-        vkGetPhysicalDeviceFormatProperties(device, depthFormat, &formatProps);
-
-        if (formatProps.optimalTilingFeatures &
-            VkFormatFeatureFlagBits::VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT) {
-            info.depthFormat = depthFormat;
-        }
-
-        if (info.depthFormat.has_value()) {
-            break;
-        }
-    }
-
-    VkPhysicalDeviceProperties deviceProperties;
-    vkGetPhysicalDeviceProperties(device, &deviceProperties);
-
-    info.msaaSamples = getSuitableSampleCount(deviceProperties);
-    info.maxSamplerAnisotropy = deviceProperties.limits.maxSamplerAnisotropy;
-
-    return info;
 }
 
 VkImageView Renderer::createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectMask) {
@@ -246,8 +135,8 @@ VkDeviceMemory Renderer::allocateMemoryForImage(VkImage image, VkMemoryPropertyF
     VkMemoryRequirements memoryRequirements;
     vkGetImageMemoryRequirements(this->device, image, &memoryRequirements);
 
-    uint32_t memoryType = vkGetSuitableMemoryType(this->physicalDevice,
-                                                  memoryRequirements.memoryTypeBits, memoryProperty);
+    uint32_t memoryType = this->_physicalDevice->getSuitableMemoryType(memoryRequirements.memoryTypeBits,
+                                                                       memoryProperty);
 
     VkMemoryAllocateInfo memoryAllocateInfo = {
             .sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
@@ -269,10 +158,10 @@ Renderer::Renderer(Engine *engine) : engine(engine) {
 
 void Renderer::init() {
     initInstance();
-
     initSurface(this->engine->window());
 
-    initPhysicalDevice();
+    this->_physicalDevice = VulkanPhysicalDevice::selectSuitable(this->instance, this->surface);
+
     initDevice();
 
     initSwapchain();
@@ -280,11 +169,11 @@ void Renderer::init() {
 
     RenderingDevice renderingDevice = {
             .device = this->device,
-            .colorFormat = this->swapchainFormat,
-            .depthFormat = this->physicalDeviceInfo.depthFormat.value(),
-            .samples = this->physicalDeviceInfo.msaaSamples,
+            .colorFormat = this->_physicalDevice->getColorFormat(),
+            .depthFormat = this->_physicalDevice->getDepthFormat(),
+            .samples = this->_physicalDevice->getMsaaSamples(),
             .graphicsQueue = this->graphicsQueue,
-            .graphicsQueueFamilyIdx = this->physicalDeviceInfo.graphicsFamilyIdx.value()
+            .graphicsQueueFamilyIdx = this->_physicalDevice->getGraphicsQueueFamilyIdx()
     };
 
     this->_vulkanCommandExecutor = new VulkanCommandExecutor(renderingDevice);
@@ -412,40 +301,13 @@ void Renderer::initSurface(GLFWwindow *window) {
     vkEnsure(glfwCreateWindowSurface(this->instance, window, nullptr, &this->surface));
 }
 
-void Renderer::initPhysicalDevice() {
-    uint32_t count;
-    vkEnsure(vkEnumeratePhysicalDevices(this->instance, &count, nullptr));
-
-    if (count == 0) {
-        throw std::runtime_error("no physical device available");
-    }
-
-    std::vector<VkPhysicalDevice> devices(count);
-    vkEnsure(vkEnumeratePhysicalDevices(this->instance, &count, devices.data()));
-
-    for (VkPhysicalDevice device: devices) {
-        PhysicalDeviceInfo info = getPhysicalDeviceInfo(device);
-
-        if (!info.isSuitable()) {
-            continue;
-        }
-
-        this->physicalDevice = device;
-        this->physicalDeviceInfo = info;
-    }
-
-    if (this->physicalDevice == VK_NULL_HANDLE) {
-        throw std::runtime_error("no physical device available");
-    }
-}
-
 void Renderer::initDevice() {
     const float queuePriority = 1.0f;
 
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
     std::set<uint32_t> familyIndices = {
-            this->physicalDeviceInfo.graphicsFamilyIdx.value(),
-            this->physicalDeviceInfo.presentFamilyIdx.value()
+            this->_physicalDevice->getGraphicsQueueFamilyIdx(),
+            this->_physicalDevice->getPresentQueueFamilyIdx()
     };
 
     for (uint32_t familyIdx: familyIndices) {
@@ -478,28 +340,30 @@ void Renderer::initDevice() {
             .pEnabledFeatures = &physicalDeviceFeatures
     };
 
-    vkEnsure(vkCreateDevice(this->physicalDevice, &deviceCreateInfo, nullptr, &this->device));
-    vkGetDeviceQueue(this->device, this->physicalDeviceInfo.graphicsFamilyIdx.value(), 0, &this->graphicsQueue);
-    vkGetDeviceQueue(this->device, this->physicalDeviceInfo.presentFamilyIdx.value(), 0, &this->presentQueue);
+    vkEnsure(vkCreateDevice(this->_physicalDevice->getHandle(), &deviceCreateInfo, nullptr, &this->device));
+    vkGetDeviceQueue(this->device, this->_physicalDevice->getGraphicsQueueFamilyIdx(), 0, &this->graphicsQueue);
+    vkGetDeviceQueue(this->device, this->_physicalDevice->getPresentQueueFamilyIdx(), 0, &this->presentQueue);
 }
 
 void Renderer::initSwapchain() {
-    VkSurfaceFormatKHR surfaceFormat = getPreferredSurfaceFormat(this->physicalDeviceInfo.surfaceFormats);
-    VkPresentModeKHR presentMode = getPreferredPresentMode(this->physicalDeviceInfo.presentModes);
-    VkExtent2D extent = getPreferredExtent(this->physicalDeviceInfo.capabilities, this->currentExtent);
+    VkSurfaceFormatKHR surfaceFormat = this->_physicalDevice->getPreferredSurfaceFormat();
+    VkPresentModeKHR presentMode = this->_physicalDevice->getPreferredPresentMode();
+    VkSurfaceCapabilitiesKHR capabilities = this->_physicalDevice->getSurfaceCapabilities();
 
-    uint32_t minImageCount = this->physicalDeviceInfo.capabilities.minImageCount + 1;
-    if (this->physicalDeviceInfo.capabilities.maxImageCount > 0 &&
-        minImageCount > this->physicalDeviceInfo.capabilities.maxImageCount) {
-        minImageCount = this->physicalDeviceInfo.capabilities.maxImageCount;
+    VkExtent2D extent = getPreferredExtent(capabilities, this->currentExtent);
+
+    uint32_t minImageCount = capabilities.minImageCount + 1;
+    if (capabilities.maxImageCount > 0 &&
+        minImageCount > capabilities.maxImageCount) {
+        minImageCount = capabilities.maxImageCount;
     }
 
-    bool exclusiveSharingMode = this->physicalDeviceInfo.presentFamilyIdx.value() ==
-                                this->physicalDeviceInfo.graphicsFamilyIdx.value();
+    bool exclusiveSharingMode = this->_physicalDevice->getGraphicsQueueFamilyIdx() ==
+                                this->_physicalDevice->getPresentQueueFamilyIdx();
 
     uint32_t queueFamilyIndices[] = {
-            this->physicalDeviceInfo.presentFamilyIdx.value(),
-            this->physicalDeviceInfo.graphicsFamilyIdx.value()
+            this->_physicalDevice->getGraphicsQueueFamilyIdx(),
+            this->_physicalDevice->getPresentQueueFamilyIdx()
     };
 
     VkSwapchainCreateInfoKHR swapchainCreateInfo = {
@@ -520,7 +384,7 @@ void Renderer::initSwapchain() {
             .pQueueFamilyIndices = exclusiveSharingMode
                                    ? nullptr
                                    : queueFamilyIndices,
-            .preTransform = this->physicalDeviceInfo.capabilities.currentTransform,
+            .preTransform = capabilities.currentTransform,
             .compositeAlpha = VkCompositeAlphaFlagBitsKHR::VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
             .presentMode = presentMode,
             .clipped = VK_TRUE,
@@ -528,7 +392,6 @@ void Renderer::initSwapchain() {
     };
 
     vkEnsure(vkCreateSwapchainKHR(this->device, &swapchainCreateInfo, nullptr, &this->swapchain));
-    this->swapchainFormat = surfaceFormat.format;
     this->swapchainExtent = extent;
 
     uint32_t imageCount;
@@ -539,7 +402,7 @@ void Renderer::initSwapchain() {
     this->swapchainImageViews.resize(imageCount);
     for (uint32_t idx = 0; idx < imageCount; idx++) {
         this->swapchainImageViews[idx] = createImageView(this->swapchainImages[idx],
-                                                         this->swapchainFormat,
+                                                         this->_physicalDevice->getColorFormat(),
                                                          VK_IMAGE_ASPECT_COLOR_BIT);
     }
 }
@@ -547,21 +410,23 @@ void Renderer::initSwapchain() {
 void Renderer::initSwapchainResources() {
     // color
     this->colorImage = createImage(this->swapchainExtent.width, this->swapchainExtent.height,
-                                   this->swapchainFormat,
+                                   this->_physicalDevice->getColorFormat(),
                                    VkImageUsageFlagBits::VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT |
                                    VkImageUsageFlagBits::VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-                                   this->physicalDeviceInfo.msaaSamples);
+                                   this->_physicalDevice->getMsaaSamples());
     this->colorImageMemory = allocateMemoryForImage(this->colorImage, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    this->colorImageView = createImageView(this->colorImage, this->swapchainFormat,
+    this->colorImageView = createImageView(this->colorImage,
+                                           this->_physicalDevice->getColorFormat(),
                                            VK_IMAGE_ASPECT_COLOR_BIT);
 
     // depth
     this->depthImage = createImage(this->swapchainExtent.width, this->swapchainExtent.height,
-                                   this->physicalDeviceInfo.depthFormat.value(),
+                                   this->_physicalDevice->getDepthFormat(),
                                    VkImageUsageFlagBits::VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-                                   this->physicalDeviceInfo.msaaSamples);
+                                   this->_physicalDevice->getMsaaSamples());
     this->depthImageMemory = allocateMemoryForImage(this->depthImage, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    this->depthImageView = createImageView(this->depthImage, this->physicalDeviceInfo.depthFormat.value(),
+    this->depthImageView = createImageView(this->depthImage,
+                                           this->_physicalDevice->getDepthFormat(),
                                            VK_IMAGE_ASPECT_DEPTH_BIT);
 }
 
@@ -590,7 +455,7 @@ void Renderer::initUniformBuffers() {
 
     for (size_t idx = 0; idx < VK_MAX_INFLIGHT_FRAMES; idx++) {
         VkBuffer buffer = createBuffer(this->device, uboSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
-        VkDeviceMemory memory = allocateMemoryForBuffer(this->device, this->physicalDevice,
+        VkDeviceMemory memory = allocateMemoryForBuffer(this->device, this->_physicalDevice->getHandle(),
                                                         buffer,
                                                         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
                                                         VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
@@ -614,7 +479,7 @@ void Renderer::initTextureSampler() {
             .addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT,
             .mipLodBias = 0,
             .anisotropyEnable = VK_TRUE,
-            .maxAnisotropy = this->physicalDeviceInfo.maxSamplerAnisotropy,
+            .maxAnisotropy = this->_physicalDevice->getMaxSamplerAnisotropy(),
             .compareEnable = VK_FALSE,
             .compareOp = VK_COMPARE_OP_ALWAYS,
             .minLod = 0,
@@ -723,9 +588,6 @@ void Renderer::handleResize() {
 
     cleanupSwapchain();
 
-    // TODO костыль
-    this->physicalDeviceInfo = getPhysicalDeviceInfo(this->physicalDevice);
-
     initSwapchain();
     initSwapchainResources();
 
@@ -819,7 +681,7 @@ BufferData Renderer::uploadVertices(const std::vector<Vertex> &vertices) {
 
     VkBuffer buffer = createBuffer(this->device, size, VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_SRC_BIT |
                                                        VkBufferUsageFlagBits::VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
-    VkDeviceMemory memory = allocateMemoryForBuffer(this->device, this->physicalDevice,
+    VkDeviceMemory memory = allocateMemoryForBuffer(this->device, this->_physicalDevice->getHandle(),
                                                     buffer,
                                                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
                                                     VK_MEMORY_PROPERTY_HOST_COHERENT_BIT |
@@ -843,7 +705,7 @@ BufferData Renderer::uploadIndices(const std::vector<uint32_t> &indices) {
 
     VkBuffer buffer = createBuffer(this->device, size, VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_SRC_BIT |
                                                        VkBufferUsageFlagBits::VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
-    VkDeviceMemory memory = allocateMemoryForBuffer(this->device, this->physicalDevice,
+    VkDeviceMemory memory = allocateMemoryForBuffer(this->device, this->_physicalDevice->getHandle(),
                                                     buffer,
                                                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
                                                     VK_MEMORY_PROPERTY_HOST_COHERENT_BIT |
@@ -867,7 +729,7 @@ TextureData Renderer::uploadTexture(const std::string &texturePath) {
     VkDeviceSize imageSize = width * height * 4;
 
     VkBuffer stagingBuffer = createBuffer(this->device, imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
-    VkDeviceMemory stagingBufferMemory = allocateMemoryForBuffer(this->device, this->physicalDevice,
+    VkDeviceMemory stagingBufferMemory = allocateMemoryForBuffer(this->device, this->_physicalDevice->getHandle(),
                                                                  stagingBuffer,
                                                                  VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
                                                                  VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
