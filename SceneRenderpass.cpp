@@ -59,8 +59,9 @@ void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D ren
         vkCmdPushConstants(commandBuffer, this->_pipelineLayout,
                            VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Constants), &constants);
 
-        vkCmdBindVertexBuffers(commandBuffer, 0, 1, &mesh->vertexBuffer.buffer, &offset);
-        vkCmdBindIndexBuffer(commandBuffer, mesh->indexBuffer.buffer, 0, VK_INDEX_TYPE_UINT32);
+        VkBuffer vertexBuffer = mesh->vertexBuffer->getHandle();
+        vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer, &offset);
+        vkCmdBindIndexBuffer(commandBuffer, mesh->indexBuffer->getHandle(), 0, VK_INDEX_TYPE_UINT32);
 
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->_pipelineLayout,
                                 0, 1, &descriptorSet, 0, nullptr);

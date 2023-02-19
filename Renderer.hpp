@@ -15,6 +15,7 @@
 #include "SceneRenderpass.hpp"
 #include "Rendering/VulkanCommandExecutor.hpp"
 #include "Rendering/VulkanPhysicalDevice.hpp"
+#include "Rendering/RenderingObjectsFactory.hpp"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -38,6 +39,7 @@ private:
 
     VulkanPhysicalDevice *_physicalDevice;
     RenderingDevice *_renderingDevice;
+    RenderingObjectsFactory *_renderingObjectsFactory;
     VulkanCommandExecutor *_commandExecutor;
 
     VkExtent2D currentExtent;
@@ -45,9 +47,7 @@ private:
     std::array<VkFence, VK_MAX_INFLIGHT_FRAMES> fences;
     std::array<VkSemaphore, VK_MAX_INFLIGHT_FRAMES> imageAvailableSemaphores, renderFinishedSemaphores;
 
-    std::array<VkBuffer, VK_MAX_INFLIGHT_FRAMES> uniformBuffers;
-    std::array<VkDeviceMemory, VK_MAX_INFLIGHT_FRAMES> uniformBufferMemory;
-    std::array<void *, VK_MAX_INFLIGHT_FRAMES> uniformBufferMemoryMapped;
+    std::array<BufferObject *, VK_MAX_INFLIGHT_FRAMES> uniformBuffers;
     VkSampler textureSampler;
     VkDescriptorPool descriptorPool;
     VkPipelineLayout pipelineLayout;
@@ -92,8 +92,8 @@ private:
 
     void handleResize();
 
-    BufferData uploadVertices(const std::vector<Vertex> &vertices);
-    BufferData uploadIndices(const std::vector<uint32_t> &indices);
+    BufferObject *uploadVertices(const std::vector<Vertex> &vertices);
+    BufferObject *uploadIndices(const std::vector<uint32_t> &indices);
     TextureData uploadTexture(const std::string &texturePath);
     std::array<VkDescriptorSet, VK_MAX_INFLIGHT_FRAMES> initDescriptorSets(VkImageView textureImageView);
 

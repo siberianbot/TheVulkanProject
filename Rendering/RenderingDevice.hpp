@@ -25,6 +25,16 @@ public:
     [[nodiscard]] VkQueue getPresentQueue() const { return this->_presentQueue; }
 
     void waitIdle();
+
+    VkDeviceMemory allocateMemory(VkMemoryRequirements requirements, VkMemoryPropertyFlags memoryProperty);
+    void *mapMemory(VkDeviceMemory memory, VkDeviceSize size);
+    void unmapMemory(VkDeviceMemory memory);
+    void freeMemory(VkDeviceMemory memory);
+
+    VkBuffer createBuffer(VkDeviceSize size, VkBufferUsageFlags usage);
+    VkMemoryRequirements getBufferMemoryRequirements(VkBuffer buffer);
+    void bindBufferMemory(VkBuffer buffer, VkDeviceMemory memory);
+    void destroyBuffer(VkBuffer buffer);
 };
 
 #endif // RENDERING_RENDERINGDEVICE_HPP

@@ -163,6 +163,7 @@ void Renderer::init() {
 
     this->_physicalDevice = VulkanPhysicalDevice::selectSuitable(this->instance, this->surface);
     this->_renderingDevice = this->_physicalDevice->createRenderingDevice();
+    this->_renderingObjectsFactory = new RenderingObjectsFactory(this->_renderingDevice);
 
     initSwapchain();
     initSwapchainResources();
@@ -223,12 +224,11 @@ void Renderer::cleanup() {
         vkDestroySemaphore(this->_renderingDevice->getHandle(), this->imageAvailableSemaphores[idx], nullptr);
         vkDestroyFence(this->_renderingDevice->getHandle(), this->fences[idx], nullptr);
 
-        vkUnmapMemory(this->_renderingDevice->getHandle(), this->uniformBufferMemory[idx]);
-        vkFreeMemory(this->_renderingDevice->getHandle(), this->uniformBufferMemory[idx], nullptr);
-        vkDestroyBuffer(this->_renderingDevice->getHandle(), this->uniformBuffers[idx], nullptr);
+        delete this->uniformBuffers[idx];
     }
 
     delete this->_commandExecutor;
+    delete this->_renderingObjectsFactory;
     delete this->_renderingDevice;
     delete this->_physicalDevice;
 
@@ -406,17 +406,9 @@ void Renderer::initUniformBuffers() {
     VkDeviceSize uboSize = sizeof(UniformBufferObject);
 
     for (size_t idx = 0; idx < VK_MAX_INFLIGHT_FRAMES; idx++) {
-        VkBuffer buffer = createBuffer(this->_renderingDevice->getHandle(), uboSize,
-                                       VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
-        VkDeviceMemory memory = allocateMemoryForBuffer(this->_renderingDevice->getHandle(),
-                                                        this->_physicalDevice->getHandle(),
-                                                        buffer,
-                                                        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                                                        VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-        this->uniformBuffers[idx] = buffer;
-        this->uniformBufferMemory[idx] = memory;
-        vkMapMemory(this->_renderingDevice->getHandle(), memory, 0, uboSize, 0, &this->uniformBufferMemoryMapped[idx]);
+        this->uniformBuffers[idx] = this->_renderingObjectsFactory
+                ->createBufferObject(uboSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     }
 }
 
@@ -589,7 +581,7 @@ void Renderer::render() {
     ubo.proj = glm::perspective(glm::radians(45.0f), this->swapchainExtent.width / (float) this->swapchainExtent.height,
                                 0.1f, 10.0f);
     ubo.proj[1][1] *= -1;
-    memcpy(this->uniformBufferMemoryMapped[frameIdx], &ubo, sizeof(ubo));
+    memcpy(this->uniformBuffers[frameIdx]->map(), &ubo, sizeof(ubo));
 
     this->_commandExecutor->beginMainExecution(frameIdx, [this, &imageIdx](VkCommandBuffer cmdBuffer) {
                 VkRect2D renderArea = VkRect2D{
@@ -630,56 +622,40 @@ void Renderer::render() {
     frameIdx = (frameIdx + 1) % VK_MAX_INFLIGHT_FRAMES;
 }
 
-BufferData Renderer::uploadVertices(const std::vector<Vertex> &vertices) {
+BufferObject *Renderer::uploadVertices(const std::vector<Vertex> &vertices) {
     // TODO: use staging buffer to restrict usage of GPU memory by CPU
 
     VkDeviceSize size = sizeof(vertices[0]) * vertices.size();
 
-    VkBuffer buffer = createBuffer(this->_renderingDevice->getHandle(), size,
-                                   VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_SRC_BIT |
-                                   VkBufferUsageFlagBits::VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
-    VkDeviceMemory memory = allocateMemoryForBuffer(this->_renderingDevice->getHandle(),
-                                                    this->_physicalDevice->getHandle(),
-                                                    buffer,
-                                                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                                                    VK_MEMORY_PROPERTY_HOST_COHERENT_BIT |
-                                                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    BufferObject *buffer = this->_renderingObjectsFactory->createBufferObject(size,
+                                                                              VK_BUFFER_USAGE_TRANSFER_SRC_BIT |
+                                                                              VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                                                                              VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                                                              VK_MEMORY_PROPERTY_HOST_COHERENT_BIT |
+                                                                              VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-    void *data;
-    vkMapMemory(this->_renderingDevice->getHandle(), memory, 0, size, 0, &data);
-    memcpy(data, vertices.data(), size);
-    vkUnmapMemory(this->_renderingDevice->getHandle(), memory);
+    memcpy(buffer->map(), vertices.data(), size);
+    buffer->unmap();
 
-    return {
-            .buffer = buffer,
-            .memory = memory
-    };
+    return buffer;
 }
 
-BufferData Renderer::uploadIndices(const std::vector<uint32_t> &indices) {
+BufferObject *Renderer::uploadIndices(const std::vector<uint32_t> &indices) {
     // TODO: use staging buffer to restrict usage of GPU memory by CPU
 
     VkDeviceSize size = sizeof(indices[0]) * indices.size();
 
-    VkBuffer buffer = createBuffer(this->_renderingDevice->getHandle(), size,
-                                   VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_SRC_BIT |
-                                   VkBufferUsageFlagBits::VK_BUFFER_USAGE_INDEX_BUFFER_BIT);
-    VkDeviceMemory memory = allocateMemoryForBuffer(this->_renderingDevice->getHandle(),
-                                                    this->_physicalDevice->getHandle(),
-                                                    buffer,
-                                                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                                                    VK_MEMORY_PROPERTY_HOST_COHERENT_BIT |
-                                                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    BufferObject *buffer = this->_renderingObjectsFactory->createBufferObject(size,
+                                                                              VK_BUFFER_USAGE_TRANSFER_SRC_BIT |
+                                                                              VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+                                                                              VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                                                              VK_MEMORY_PROPERTY_HOST_COHERENT_BIT |
+                                                                              VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-    void *data;
-    vkMapMemory(this->_renderingDevice->getHandle(), memory, 0, size, 0, &data);
-    memcpy(data, indices.data(), size);
-    vkUnmapMemory(this->_renderingDevice->getHandle(), memory);
+    memcpy(buffer->map(), indices.data(), size);
+    buffer->unmap();
 
-    return {
-            .buffer = buffer,
-            .memory = memory
-    };
+    return buffer;
 }
 
 TextureData Renderer::uploadTexture(const std::string &texturePath) {
@@ -688,18 +664,13 @@ TextureData Renderer::uploadTexture(const std::string &texturePath) {
 
     VkDeviceSize imageSize = width * height * 4;
 
-    VkBuffer stagingBuffer = createBuffer(this->_renderingDevice->getHandle(), imageSize,
-                                          VK_BUFFER_USAGE_TRANSFER_SRC_BIT);
-    VkDeviceMemory stagingBufferMemory = allocateMemoryForBuffer(this->_renderingDevice->getHandle(),
-                                                                 this->_physicalDevice->getHandle(),
-                                                                 stagingBuffer,
-                                                                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                                                                 VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    BufferObject *stagingBuffer = this->_renderingObjectsFactory->createBufferObject(imageSize,
+                                                                                     VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                                                                                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                                                                     VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
-    void *data;
-    vkMapMemory(this->_renderingDevice->getHandle(), stagingBufferMemory, 0, imageSize, 0, &data);
-    memcpy(data, pixels, static_cast<size_t>(imageSize));
-    vkUnmapMemory(this->_renderingDevice->getHandle(), stagingBufferMemory);
+    memcpy(stagingBuffer->map(), pixels, static_cast<size_t>(imageSize));
+    stagingBuffer->unmap();
     stbi_image_free(pixels);
 
     VkImage image = createImage(width, height, VK_FORMAT_R8G8B8A8_SRGB,
@@ -746,7 +717,8 @@ TextureData Renderer::uploadTexture(const std::string &texturePath) {
                                 .imageOffset = {0, 0, 0},
                                 .imageExtent = {(uint32_t) width, (uint32_t) height, 1}
                         };
-                        vkCmdCopyBufferToImage(cmdBuffer, stagingBuffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1,
+                        vkCmdCopyBufferToImage(cmdBuffer, stagingBuffer->getHandle(), image,
+                                               VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1,
                                                &bufferImageCopy);
 
                         VkImageMemoryBarrier anotherImageMemoryBarrier = {
@@ -774,8 +746,7 @@ TextureData Renderer::uploadTexture(const std::string &texturePath) {
                     })
             .submit(true);
 
-    vkFreeMemory(this->_renderingDevice->getHandle(), stagingBufferMemory, nullptr);
-    vkDestroyBuffer(this->_renderingDevice->getHandle(), stagingBuffer, nullptr);
+    delete stagingBuffer;
 
     VkImageView imageView = createImageView(image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
 
@@ -803,7 +774,7 @@ std::array<VkDescriptorSet, VK_MAX_INFLIGHT_FRAMES> Renderer::initDescriptorSets
 
     for (uint32_t idx = 0; idx < VK_MAX_INFLIGHT_FRAMES; idx++) {
         VkDescriptorBufferInfo bufferInfo = {
-                .buffer = this->uniformBuffers[idx],
+                .buffer = this->uniformBuffers[idx]->getHandle(),
                 .offset = 0,
                 .range = sizeof(UniformBufferObject)
         };
@@ -876,11 +847,8 @@ void Renderer::freeMesh(BoundMeshInfo *meshInfo) {
     vkDestroyImageView(this->_renderingDevice->getHandle(), meshInfo->texture.imageView, nullptr);
     vkDestroyImage(this->_renderingDevice->getHandle(), meshInfo->texture.image, nullptr);
 
-    vkFreeMemory(this->_renderingDevice->getHandle(), meshInfo->vertexBuffer.memory, nullptr);
-    vkDestroyBuffer(this->_renderingDevice->getHandle(), meshInfo->vertexBuffer.buffer, nullptr);
-
-    vkFreeMemory(this->_renderingDevice->getHandle(), meshInfo->indexBuffer.memory, nullptr);
-    vkDestroyBuffer(this->_renderingDevice->getHandle(), meshInfo->indexBuffer.buffer, nullptr);
+    delete meshInfo->vertexBuffer;
+    delete meshInfo->indexBuffer;
 
     this->_sceneRenderpass->removeMesh(meshInfo);
 }

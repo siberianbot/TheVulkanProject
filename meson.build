@@ -22,7 +22,9 @@ src = [
     'Rendering/VulkanPipelineBuilder.cpp',
     'Rendering/VulkanCommandExecutor.cpp',
     'Rendering/VulkanPhysicalDevice.cpp',
-    'Rendering/RenderingDevice.cpp'
+    'Rendering/RenderingDevice.cpp',
+    'Rendering/RenderingObjectsFactory.cpp',
+    'Rendering/BufferObject.cpp'
 ]
 
 # shaders compilation

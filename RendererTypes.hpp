@@ -4,6 +4,8 @@
 #include <glm/glm.hpp>
 #include <vulkan/vulkan.hpp>
 
+#include "Rendering/BufferObject.hpp"
+
 static constexpr const int VK_MAX_INFLIGHT_FRAMES = 2;
 
 static constexpr std::array<const char *, 1> VK_VALIDATION_LAYERS = {
@@ -14,11 +16,6 @@ static constexpr std::array<const char *, 1> VK_DEVICE_EXTENSIONS = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
 
-struct BufferData {
-    VkBuffer buffer;
-    VkDeviceMemory memory;
-};
-
 struct TextureData {
     VkImage image;
     VkImageView imageView;
@@ -26,8 +23,8 @@ struct TextureData {
 };
 
 struct BoundMeshInfo {
-    BufferData vertexBuffer;
-    BufferData indexBuffer;
+    BufferObject *vertexBuffer;
+    BufferObject *indexBuffer;
     TextureData texture;
     glm::mat4 model;
     uint32_t indicesCount;
