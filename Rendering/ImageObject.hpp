@@ -11,13 +11,17 @@ private:
     VkImage _image;
     VkDeviceMemory _memory;
     VkImageView _imageView;
+    bool _fromSwapchain;
 
 public:
-    ImageObject(RenderingDevice *renderingDevice, VkImage image, VkDeviceMemory memory, VkImageView imageView);
+    // TODO: it is not obvious that first ctor creates swapchain image proxy
+    ImageObject(RenderingDevice *renderingDevice, VkImage image, VkImageView imageView);
+    ImageObject(RenderingDevice *renderingDevice, VkImage image, VkDeviceMemory memory,
+                VkImageView imageView);
     ~ImageObject();
 
-    [[deprecated]] [[nodiscard]] VkImage getImageHandle() const { return this->_image; }
-    [[deprecated]] [[nodiscard]] VkImageView getImageViewHandle() const { return this->_imageView; }
+    [[nodiscard]] VkImage getImageHandle() const { return this->_image; }
+    [[nodiscard]] VkImageView getImageViewHandle() const { return this->_imageView; }
 };
 
 #endif // RENDERING_IMAGEOBJECT_HPP

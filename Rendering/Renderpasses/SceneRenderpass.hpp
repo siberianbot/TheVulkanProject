@@ -1,5 +1,5 @@
-#ifndef SCENERENDERPASS_HPP
-#define SCENERENDERPASS_HPP
+#ifndef RENDERING_RENDERPASSES_SCENERENDERPASS_HPP
+#define RENDERING_RENDERPASSES_SCENERENDERPASS_HPP
 
 #include "RenderpassBase.hpp"
 
@@ -12,7 +12,7 @@ private:
     std::vector<BoundMeshInfo *> _meshes;
 
 public:
-    SceneRenderpass(RenderingDevice *renderingDevice, VkPipelineLayout pipelineLayout);
+    SceneRenderpass(RenderingDevice *renderingDevice, Swapchain *swapchain, VkPipelineLayout pipelineLayout);
     ~SceneRenderpass() override = default;
 
     void recordCommands(VkCommandBuffer commandBuffer, VkRect2D renderArea,
@@ -25,4 +25,4 @@ public:
     void removeMesh(BoundMeshInfo *mesh);
 };
 
-#endif // SCENERENDERPASS_HPP
+#endif // RENDERING_RENDERPASSES_SCENERENDERPASS_HPP

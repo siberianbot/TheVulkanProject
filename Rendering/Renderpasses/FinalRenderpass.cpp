@@ -1,13 +1,10 @@
 #include "FinalRenderpass.hpp"
 
-#include <array>
-
-#include "VulkanCommon.hpp"
 #include "Rendering/VulkanRenderpassBuilder.hpp"
-#include "Rendering/VulkanFramebuffersBuilder.hpp"
+#include "Rendering/FramebuffersBuilder.hpp"
 
-FinalRenderpass::FinalRenderpass(RenderingDevice *renderingDevice)
-        : RenderpassBase(renderingDevice) {
+FinalRenderpass::FinalRenderpass(RenderingDevice *renderingDevice, Swapchain *swapchain)
+        : RenderpassBase(renderingDevice, swapchain) {
     //
 }
 
@@ -34,9 +31,8 @@ void FinalRenderpass::initRenderpass() {
             .build();
 }
 
-void FinalRenderpass::createFramebuffers(const Swapchain &swapchain, const RenderTargets &renderTargets) {
-    this->_framebuffers = VulkanFramebuffersBuilder(this->_renderingDevice, swapchain, renderTargets,
-                                                    this->_renderpass)
+void FinalRenderpass::createFramebuffers() {
+    this->_framebuffers = FramebuffersBuilder(this->_renderingDevice, this->_swapchain, this->_renderpass)
             .withResolveTargets()
             .build();
 }

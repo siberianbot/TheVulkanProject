@@ -4,7 +4,6 @@
 #include <functional>
 #include <optional>
 
-#include "AnotherVulkanTypes.hpp"
 #include "VulkanConstants.hpp"
 #include "Rendering/RenderingDevice.hpp"
 

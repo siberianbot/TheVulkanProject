@@ -4,8 +4,8 @@
 
 #include "Rendering/VulkanRenderpassBuilder.hpp"
 
-ClearRenderpass::ClearRenderpass(RenderingDevice *renderingDevice)
-        : RenderpassBase(renderingDevice) {
+ClearRenderpass::ClearRenderpass(RenderingDevice *renderingDevice, Swapchain *swapchain)
+        : RenderpassBase(renderingDevice, swapchain) {
     //
 }
 

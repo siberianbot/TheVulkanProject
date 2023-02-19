@@ -156,3 +156,91 @@ VkImageView RenderingDevice::createImageView(VkImage image, VkFormat format, VkI
 void RenderingDevice::destroyImageView(VkImageView imageView) {
     vkDestroyImageView(this->_device, imageView, nullptr);
 }
+
+VkSwapchainKHR RenderingDevice::createSwapchain(VkExtent2D extent) {
+    VkSurfaceFormatKHR surfaceFormat = this->_physicalDevice->getPreferredSurfaceFormat();
+    VkPresentModeKHR presentMode = this->_physicalDevice->getPreferredPresentMode();
+    VkSurfaceCapabilitiesKHR capabilities = this->_physicalDevice->getSurfaceCapabilities();
+
+    uint32_t minImageCount = capabilities.minImageCount + 1;
+    if (capabilities.maxImageCount > 0 &&
+        minImageCount > capabilities.maxImageCount) {
+        minImageCount = capabilities.maxImageCount;
+    }
+
+    bool exclusiveSharingMode = this->_physicalDevice->getGraphicsQueueFamilyIdx() ==
+                                this->_physicalDevice->getPresentQueueFamilyIdx();
+
+    uint32_t queueFamilies[] = {
+            this->_physicalDevice->getGraphicsQueueFamilyIdx(),
+            this->_physicalDevice->getPresentQueueFamilyIdx()
+    };
+
+    VkSwapchainCreateInfoKHR createInfo = {
+            .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
+            .pNext = nullptr,
+            .flags = 0,
+            .surface = this->_physicalDevice->getSurface(),
+            .minImageCount = minImageCount,
+            .imageFormat = surfaceFormat.format,
+            .imageColorSpace = surfaceFormat.colorSpace,
+            .imageExtent = extent,
+            .imageArrayLayers = 1,
+            .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+            .imageSharingMode = exclusiveSharingMode
+                                ? VK_SHARING_MODE_EXCLUSIVE
+                                : VK_SHARING_MODE_CONCURRENT,
+            .queueFamilyIndexCount = static_cast<uint32_t>(exclusiveSharingMode ? 0 : 2),
+            .pQueueFamilyIndices = exclusiveSharingMode
+                                   ? nullptr
+                                   : queueFamilies,
+            .preTransform = capabilities.currentTransform,
+            .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+            .presentMode = presentMode,
+            .clipped = VK_TRUE,
+            .oldSwapchain = VK_NULL_HANDLE
+    };
+
+    VkSwapchainKHR swapchain;
+    vkEnsure(vkCreateSwapchainKHR(this->_device, &createInfo, nullptr, &swapchain));
+
+    return swapchain;
+}
+
+std::vector<VkImage> RenderingDevice::getSwapchainImages(VkSwapchainKHR swapchain) {
+    uint32_t count;
+    vkEnsure(vkGetSwapchainImagesKHR(this->_device, swapchain, &count, nullptr));
+
+    std::vector<VkImage> images(count);
+    vkEnsure(vkGetSwapchainImagesKHR(this->_device, swapchain, &count, images.data()));
+
+    return images;
+}
+
+void RenderingDevice::destroySwapchain(VkSwapchainKHR swapchain) {
+    vkDestroySwapchainKHR(this->_device, swapchain, nullptr);
+}
+
+VkFramebuffer RenderingDevice::createFramebuffer(VkRenderPass renderpass, VkExtent2D extent,
+                                                 std::vector<VkImageView> attachments) {
+    const VkFramebufferCreateInfo createInfo = {
+            .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0,
+            .renderPass = renderpass,
+            .attachmentCount = static_cast<uint32_t>(attachments.size()),
+            .pAttachments = attachments.data(),
+            .width = extent.width,
+            .height = extent.height,
+            .layers = 1
+    };
+
+    VkFramebuffer framebuffer;
+    vkEnsure(vkCreateFramebuffer(this->_device, &createInfo, nullptr, &framebuffer));
+
+    return framebuffer;
+}
+
+void RenderingDevice::destroyFramebuffer(VkFramebuffer framebuffer) {
+    vkDestroyFramebuffer(this->_device, framebuffer, nullptr);
+}

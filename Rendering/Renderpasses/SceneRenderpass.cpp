@@ -10,8 +10,9 @@
 static constexpr const char *DEFAULT_VERTEX_SHADER = "shaders/default.vert.spv";
 static constexpr const char *DEFAULT_FRAGMENT_SHADER = "shaders/default.frag.spv";
 
-SceneRenderpass::SceneRenderpass(RenderingDevice *renderingDevice, VkPipelineLayout pipelineLayout)
-        : RenderpassBase(renderingDevice),
+SceneRenderpass::SceneRenderpass(RenderingDevice *renderingDevice, Swapchain *swapchain,
+                                 VkPipelineLayout pipelineLayout)
+        : RenderpassBase(renderingDevice, swapchain),
           _pipelineLayout(pipelineLayout) {
     //
 }

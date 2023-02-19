@@ -1,11 +1,11 @@
-#ifndef FINALRENDERPASS_HPP
-#define FINALRENDERPASS_HPP
+#ifndef RENDERING_RENDERPASSES_FINALRENDERPASS_HPP
+#define RENDERING_RENDERPASSES_FINALRENDERPASS_HPP
 
 #include "RenderpassBase.hpp"
 
 class FinalRenderpass : public RenderpassBase {
 public:
-    explicit FinalRenderpass(RenderingDevice *renderingDevice);
+    explicit FinalRenderpass(RenderingDevice *renderingDevice, Swapchain *swapchain);
     ~FinalRenderpass() override = default;
 
     void recordCommands(VkCommandBuffer commandBuffer, VkRect2D renderArea,
@@ -13,7 +13,7 @@ public:
 
     void initRenderpass() override;
 
-    void createFramebuffers(const Swapchain &swapchain, const RenderTargets &renderTargets) override;
+    void createFramebuffers() override;
 };
 
-#endif // FINALRENDERPASS_HPP
+#endif // RENDERING_RENDERPASSES_FINALRENDERPASS_HPP

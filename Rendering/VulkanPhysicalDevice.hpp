@@ -32,6 +32,7 @@ private:
 
 public:
     [[deprecated]] [[nodiscard]] VkPhysicalDevice getHandle() const { return this->_physicalDevice; }
+    VkSurfaceKHR getSurface() const { return this->_surface; }
 
     [[nodiscard]] uint32_t getGraphicsQueueFamilyIdx() const { return this->_graphicsQueueFamilyIdx; }
     [[nodiscard]] uint32_t getPresentQueueFamilyIdx() const { return this->_presentQueueFamilyIdx; }

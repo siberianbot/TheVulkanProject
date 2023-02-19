@@ -10,12 +10,13 @@
 
 #include "Mesh.hpp"
 #include "Texture.hpp"
-#include "RenderpassBase.hpp"
+#include "Rendering/Renderpasses/RenderpassBase.hpp"
 #include "RendererTypes.hpp"
-#include "SceneRenderpass.hpp"
+#include "Rendering/Renderpasses/SceneRenderpass.hpp"
 #include "Rendering/VulkanCommandExecutor.hpp"
 #include "Rendering/VulkanPhysicalDevice.hpp"
 #include "Rendering/RenderingObjectsFactory.hpp"
+#include "Rendering/Swapchain.hpp"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -41,8 +42,7 @@ private:
     RenderingDevice *_renderingDevice;
     RenderingObjectsFactory *_renderingObjectsFactory;
     VulkanCommandExecutor *_commandExecutor;
-
-    VkExtent2D currentExtent;
+    Swapchain *_swapchain;
 
     std::array<VkFence, VK_MAX_INFLIGHT_FRAMES> fences;
     std::array<VkSemaphore, VK_MAX_INFLIGHT_FRAMES> imageAvailableSemaphores, renderFinishedSemaphores;
@@ -52,14 +52,6 @@ private:
     VkDescriptorPool descriptorPool;
     VkPipelineLayout pipelineLayout;
     VkDescriptorSetLayout descriptorSetLayout;
-
-    VkSwapchainKHR swapchain;
-    std::vector<VkImage> swapchainImages;
-    VkExtent2D swapchainExtent;
-    std::vector<VkImageView> swapchainImageViews;
-
-    ImageObject *_colorImage;
-    ImageObject *_depthImage;
 
     std::vector<RenderpassBase *> _renderpasses;
     SceneRenderpass *_sceneRenderpass;
@@ -77,11 +69,6 @@ private:
     void initTextureSampler();
     void initDescriptors();
     void initLayouts();
-
-    void initSwapchain();
-    void initSwapchainResources();
-
-    void cleanupSwapchain();
 
     void handleResize();
 

@@ -3,6 +3,8 @@
 
 #include <cstdint>
 
+#include <vulkan/vulkan.hpp>
+
 static constexpr std::array<const char *, 1> VALIDATION_LAYERS = {
         "VK_LAYER_KHRONOS_validation"
 };

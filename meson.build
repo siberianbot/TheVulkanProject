@@ -12,20 +12,21 @@ src = [
     'Input.cpp',
     'Mesh.cpp',
     'Camera.cpp',
-    'RenderpassBase.cpp',
-    'ClearRenderpass.cpp',
-    'FinalRenderpass.cpp',
-    'SceneRenderpass.cpp',
+    'Rendering/Renderpasses/RenderpassBase.cpp',
+    'Rendering/Renderpasses/ClearRenderpass.cpp',
+    'Rendering/Renderpasses/FinalRenderpass.cpp',
+    'Rendering/Renderpasses/SceneRenderpass.cpp',
     # 'SkyboxRenderpass.cpp',
     'Rendering/VulkanRenderpassBuilder.cpp',
-    'Rendering/VulkanFramebuffersBuilder.cpp',
+    'Rendering/FramebuffersBuilder.cpp',
     'Rendering/VulkanPipelineBuilder.cpp',
     'Rendering/VulkanCommandExecutor.cpp',
     'Rendering/VulkanPhysicalDevice.cpp',
     'Rendering/RenderingDevice.cpp',
     'Rendering/RenderingObjectsFactory.cpp',
     'Rendering/BufferObject.cpp',
-    'Rendering/ImageObject.cpp'
+    'Rendering/ImageObject.cpp',
+    'Rendering/Swapchain.cpp'
 ]
 
 # shaders compilation

@@ -44,6 +44,13 @@ public:
 
     VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectMask);
     void destroyImageView(VkImageView imageView);
+
+    VkSwapchainKHR createSwapchain(VkExtent2D extent);
+    std::vector<VkImage> getSwapchainImages(VkSwapchainKHR swapchain);
+    void destroySwapchain(VkSwapchainKHR swapchain);
+
+    VkFramebuffer createFramebuffer(VkRenderPass renderpass, VkExtent2D extent, std::vector<VkImageView> attachments);
+    void destroyFramebuffer(VkFramebuffer framebuffer);
 };
 
 #endif // RENDERING_RENDERINGDEVICE_HPP

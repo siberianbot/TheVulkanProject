@@ -1,11 +1,11 @@
-#ifndef CLEARRENDERPASS_HPP
-#define CLEARRENDERPASS_HPP
+#ifndef RENDERING_RENDERPASSES_CLEARRENDERPASS_HPP
+#define RENDERING_RENDERPASSES_CLEARRENDERPASS_HPP
 
 #include "RenderpassBase.hpp"
 
 class ClearRenderpass : public RenderpassBase {
 public:
-    explicit ClearRenderpass(RenderingDevice *renderingDevice);
+    ClearRenderpass(RenderingDevice *renderingDevice, Swapchain *swapchain);
     ~ClearRenderpass() override = default;
 
     void recordCommands(VkCommandBuffer commandBuffer, VkRect2D renderArea,
@@ -14,4 +14,4 @@ public:
     void initRenderpass() override;
 };
 
-#endif // CLEARRENDERPASS_HPP
+#endif // RENDERING_RENDERPASSES_CLEARRENDERPASS_HPP
