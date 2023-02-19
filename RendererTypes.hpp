@@ -5,6 +5,7 @@
 #include <vulkan/vulkan.hpp>
 
 #include "Rendering/BufferObject.hpp"
+#include "Rendering/ImageObject.hpp"
 
 static constexpr const int VK_MAX_INFLIGHT_FRAMES = 2;
 
@@ -16,16 +17,10 @@ static constexpr std::array<const char *, 1> VK_DEVICE_EXTENSIONS = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
 
-struct TextureData {
-    VkImage image;
-    VkImageView imageView;
-    VkDeviceMemory memory;
-};
-
 struct BoundMeshInfo {
     BufferObject *vertexBuffer;
     BufferObject *indexBuffer;
-    TextureData texture;
+    ImageObject *texture;
     glm::mat4 model;
     uint32_t indicesCount;
     std::array<VkDescriptorSet, VK_MAX_INFLIGHT_FRAMES> descriptorSets;

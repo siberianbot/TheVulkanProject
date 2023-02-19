@@ -58,9 +58,8 @@ private:
     VkExtent2D swapchainExtent;
     std::vector<VkImageView> swapchainImageViews;
 
-    VkImage colorImage, depthImage;
-    VkImageView colorImageView, depthImageView;
-    VkDeviceMemory colorImageMemory, depthImageMemory;
+    ImageObject *_colorImage;
+    ImageObject *_depthImage;
 
     std::vector<RenderpassBase *> _renderpasses;
     SceneRenderpass *_sceneRenderpass;
@@ -68,12 +67,6 @@ private:
     uint32_t frameIdx = 0;
     bool resizeRequested = false;
     UniformBufferObject ubo = {};
-
-    VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectMask);
-    VkImage createImage(uint32_t width, uint32_t height, VkFormat format, VkImageUsageFlags usage,
-                        VkSampleCountFlagBits samples);
-
-    VkDeviceMemory allocateMemoryForImage(VkImage image, VkMemoryPropertyFlags memoryProperty);
 
     void initInstance();
     void initSurface(GLFWwindow *window);
@@ -94,7 +87,7 @@ private:
 
     BufferObject *uploadVertices(const std::vector<Vertex> &vertices);
     BufferObject *uploadIndices(const std::vector<uint32_t> &indices);
-    TextureData uploadTexture(const std::string &texturePath);
+    ImageObject *uploadTexture(const std::string &texturePath);
     std::array<VkDescriptorSet, VK_MAX_INFLIGHT_FRAMES> initDescriptorSets(VkImageView textureImageView);
 
 public:

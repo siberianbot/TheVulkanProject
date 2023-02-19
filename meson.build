@@ -24,7 +24,8 @@ src = [
     'Rendering/VulkanPhysicalDevice.cpp',
     'Rendering/RenderingDevice.cpp',
     'Rendering/RenderingObjectsFactory.cpp',
-    'Rendering/BufferObject.cpp'
+    'Rendering/BufferObject.cpp',
+    'Rendering/ImageObject.cpp'
 ]
 
 # shaders compilation

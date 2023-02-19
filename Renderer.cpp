@@ -78,81 +78,6 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL vkDebugCallback(VkDebugUtilsMessageSeverit
     return VK_FALSE;
 }
 
-VkImageView Renderer::createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectMask) {
-    VkImageViewCreateInfo imageViewCreateInfo = {
-            .sType = VkStructureType::VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-            .pNext = nullptr,
-            .flags = 0,
-            .image = image,
-            .viewType = VkImageViewType::VK_IMAGE_VIEW_TYPE_2D,
-            .format = format,
-            .components = {},
-            .subresourceRange = {
-                    .aspectMask = aspectMask,
-                    .baseMipLevel = 0,
-                    .levelCount = 1,
-                    .baseArrayLayer = 0,
-                    .layerCount = 1
-            }
-    };
-
-    VkImageView imageView;
-    vkEnsure(vkCreateImageView(this->_renderingDevice->getHandle(), &imageViewCreateInfo, nullptr, &imageView));
-
-    return imageView;
-}
-
-VkImage Renderer::createImage(uint32_t width, uint32_t height, VkFormat format, VkImageUsageFlags usage,
-                              VkSampleCountFlagBits samples) {
-    VkImageCreateInfo imageCreateInfo = {
-            .sType = VkStructureType::VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
-            .pNext = nullptr,
-            .flags = 0,
-            .imageType = VK_IMAGE_TYPE_2D,
-            .format = format,
-            .extent = {
-                    .width = width,
-                    .height = height,
-                    .depth = 1
-            },
-            .mipLevels = 1,
-            .arrayLayers = 1,
-            .samples = samples,
-            .tiling = VkImageTiling::VK_IMAGE_TILING_OPTIMAL,
-            .usage = usage,
-            .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-            .queueFamilyIndexCount = 0,
-            .pQueueFamilyIndices = nullptr,
-            .initialLayout = VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED,
-    };
-
-    VkImage image;
-    vkEnsure(vkCreateImage(this->_renderingDevice->getHandle(), &imageCreateInfo, nullptr, &image));
-
-    return image;
-}
-
-VkDeviceMemory Renderer::allocateMemoryForImage(VkImage image, VkMemoryPropertyFlags memoryProperty) {
-    VkMemoryRequirements memoryRequirements;
-    vkGetImageMemoryRequirements(this->_renderingDevice->getHandle(), image, &memoryRequirements);
-
-    uint32_t memoryType = this->_physicalDevice->getSuitableMemoryType(memoryRequirements.memoryTypeBits,
-                                                                       memoryProperty);
-
-    VkMemoryAllocateInfo memoryAllocateInfo = {
-            .sType = VkStructureType::VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-            .pNext = nullptr,
-            .allocationSize = memoryRequirements.size,
-            .memoryTypeIndex = memoryType
-    };
-
-    VkDeviceMemory memory;
-    vkEnsure(vkAllocateMemory(this->_renderingDevice->getHandle(), &memoryAllocateInfo, nullptr, &memory));
-    vkEnsure(vkBindImageMemory(this->_renderingDevice->getHandle(), image, memory, 0));
-
-    return memory;
-}
-
 Renderer::Renderer(Engine *engine) : engine(engine) {
     //
 }
@@ -190,8 +115,8 @@ void Renderer::init() {
     };
 
     RenderTargets renderTargets = {
-            .colorGroup = std::vector<VkImageView>(swapchainImagesCount, this->colorImageView),
-            .depthGroup = std::vector<VkImageView>(swapchainImagesCount, this->depthImageView),
+            .colorGroup = std::vector<VkImageView>(swapchainImagesCount, this->_colorImage->getImageViewHandle()),
+            .depthGroup = std::vector<VkImageView>(swapchainImagesCount, this->_depthImage->getImageViewHandle()),
             .resolveGroup = this->swapchainImageViews
     };
 
@@ -351,33 +276,29 @@ void Renderer::initSwapchain() {
 
     this->swapchainImageViews.resize(imageCount);
     for (uint32_t idx = 0; idx < imageCount; idx++) {
-        this->swapchainImageViews[idx] = createImageView(this->swapchainImages[idx],
-                                                         this->_physicalDevice->getColorFormat(),
-                                                         VK_IMAGE_ASPECT_COLOR_BIT);
+        this->swapchainImageViews[idx] = this->_renderingDevice->createImageView(this->swapchainImages[idx],
+                                                                                 this->_physicalDevice->getColorFormat(),
+                                                                                 VK_IMAGE_ASPECT_COLOR_BIT);
     }
 }
 
 void Renderer::initSwapchainResources() {
-    // color
-    this->colorImage = createImage(this->swapchainExtent.width, this->swapchainExtent.height,
-                                   this->_physicalDevice->getColorFormat(),
-                                   VkImageUsageFlagBits::VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT |
-                                   VkImageUsageFlagBits::VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-                                   this->_physicalDevice->getMsaaSamples());
-    this->colorImageMemory = allocateMemoryForImage(this->colorImage, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    this->colorImageView = createImageView(this->colorImage,
-                                           this->_physicalDevice->getColorFormat(),
-                                           VK_IMAGE_ASPECT_COLOR_BIT);
+    this->_colorImage = this->_renderingObjectsFactory->createImageObject(this->swapchainExtent.width,
+                                                                          this->swapchainExtent.height,
+                                                                          this->_physicalDevice->getColorFormat(),
+                                                                          VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT |
+                                                                          VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+                                                                          this->_physicalDevice->getMsaaSamples(),
+                                                                          VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                                                                          VK_IMAGE_ASPECT_COLOR_BIT);
 
-    // depth
-    this->depthImage = createImage(this->swapchainExtent.width, this->swapchainExtent.height,
-                                   this->_physicalDevice->getDepthFormat(),
-                                   VkImageUsageFlagBits::VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-                                   this->_physicalDevice->getMsaaSamples());
-    this->depthImageMemory = allocateMemoryForImage(this->depthImage, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    this->depthImageView = createImageView(this->depthImage,
-                                           this->_physicalDevice->getDepthFormat(),
-                                           VK_IMAGE_ASPECT_DEPTH_BIT);
+    this->_depthImage = this->_renderingObjectsFactory->createImageObject(this->swapchainExtent.width,
+                                                                          this->swapchainExtent.height,
+                                                                          this->_physicalDevice->getDepthFormat(),
+                                                                          VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+                                                                          this->_physicalDevice->getMsaaSamples(),
+                                                                          VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                                                                          VK_IMAGE_ASPECT_DEPTH_BIT);
 }
 
 void Renderer::initSync() {
@@ -516,16 +437,11 @@ void Renderer::cleanupSwapchain() {
         renderpass->destroyFramebuffers();
     }
 
-    vkDestroyImageView(this->_renderingDevice->getHandle(), this->colorImageView, nullptr);
-    vkFreeMemory(this->_renderingDevice->getHandle(), this->colorImageMemory, nullptr);
-    vkDestroyImage(this->_renderingDevice->getHandle(), this->colorImage, nullptr);
-
-    vkDestroyImageView(this->_renderingDevice->getHandle(), this->depthImageView, nullptr);
-    vkFreeMemory(this->_renderingDevice->getHandle(), this->depthImageMemory, nullptr);
-    vkDestroyImage(this->_renderingDevice->getHandle(), this->depthImage, nullptr);
+    delete this->_colorImage;
+    delete this->_depthImage;
 
     for (const VkImageView &imageView: this->swapchainImageViews) {
-        vkDestroyImageView(this->_renderingDevice->getHandle(), imageView, nullptr);
+        this->_renderingDevice->destroyImageView(imageView);
     }
 
     vkDestroySwapchainKHR(this->_renderingDevice->getHandle(), this->swapchain, nullptr);
@@ -547,8 +463,8 @@ void Renderer::handleResize() {
     };
 
     RenderTargets renderTargets = {
-            .colorGroup = std::vector<VkImageView>(swapchainImagesCount, this->colorImageView),
-            .depthGroup = std::vector<VkImageView>(swapchainImagesCount, this->depthImageView),
+            .colorGroup = std::vector<VkImageView>(swapchainImagesCount, this->_colorImage->getImageViewHandle()),
+            .depthGroup = std::vector<VkImageView>(swapchainImagesCount, this->_depthImage->getImageViewHandle()),
             .resolveGroup = this->swapchainImageViews
     };
 
@@ -658,7 +574,7 @@ BufferObject *Renderer::uploadIndices(const std::vector<uint32_t> &indices) {
     return buffer;
 }
 
-TextureData Renderer::uploadTexture(const std::string &texturePath) {
+ImageObject *Renderer::uploadTexture(const std::string &texturePath) {
     int width, height, channels;
     stbi_uc *pixels = stbi_load(texturePath.c_str(), &width, &height, &channels, STBI_rgb_alpha);
 
@@ -673,12 +589,13 @@ TextureData Renderer::uploadTexture(const std::string &texturePath) {
     stagingBuffer->unmap();
     stbi_image_free(pixels);
 
-    VkImage image = createImage(width, height, VK_FORMAT_R8G8B8A8_SRGB,
-                                VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
-                                VK_IMAGE_USAGE_TRANSFER_DST_BIT |
-                                VK_IMAGE_USAGE_SAMPLED_BIT,
-                                VK_SAMPLE_COUNT_1_BIT);
-    VkDeviceMemory imageMemory = allocateMemoryForImage(image, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    ImageObject *image = this->_renderingObjectsFactory->createImageObject(width, height, VK_FORMAT_R8G8B8A8_SRGB,
+                                                                           VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
+                                                                           VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+                                                                           VK_IMAGE_USAGE_SAMPLED_BIT,
+                                                                           VK_SAMPLE_COUNT_1_BIT,
+                                                                           VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                                                                           VK_IMAGE_ASPECT_COLOR_BIT);
 
     this->_commandExecutor->beginOneTimeExecution(
                     [&image, &width, &height, &stagingBuffer](VkCommandBuffer cmdBuffer) {
@@ -691,7 +608,7 @@ TextureData Renderer::uploadTexture(const std::string &texturePath) {
                                 .newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                                 .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
                                 .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                                .image = image,
+                                .image = image->getImageHandle(),
                                 .subresourceRange = {
                                         .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
                                         .baseMipLevel = 0,
@@ -717,7 +634,7 @@ TextureData Renderer::uploadTexture(const std::string &texturePath) {
                                 .imageOffset = {0, 0, 0},
                                 .imageExtent = {(uint32_t) width, (uint32_t) height, 1}
                         };
-                        vkCmdCopyBufferToImage(cmdBuffer, stagingBuffer->getHandle(), image,
+                        vkCmdCopyBufferToImage(cmdBuffer, stagingBuffer->getHandle(), image->getImageHandle(),
                                                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1,
                                                &bufferImageCopy);
 
@@ -730,7 +647,7 @@ TextureData Renderer::uploadTexture(const std::string &texturePath) {
                                 .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                                 .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
                                 .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                                .image = image,
+                                .image = image->getImageHandle(),
                                 .subresourceRange = {
                                         .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
                                         .baseMipLevel = 0,
@@ -748,13 +665,7 @@ TextureData Renderer::uploadTexture(const std::string &texturePath) {
 
     delete stagingBuffer;
 
-    VkImageView imageView = createImageView(image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT);
-
-    return TextureData{
-            .image = image,
-            .imageView = imageView,
-            .memory = imageMemory
-    };
+    return image;
 }
 
 std::array<VkDescriptorSet, VK_MAX_INFLIGHT_FRAMES> Renderer::initDescriptorSets(VkImageView textureImageView) {
@@ -820,7 +731,7 @@ std::array<VkDescriptorSet, VK_MAX_INFLIGHT_FRAMES> Renderer::initDescriptorSets
 }
 
 BoundMeshInfo *Renderer::uploadMesh(const Mesh &mesh, const Texture &texture) {
-    TextureData textureData = uploadTexture(texture.path);
+    ImageObject *textureData = uploadTexture(texture.path);
 
     auto boundMeshInfo = new BoundMeshInfo{
             .vertexBuffer = uploadVertices(mesh.vertices),
@@ -828,7 +739,7 @@ BoundMeshInfo *Renderer::uploadMesh(const Mesh &mesh, const Texture &texture) {
             .texture = textureData,
             .model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -0.5f, 0.0f)),
             .indicesCount = static_cast<uint32_t>(mesh.indices.size()),
-            .descriptorSets = initDescriptorSets(textureData.imageView)
+            .descriptorSets = initDescriptorSets(textureData->getImageViewHandle())
     };
 
     this->_sceneRenderpass->addMesh(boundMeshInfo);
@@ -843,10 +754,7 @@ void Renderer::freeMesh(BoundMeshInfo *meshInfo) {
                          static_cast<uint32_t>(meshInfo->descriptorSets.size()),
                          meshInfo->descriptorSets.data());
 
-    vkFreeMemory(this->_renderingDevice->getHandle(), meshInfo->texture.memory, nullptr);
-    vkDestroyImageView(this->_renderingDevice->getHandle(), meshInfo->texture.imageView, nullptr);
-    vkDestroyImage(this->_renderingDevice->getHandle(), meshInfo->texture.image, nullptr);
-
+    delete meshInfo->texture;
     delete meshInfo->vertexBuffer;
     delete meshInfo->indexBuffer;
 

@@ -83,3 +83,76 @@ void RenderingDevice::bindBufferMemory(VkBuffer buffer, VkDeviceMemory memory) {
 void RenderingDevice::destroyBuffer(VkBuffer buffer) {
     vkDestroyBuffer(this->_device, buffer, nullptr);
 }
+
+VkImage RenderingDevice::createImage(uint32_t width, uint32_t height, VkFormat format, VkImageUsageFlags usage,
+                                     VkSampleCountFlagBits samples) {
+    VkImageCreateInfo createInfo = {
+            .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0,
+            .imageType = VK_IMAGE_TYPE_2D,
+            .format = format,
+            .extent = {
+                    .width = width,
+                    .height = height,
+                    .depth = 1
+            },
+            .mipLevels = 1,
+            .arrayLayers = 1,
+            .samples = samples,
+            .tiling = VK_IMAGE_TILING_OPTIMAL,
+            .usage = usage,
+            .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+            .queueFamilyIndexCount = 0,
+            .pQueueFamilyIndices = nullptr,
+            .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+    };
+
+    VkImage image;
+    vkEnsure(vkCreateImage(this->_device, &createInfo, nullptr, &image));
+
+    return image;
+}
+
+VkMemoryRequirements RenderingDevice::getImageMemoryRequirements(VkImage image) {
+    VkMemoryRequirements requirements;
+    vkGetImageMemoryRequirements(this->_device, image, &requirements);
+
+    return requirements;
+}
+
+void RenderingDevice::bindImageMemory(VkImage image, VkDeviceMemory memory) {
+    vkEnsure(vkBindImageMemory(this->_device, image, memory, 0));
+}
+
+void RenderingDevice::destroyImage(VkImage image) {
+    vkDestroyImage(this->_device, image, nullptr);
+}
+
+VkImageView RenderingDevice::createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectMask) {
+    VkImageViewCreateInfo imageViewCreateInfo = {
+            .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0,
+            .image = image,
+            .viewType = VK_IMAGE_VIEW_TYPE_2D,
+            .format = format,
+            .components = {},
+            .subresourceRange = {
+                    .aspectMask = aspectMask,
+                    .baseMipLevel = 0,
+                    .levelCount = 1,
+                    .baseArrayLayer = 0,
+                    .layerCount = 1
+            }
+    };
+
+    VkImageView imageView;
+    vkEnsure(vkCreateImageView(this->_device, &imageViewCreateInfo, nullptr, &imageView));
+
+    return imageView;
+}
+
+void RenderingDevice::destroyImageView(VkImageView imageView) {
+    vkDestroyImageView(this->_device, imageView, nullptr);
+}

@@ -35,6 +35,15 @@ public:
     VkMemoryRequirements getBufferMemoryRequirements(VkBuffer buffer);
     void bindBufferMemory(VkBuffer buffer, VkDeviceMemory memory);
     void destroyBuffer(VkBuffer buffer);
+
+    VkImage createImage(uint32_t width, uint32_t height, VkFormat format, VkImageUsageFlags usage,
+                        VkSampleCountFlagBits samples);
+    VkMemoryRequirements getImageMemoryRequirements(VkImage image);
+    void bindImageMemory(VkImage image, VkDeviceMemory memory);
+    void destroyImage(VkImage image);
+
+    VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectMask);
+    void destroyImageView(VkImageView imageView);
 };
 
 #endif // RENDERING_RENDERINGDEVICE_HPP
