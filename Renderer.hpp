@@ -1,50 +1,42 @@
 #ifndef RENDERER_HPP
 #define RENDERER_HPP
 
-#include <vulkan/vulkan.hpp>
-#include <GLFW/glfw3.h>
+#include <array>
 #include <optional>
 #include <vector>
-#include <string>
-#include <algorithm>
 
-#include "Mesh.hpp"
-#include "Texture.hpp"
-#include "Rendering/Renderpasses/RenderpassBase.hpp"
-#include "RendererTypes.hpp"
-#include "Rendering/Renderpasses/SceneRenderpass.hpp"
-#include "Rendering/VulkanCommandExecutor.hpp"
-#include "Rendering/VulkanPhysicalDevice.hpp"
-#include "Rendering/RenderingObjectsFactory.hpp"
-#include "Rendering/Swapchain.hpp"
+#include <vulkan/vulkan.hpp>
+#include <GLFW/glfw3.h>
 
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#define GLM_ENABLE_EXPERIMENTAL
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
+#include "VulkanConstants.hpp"
 
 class Engine;
-
-struct SyncObjectsGroup {
-    FenceObject *fence;
-    SemaphoreObject *imageAvailableSemaphore;
-    SemaphoreObject *renderFinishedSemaphore;
-
-    ~SyncObjectsGroup() {
-        delete this->fence;
-        delete this->imageAvailableSemaphore;
-        delete this->renderFinishedSemaphore;
-    }
-};
+class VulkanPhysicalDevice;
+class RenderingDevice;
+class RenderingObjectsFactory;
+class VulkanCommandExecutor;
+class Swapchain;
+class RenderpassBase;
+class SceneRenderpass;
+class FenceObject;
+class SemaphoreObject;
 
 class Renderer {
 private:
-    Engine *engine;
+    struct SyncObjectsGroup {
+        FenceObject *fence;
+        SemaphoreObject *imageAvailableSemaphore;
+        SemaphoreObject *renderFinishedSemaphore;
 
-    VkInstance instance;
-    VkSurfaceKHR surface;
+        ~SyncObjectsGroup();
+    };
 
+    Engine *_engine;
+
+    uint32_t _currentFrameIdx = 0;
+
+    VkInstance _instance = VK_NULL_HANDLE;
+    VkSurfaceKHR _surface = VK_NULL_HANDLE;
     VulkanPhysicalDevice *_physicalDevice;
     RenderingDevice *_renderingDevice;
     RenderingObjectsFactory *_renderingObjectsFactory;
@@ -53,23 +45,26 @@ private:
     std::array<SyncObjectsGroup *, MAX_INFLIGHT_FRAMES> _syncObjectsGroups;
     std::vector<RenderpassBase *> _renderpasses;
     SceneRenderpass *_sceneRenderpass;
-    uint32_t _currentFrameIdx = 0;
-    bool resizeRequested = false;
 
-    void initInstance();
-    void initSurface(GLFWwindow *window);
+    static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+                                                        VkDebugUtilsMessageTypeFlagsEXT messageType,
+                                                        const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
+                                                        void *pUserData);
+
+    VkInstance createInstance();
+    VkSurfaceKHR createSurface(GLFWwindow *window);
 
     void handleResize();
 
 public:
-    Renderer(Engine* engine);
+    Renderer(Engine *engine);
 
     void init();
     void cleanup();
 
     void render();
 
-    void requestResize(uint32_t width, uint32_t height);
+    void requestResize();
 
     [[deprecated]] SceneRenderpass *sceneRenderpass() const { return this->_sceneRenderpass; };
 };

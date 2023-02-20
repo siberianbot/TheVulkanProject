@@ -5,14 +5,21 @@
 #include "Engine.hpp"
 #include "Mesh.hpp"
 #include "VulkanCommon.hpp"
+#include "Rendering/Swapchain.hpp"
+#include "Rendering/VulkanCommandExecutor.hpp"
 #include "Rendering/VulkanRenderpassBuilder.hpp"
 #include "Rendering/VulkanPipelineBuilder.hpp"
 #include "Rendering/VulkanPhysicalDevice.hpp"
 #include "Rendering/RenderingObjectsFactory.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
-
 #include <stb/stb_image.h>
+
+#define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 static constexpr const char *DEFAULT_VERTEX_SHADER = "shaders/default.vert.spv";
 static constexpr const char *DEFAULT_FRAGMENT_SHADER = "shaders/default.frag.spv";

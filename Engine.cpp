@@ -3,6 +3,14 @@
 #include "Constants.hpp"
 #include "Mesh.hpp"
 #include "Math.hpp"
+#include "Texture.hpp"
+#include "Rendering/Renderpasses/SceneRenderpass.hpp"
+
+#define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 Engine::Engine()
         : renderer(this),
@@ -113,7 +121,7 @@ void Engine::initWindow() {
 void Engine::framebufferResizeCallback(GLFWwindow *window, int width, int height) {
     auto engine = reinterpret_cast<Engine *>(glfwGetWindowUserPointer(window));
 
-    engine->renderer.requestResize(width, height);
+    engine->renderer.requestResize();
 }
 
 void Engine::keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods) {

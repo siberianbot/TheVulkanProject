@@ -4,6 +4,7 @@
 #include "Renderer.hpp"
 #include "Input.hpp"
 #include "Camera.hpp"
+#include "RendererTypes.hpp"
 
 class Engine {
 private:

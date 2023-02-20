@@ -1,29 +1,29 @@
 #include "Renderer.hpp"
 
-#include <set>
 #include <iostream>
-#include <array>
 
 #include "Constants.hpp"
 #include "Engine.hpp"
-#include "Rendering/Renderpasses/ClearRenderpass.hpp"
-#include "Rendering/Renderpasses/FinalRenderpass.hpp"
 #include "VulkanCommon.hpp"
+#include "Rendering/VulkanPhysicalDevice.hpp"
+#include "Rendering/RenderingObjectsFactory.hpp"
+#include "Rendering/VulkanCommandExecutor.hpp"
+#include "Rendering/Swapchain.hpp"
+#include "Rendering/Renderpasses/RenderpassBase.hpp"
+#include "Rendering/Renderpasses/ClearRenderpass.hpp"
+#include "Rendering/Renderpasses/SceneRenderpass.hpp"
+#include "Rendering/Renderpasses/FinalRenderpass.hpp"
 
-std::vector<const char *> vkRequiredExtensions() {
-    uint32_t count;
-    const char **extensions = glfwGetRequiredInstanceExtensions(&count);
-
-    std::vector<const char *> result(extensions, extensions + count);
-    result.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-
-    return result;
+Renderer::SyncObjectsGroup::~SyncObjectsGroup() {
+    delete this->fence;
+    delete this->imageAvailableSemaphore;
+    delete this->renderFinishedSemaphore;
 }
 
-static VKAPI_ATTR VkBool32 VKAPI_CALL vkDebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-                                                      VkDebugUtilsMessageTypeFlagsEXT messageType,
-                                                      const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
-                                                      void *pUserData) {
+VKAPI_ATTR VkBool32 VKAPI_CALL Renderer::debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+                                                       VkDebugUtilsMessageTypeFlagsEXT messageType,
+                                                       const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
+                                                       void *pUserData) {
     const char *type;
     switch (messageType) {
         case VkDebugUtilsMessageTypeFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT:
@@ -55,15 +55,15 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL vkDebugCallback(VkDebugUtilsMessageSeverit
     return VK_FALSE;
 }
 
-Renderer::Renderer(Engine *engine) : engine(engine) {
+Renderer::Renderer(Engine *engine) : _engine(engine) {
     //
 }
 
 void Renderer::init() {
-    initInstance();
-    initSurface(this->engine->window());
+    this->_instance = createInstance();
+    this->_surface = createSurface(this->_engine->window());
 
-    this->_physicalDevice = VulkanPhysicalDevice::selectSuitable(this->instance, this->surface);
+    this->_physicalDevice = VulkanPhysicalDevice::selectSuitable(this->_instance, this->_surface);
     this->_renderingDevice = this->_physicalDevice->createRenderingDevice();
     this->_renderingObjectsFactory = new RenderingObjectsFactory(this->_renderingDevice);
     this->_commandExecutor = new VulkanCommandExecutor(this->_renderingDevice);
@@ -82,7 +82,7 @@ void Renderer::init() {
     this->_renderpasses.push_back(new ClearRenderpass(this->_renderingDevice, this->_swapchain));
     this->_sceneRenderpass = new SceneRenderpass(this->_renderingDevice, this->_swapchain,
                                                  this->_renderingObjectsFactory,
-                                                 this->engine, this->_commandExecutor);
+                                                 this->_engine, this->_commandExecutor);
     this->_renderpasses.push_back(this->_sceneRenderpass);
     this->_renderpasses.push_back(new FinalRenderpass(this->_renderingDevice, this->_swapchain));
 
@@ -117,46 +117,51 @@ void Renderer::cleanup() {
     delete this->_renderingDevice;
     delete this->_physicalDevice;
 
-    vkDestroySurfaceKHR(this->instance, this->surface, nullptr);
-    vkDestroyInstance(this->instance, nullptr);
+    vkDestroySurfaceKHR(this->_instance, this->_surface, nullptr);
+    vkDestroyInstance(this->_instance, nullptr);
 }
 
-void Renderer::requestResize(uint32_t width, uint32_t height) {
-    this->resizeRequested = true;
+void Renderer::requestResize() {
+    handleResize();
 }
 
-void Renderer::initInstance() {
-    auto extensions = vkRequiredExtensions();
+VkInstance Renderer::createInstance() {
+    uint32_t count;
+    const char **extensionsPtr = glfwGetRequiredInstanceExtensions(&count);
+
+    std::vector<const char *> extensions(extensionsPtr, extensionsPtr + count);
+    extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+
     uint32_t version = VK_MAKE_VERSION(0, 1, 0);
 
     VkApplicationInfo appInfo = {
-            .sType = VkStructureType::VK_STRUCTURE_TYPE_APPLICATION_INFO,
+            .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
             .pNext = nullptr,
             .pApplicationName = NAME,
             .applicationVersion = version,
             .pEngineName = NAME,
             .engineVersion = version,
-            .apiVersion = VK_API_VERSION_1_1,
+            .apiVersion = VK_API_VERSION_1_3,
     };
 
     VkDebugUtilsMessengerCreateInfoEXT debugUtilsMessengerCreateInfoExt = {
-            .sType = VkStructureType::VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
+            .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
             .pNext = nullptr,
             .flags = 0,
-            .messageSeverity = VkDebugUtilsMessageSeverityFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT |
-                               VkDebugUtilsMessageSeverityFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
-                               VkDebugUtilsMessageSeverityFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT |
-                               VkDebugUtilsMessageSeverityFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT,
-            .messageType = VkDebugUtilsMessageTypeFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
-                           VkDebugUtilsMessageTypeFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_TYPE_DEVICE_ADDRESS_BINDING_BIT_EXT |
-                           VkDebugUtilsMessageTypeFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT |
-                           VkDebugUtilsMessageTypeFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT,
-            .pfnUserCallback = vkDebugCallback,
+            .messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT |
+                               VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+                               VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT |
+                               VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT,
+            .messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+                           VK_DEBUG_UTILS_MESSAGE_TYPE_DEVICE_ADDRESS_BINDING_BIT_EXT |
+                           VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT |
+                           VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT,
+            .pfnUserCallback = debugCallback,
             .pUserData = this
     };
 
     VkInstanceCreateInfo instanceCreateInfo = {
-            .sType = VkStructureType::VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+            .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
             .pNext = &debugUtilsMessengerCreateInfoExt,
             .flags = 0,
             .pApplicationInfo = &appInfo,
@@ -166,11 +171,17 @@ void Renderer::initInstance() {
             .ppEnabledExtensionNames = extensions.data()
     };
 
-    vkEnsure(vkCreateInstance(&instanceCreateInfo, nullptr, &this->instance));
+    VkInstance instance;
+    vkEnsure(vkCreateInstance(&instanceCreateInfo, nullptr, &instance));
+
+    return instance;
 }
 
-void Renderer::initSurface(GLFWwindow *window) {
-    vkEnsure(glfwCreateWindowSurface(this->instance, window, nullptr, &this->surface));
+VkSurfaceKHR Renderer::createSurface(GLFWwindow *window) {
+    VkSurfaceKHR surface;
+    vkEnsure(glfwCreateWindowSurface(this->_instance, window, nullptr, &surface));
+
+    return surface;
 }
 
 void Renderer::handleResize() {
@@ -193,21 +204,20 @@ void Renderer::render() {
     currentSyncObjects->fence->wait(UINT64_MAX);
     currentSyncObjects->fence->reset();
 
-    uint32_t imageIdx;
-    VkResult result = vkAcquireNextImageKHR(this->_renderingDevice->getHandle(), this->_swapchain->getHandle(),
-                                            UINT64_MAX, currentSyncObjects->imageAvailableSemaphore->getHandle(),
-                                            VK_NULL_HANDLE, &imageIdx);
+    std::optional<uint32_t> acquireResult = this->_renderingDevice
+            ->acquireNextSwapchainImageIdx(this->_swapchain->getHandle(), UINT64_MAX,
+                                           currentSyncObjects->imageAvailableSemaphore->getHandle());
 
-    if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+    if (!acquireResult.has_value()) {
         handleResize();
         return;
-    } else if (result != VkResult::VK_SUCCESS && result != VkResult::VK_SUBOPTIMAL_KHR) {
-        throw std::runtime_error("Vulkan acquire next image failure");
     }
 
-    VkExtent2D extent = this->_swapchain->getSwapchainExtent();
+    uint32_t imageIdx = acquireResult.value();
 
-    this->_commandExecutor->beginMainExecution(_currentFrameIdx, [this, &extent, &imageIdx](VkCommandBuffer cmdBuffer) {
+    this->_commandExecutor->beginMainExecution(_currentFrameIdx, [this, &imageIdx](VkCommandBuffer cmdBuffer) {
+                VkExtent2D extent = this->_swapchain->getSwapchainExtent();
+
                 VkRect2D renderArea = {
                         .offset = {0, 0},
                         .extent = extent
@@ -227,7 +237,7 @@ void Renderer::render() {
     VkSemaphore renderFinishedSemaphore = currentSyncObjects->renderFinishedSemaphore->getHandle();
 
     VkPresentInfoKHR presentInfo = {
-            .sType = VkStructureType::VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+            .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
             .pNext = nullptr,
             .waitSemaphoreCount = 1,
             .pWaitSemaphores = &renderFinishedSemaphore,
@@ -237,13 +247,12 @@ void Renderer::render() {
             .pResults = nullptr
     };
 
-    result = vkQueuePresentKHR(this->_renderingDevice->getPresentQueue(), &presentInfo);
+    VkResult presentResult = vkQueuePresentKHR(this->_renderingDevice->getPresentQueue(), &presentInfo);
 
-    if (result == VkResult::VK_ERROR_OUT_OF_DATE_KHR || result == VkResult::VK_SUBOPTIMAL_KHR || resizeRequested) {
-        resizeRequested = false;
+    if (presentResult == VK_ERROR_OUT_OF_DATE_KHR || presentResult == VK_SUBOPTIMAL_KHR) {
         handleResize();
-    } else if (result != VkResult::VK_SUCCESS) {
-        throw std::runtime_error("Vulkan present failure");
+    } else if (presentResult != VkResult::VK_SUCCESS) {
+        throw std::runtime_error("Vulkan runtime error");
     }
 
     _currentFrameIdx = (_currentFrameIdx + 1) % MAX_INFLIGHT_FRAMES;

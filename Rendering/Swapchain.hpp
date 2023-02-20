@@ -26,7 +26,7 @@ public:
     explicit Swapchain(RenderingDevice *renderingDevice, RenderingObjectsFactory *renderingObjectsFactory);
     ~Swapchain();
 
-    [[deprecated]] [[nodiscard]] VkSwapchainKHR getHandle() const { return this->_swapchain; }
+    [[nodiscard]] VkSwapchainKHR getHandle() const { return this->_swapchain; }
 
     [[nodiscard]] VkExtent2D getSwapchainExtent() const { return this->_swapchainExtent; }
     [[nodiscard]] uint32_t getImageCount() const { return this->_swapchainImages.size(); }

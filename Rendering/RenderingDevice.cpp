@@ -286,3 +286,18 @@ VkSemaphore RenderingDevice::createSemaphore() {
 void RenderingDevice::destroySemaphore(VkSemaphore semaphore) {
     vkDestroySemaphore(this->_device, semaphore, nullptr);
 }
+
+std::optional<uint32_t> RenderingDevice::acquireNextSwapchainImageIdx(VkSwapchainKHR swapchain, uint64_t timeout,
+                                                                      VkSemaphore signalSemaphore) {
+    uint32_t imageIdx;
+    VkResult result = vkAcquireNextImageKHR(this->_device, swapchain, timeout, signalSemaphore,
+                                            VK_NULL_HANDLE, &imageIdx);
+
+    if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+        return std::nullopt;
+    } else if (result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR) {
+        return imageIdx;
+    }
+
+    throw std::runtime_error("Vulkan runtime error");
+}
