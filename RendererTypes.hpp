@@ -17,6 +17,11 @@ static constexpr std::array<const char *, 1> VK_DEVICE_EXTENSIONS = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
 
+struct UniformBufferObject {
+    alignas(16) glm::mat4 view;
+    alignas(16) glm::mat4 proj;
+};
+
 struct BoundMeshInfo {
     BufferObject *vertexBuffer;
     BufferObject *indexBuffer;

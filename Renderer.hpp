@@ -24,11 +24,6 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-struct UniformBufferObject {
-    alignas(16) glm::mat4 view;
-    alignas(16) glm::mat4 proj;
-};
-
 class Engine;
 
 struct SyncObjectsGroup {
@@ -56,34 +51,15 @@ private:
     VulkanCommandExecutor *_commandExecutor;
     Swapchain *_swapchain;
     std::array<SyncObjectsGroup *, MAX_INFLIGHT_FRAMES> _syncObjectsGroups;
-
-    std::array<BufferObject *, VK_MAX_INFLIGHT_FRAMES> uniformBuffers;
-    VkSampler textureSampler;
-    VkDescriptorPool descriptorPool;
-    VkPipelineLayout pipelineLayout;
-    VkDescriptorSetLayout descriptorSetLayout;
-
     std::vector<RenderpassBase *> _renderpasses;
     SceneRenderpass *_sceneRenderpass;
-
     uint32_t _currentFrameIdx = 0;
     bool resizeRequested = false;
-    UniformBufferObject ubo = {};
 
     void initInstance();
     void initSurface(GLFWwindow *window);
 
-    void initUniformBuffers();
-    void initTextureSampler();
-    void initDescriptors();
-    void initLayouts();
-
     void handleResize();
-
-    BufferObject *uploadVertices(const std::vector<Vertex> &vertices);
-    BufferObject *uploadIndices(const std::vector<uint32_t> &indices);
-    ImageObject *uploadTexture(const std::string &texturePath);
-    std::array<VkDescriptorSet, VK_MAX_INFLIGHT_FRAMES> initDescriptorSets(VkImageView textureImageView);
 
 public:
     Renderer(Engine* engine);
@@ -95,8 +71,7 @@ public:
 
     void requestResize(uint32_t width, uint32_t height);
 
-    BoundMeshInfo *uploadMesh(const Mesh &mesh, const Texture &texture);
-    void freeMesh(BoundMeshInfo *meshInfo);
+    [[deprecated]] SceneRenderpass *sceneRenderpass() const { return this->_sceneRenderpass; };
 };
 
 #endif // RENDERER_HPP

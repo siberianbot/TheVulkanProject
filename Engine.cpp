@@ -63,20 +63,20 @@ void Engine::init() {
     Mesh vikingRoomMesh = readMesh("models/viking_room.obj");
     Texture vikingRoomTexture = {"textures/viking_room.png"};
 
-    this->firstBoundMesh = this->renderer.uploadMesh(vikingRoomMesh, vikingRoomTexture);
+    this->firstBoundMesh = this->renderer.sceneRenderpass()->uploadMesh(vikingRoomMesh, vikingRoomTexture);
     this->firstBoundMesh->model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -0.5f, 0.0f));
 
-    this->secondBoundMesh = this->renderer.uploadMesh(vikingRoomMesh, vikingRoomTexture);
+    this->secondBoundMesh = this->renderer.sceneRenderpass()->uploadMesh(vikingRoomMesh, vikingRoomTexture);
     this->secondBoundMesh->model = glm::translate(glm::mat4(1.0f), glm::vec3(-2.0f, -0.5f, 0.0f));
 
-    this->thirdBoundMesh = this->renderer.uploadMesh(vikingRoomMesh, vikingRoomTexture);
+    this->thirdBoundMesh = this->renderer.sceneRenderpass()->uploadMesh(vikingRoomMesh, vikingRoomTexture);
     this->thirdBoundMesh->model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -0.5f, 2.0f));
 }
 
 void Engine::cleanup() {
-    this->renderer.freeMesh(this->thirdBoundMesh);
-    this->renderer.freeMesh(this->secondBoundMesh);
-    this->renderer.freeMesh(this->firstBoundMesh);
+    this->renderer.sceneRenderpass()->freeMesh(this->thirdBoundMesh);
+    this->renderer.sceneRenderpass()->freeMesh(this->secondBoundMesh);
+    this->renderer.sceneRenderpass()->freeMesh(this->firstBoundMesh);
     this->renderer.cleanup();
 
     if (this->_window) {
