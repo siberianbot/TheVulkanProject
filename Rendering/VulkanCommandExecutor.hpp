@@ -10,6 +10,7 @@ using VulkanCommand = std::function<void(VkCommandBuffer cmdBuffer)>;
 
 class RenderingDevice;
 class FenceObject;
+class SemaphoreObject;
 
 // TODO naming - remove Vulkan prefix
 class VulkanCommandExecution {
@@ -22,8 +23,8 @@ private:
     bool _oneTimeBuffer;
 
     FenceObject *_fence = nullptr;
-    VkSemaphore _waitSemaphore = VK_NULL_HANDLE;
-    VkSemaphore _signalSemaphore = VK_NULL_HANDLE;
+    std::vector<VkSemaphore> _waitSemaphores;
+    std::vector<VkSemaphore> _signalSemaphores;
     std::optional<VkPipelineStageFlags> _waitDstStageMask;
 
 public:
@@ -36,8 +37,8 @@ public:
     ~VulkanCommandExecution();
 
     VulkanCommandExecution &withFence(FenceObject *fence);
-    VulkanCommandExecution &withWaitSemaphore(VkSemaphore semaphore);
-    VulkanCommandExecution &withSignalSemaphore(VkSemaphore semaphore);
+    VulkanCommandExecution &withWaitSemaphore(SemaphoreObject *semaphore);
+    VulkanCommandExecution &withSignalSemaphore(SemaphoreObject *semaphore);
     VulkanCommandExecution &withWaitDstStageMask(VkPipelineStageFlags waitDstStageMask);
 
     void submit(bool waitQueueIdle);

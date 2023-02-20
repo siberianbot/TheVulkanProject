@@ -5,6 +5,7 @@
 #include "Rendering/Objects/BufferObject.hpp"
 #include "Rendering/Objects/ImageObject.hpp"
 #include "Rendering/Objects/FenceObject.hpp"
+#include "Rendering/Objects/SemaphoreObject.hpp"
 
 class RenderingObjectsFactory {
 private:
@@ -21,6 +22,8 @@ public:
                                    VkImageAspectFlags aspectMask);
 
     FenceObject *createFenceObject(bool signaled);
+
+    SemaphoreObject *createSemaphoreObject();
 };
 
 #endif // RENDERING_RENDERINGOBJECTSFACTORY_HPP

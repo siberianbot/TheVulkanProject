@@ -6,6 +6,7 @@
 #include "Rendering/VulkanPhysicalDevice.hpp"
 #include "Rendering/RenderingDevice.hpp"
 #include "Rendering/Objects/FenceObject.hpp"
+#include "Rendering/Objects/SemaphoreObject.hpp"
 
 VulkanCommandExecution::VulkanCommandExecution(VulkanCommand command,
                                                VkDevice device,
@@ -36,14 +37,14 @@ VulkanCommandExecution &VulkanCommandExecution::withFence(FenceObject *fence) {
     return *this;
 }
 
-VulkanCommandExecution &VulkanCommandExecution::withWaitSemaphore(VkSemaphore semaphore) {
-    this->_waitSemaphore = semaphore;
+VulkanCommandExecution &VulkanCommandExecution::withWaitSemaphore(SemaphoreObject *semaphore) {
+    this->_waitSemaphores.push_back(semaphore->getHandle());
 
     return *this;
 }
 
-VulkanCommandExecution &VulkanCommandExecution::withSignalSemaphore(VkSemaphore semaphore) {
-    this->_signalSemaphore = semaphore;
+VulkanCommandExecution &VulkanCommandExecution::withSignalSemaphore(SemaphoreObject *semaphore) {
+    this->_signalSemaphores.push_back(semaphore->getHandle());
 
     return *this;
 }
@@ -73,19 +74,15 @@ void VulkanCommandExecution::submit(bool waitQueueIdle) {
     VkSubmitInfo submitInfo = {
             .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
             .pNext = nullptr,
-            .waitSemaphoreCount = static_cast<uint32_t>(this->_waitSemaphore != VK_NULL_HANDLE ? 1 : 0),
-            .pWaitSemaphores = this->_waitSemaphore != VK_NULL_HANDLE
-                               ? &this->_waitSemaphore
-                               : nullptr,
+            .waitSemaphoreCount = static_cast<uint32_t>(this->_waitSemaphores.size()),
+            .pWaitSemaphores = this->_waitSemaphores.data(),
             .pWaitDstStageMask = this->_waitDstStageMask.has_value()
                                  ? &this->_waitDstStageMask.value()
                                  : nullptr,
             .commandBufferCount = 1,
             .pCommandBuffers = &this->_commandBuffer,
-            .signalSemaphoreCount = static_cast<uint32_t>(this->_signalSemaphore != VK_NULL_HANDLE ? 1 : 0),
-            .pSignalSemaphores = this->_signalSemaphore != VK_NULL_HANDLE
-                                 ? &this->_signalSemaphore
-                                 : nullptr
+            .signalSemaphoreCount = static_cast<uint32_t>(this->_signalSemaphores.size()),
+            .pSignalSemaphores = this->_signalSemaphores.data()
     };
 
     VkFence fence = this->_fence != nullptr

@@ -27,7 +27,8 @@ src = [
     'Rendering/Objects/BufferObject.cpp',
     'Rendering/Objects/ImageObject.cpp',
     'Rendering/Swapchain.cpp',
-    'Rendering/Objects/FenceObject.cpp'
+    'Rendering/Objects/FenceObject.cpp',
+    'Rendering/Objects/SemaphoreObject.cpp'
 ]
 
 # shaders compilation

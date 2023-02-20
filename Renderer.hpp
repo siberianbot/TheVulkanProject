@@ -31,6 +31,18 @@ struct UniformBufferObject {
 
 class Engine;
 
+struct SyncObjectsGroup {
+    FenceObject *fence;
+    SemaphoreObject *imageAvailableSemaphore;
+    SemaphoreObject *renderFinishedSemaphore;
+
+    ~SyncObjectsGroup() {
+        delete this->fence;
+        delete this->imageAvailableSemaphore;
+        delete this->renderFinishedSemaphore;
+    }
+};
+
 class Renderer {
 private:
     Engine *engine;
@@ -43,9 +55,7 @@ private:
     RenderingObjectsFactory *_renderingObjectsFactory;
     VulkanCommandExecutor *_commandExecutor;
     Swapchain *_swapchain;
-    std::array<FenceObject *, VK_MAX_INFLIGHT_FRAMES> _fences;
-
-    std::array<VkSemaphore, VK_MAX_INFLIGHT_FRAMES> imageAvailableSemaphores, renderFinishedSemaphores;
+    std::array<SyncObjectsGroup *, MAX_INFLIGHT_FRAMES> _syncObjectsGroups;
 
     std::array<BufferObject *, VK_MAX_INFLIGHT_FRAMES> uniformBuffers;
     VkSampler textureSampler;
@@ -62,8 +72,6 @@ private:
 
     void initInstance();
     void initSurface(GLFWwindow *window);
-
-    void initSync();
 
     void initUniformBuffers();
     void initTextureSampler();

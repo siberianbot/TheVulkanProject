@@ -36,3 +36,9 @@ FenceObject *RenderingObjectsFactory::createFenceObject(bool signaled) {
 
     return new FenceObject(this->_renderingDevice, fence);
 }
+
+SemaphoreObject *RenderingObjectsFactory::createSemaphoreObject() {
+    VkSemaphore semaphore = this->_renderingDevice->createSemaphore();
+
+    return new SemaphoreObject(this->_renderingDevice, semaphore);
+}

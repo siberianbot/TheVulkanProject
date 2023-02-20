@@ -11,6 +11,7 @@
 #include "VulkanCommon.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
+
 #include <stb/stb_image.h>
 
 std::vector<const char *> vkRequiredExtensions() {
@@ -73,10 +74,13 @@ void Renderer::init() {
     this->_swapchain = new Swapchain(this->_renderingDevice, this->_renderingObjectsFactory);
 
     for (uint32_t frameIdx = 0; frameIdx < MAX_INFLIGHT_FRAMES; frameIdx++) {
-        this->_fences[frameIdx] = this->_renderingObjectsFactory->createFenceObject(true);
+        this->_syncObjectsGroups[frameIdx] = new SyncObjectsGroup{
+                .fence =  this->_renderingObjectsFactory->createFenceObject(true),
+                .imageAvailableSemaphore = this->_renderingObjectsFactory->createSemaphoreObject(),
+                .renderFinishedSemaphore = this->_renderingObjectsFactory->createSemaphoreObject()
+        };
     }
 
-    initSync();
     initUniformBuffers();
     initTextureSampler();
     initDescriptors();
@@ -118,12 +122,9 @@ void Renderer::cleanup() {
     vkDestroySampler(this->_renderingDevice->getHandle(), this->textureSampler, nullptr);
 
     for (uint32_t frameIdx = 0; frameIdx < MAX_INFLIGHT_FRAMES; frameIdx++) {
-        vkDestroySemaphore(this->_renderingDevice->getHandle(), this->renderFinishedSemaphores[frameIdx], nullptr);
-        vkDestroySemaphore(this->_renderingDevice->getHandle(), this->imageAvailableSemaphores[frameIdx], nullptr);
-
         delete this->uniformBuffers[frameIdx];
 
-        delete this->_fences[frameIdx];
+        delete this->_syncObjectsGroups[frameIdx];
     }
 
     delete this->_swapchain;
@@ -186,27 +187,6 @@ void Renderer::initInstance() {
 
 void Renderer::initSurface(GLFWwindow *window) {
     vkEnsure(glfwCreateWindowSurface(this->instance, window, nullptr, &this->surface));
-}
-
-void Renderer::initSync() {
-    VkFenceCreateInfo fenceCreateInfo = {
-            .sType = VkStructureType::VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
-            .pNext = nullptr,
-            .flags = VkFenceCreateFlagBits::VK_FENCE_CREATE_SIGNALED_BIT
-    };
-
-    VkSemaphoreCreateInfo semaphoreCreateInfo = {
-            .sType = VkStructureType::VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
-            .pNext = nullptr,
-            .flags = 0
-    };
-
-    for (int idx = 0; idx < VK_MAX_INFLIGHT_FRAMES; idx++) {
-        vkEnsure(vkCreateSemaphore(this->_renderingDevice->getHandle(), &semaphoreCreateInfo, nullptr,
-                                   &this->imageAvailableSemaphores[idx]));
-        vkEnsure(vkCreateSemaphore(this->_renderingDevice->getHandle(), &semaphoreCreateInfo, nullptr,
-                                   &this->renderFinishedSemaphores[idx]));
-    }
 }
 
 void Renderer::initUniformBuffers() {
@@ -333,16 +313,14 @@ void Renderer::handleResize() {
 }
 
 void Renderer::render() {
-    FenceObject *currentFence = this->_fences[_currentFrameIdx];
-    VkSemaphore currentImageAvailableSemaphore = this->imageAvailableSemaphores[_currentFrameIdx];
-    VkSemaphore currentRenderFinishedSemaphore = this->renderFinishedSemaphores[_currentFrameIdx];
+    SyncObjectsGroup *currentSyncObjects = this->_syncObjectsGroups[_currentFrameIdx];
 
-    currentFence->wait(UINT64_MAX);
-    currentFence->reset();
+    currentSyncObjects->fence->wait(UINT64_MAX);
+    currentSyncObjects->fence->reset();
 
     uint32_t imageIdx;
     VkResult result = vkAcquireNextImageKHR(this->_renderingDevice->getHandle(), this->_swapchain->getHandle(),
-                                            UINT64_MAX, currentImageAvailableSemaphore,
+                                            UINT64_MAX, currentSyncObjects->imageAvailableSemaphore->getHandle(),
                                             VK_NULL_HANDLE, &imageIdx);
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR) {
@@ -369,18 +347,20 @@ void Renderer::render() {
                     renderpass->recordCommands(cmdBuffer, renderArea, _currentFrameIdx, imageIdx);
                 }
             })
-            .withFence(currentFence)
-            .withWaitSemaphore(currentImageAvailableSemaphore)
-            .withSignalSemaphore(currentRenderFinishedSemaphore)
+            .withFence(currentSyncObjects->fence)
+            .withWaitSemaphore(currentSyncObjects->imageAvailableSemaphore)
+            .withSignalSemaphore(currentSyncObjects->renderFinishedSemaphore)
             .withWaitDstStageMask(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT)
             .submit(false);
 
     VkSwapchainKHR swapchain = this->_swapchain->getHandle();
+    VkSemaphore renderFinishedSemaphore = currentSyncObjects->renderFinishedSemaphore->getHandle();
+
     VkPresentInfoKHR presentInfo = {
             .sType = VkStructureType::VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
             .pNext = nullptr,
             .waitSemaphoreCount = 1,
-            .pWaitSemaphores = &currentRenderFinishedSemaphore,
+            .pWaitSemaphores = &renderFinishedSemaphore,
             .swapchainCount = 1,
             .pSwapchains = &swapchain,
             .pImageIndices = &imageIdx,
