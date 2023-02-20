@@ -2,8 +2,9 @@
 #define RENDERING_RENDERINGOBJECTSFACTORY_HPP
 
 #include "Rendering/RenderingDevice.hpp"
-#include "Rendering/BufferObject.hpp"
-#include "Rendering/ImageObject.hpp"
+#include "Rendering/Objects/BufferObject.hpp"
+#include "Rendering/Objects/ImageObject.hpp"
+#include "Rendering/Objects/FenceObject.hpp"
 
 class RenderingObjectsFactory {
 private:
@@ -18,6 +19,8 @@ public:
     ImageObject *createImageObject(uint32_t width, uint32_t height, VkFormat format, VkImageUsageFlags usage,
                                    VkSampleCountFlagBits samples, VkMemoryPropertyFlags memoryProperty,
                                    VkImageAspectFlags aspectMask);
+
+    FenceObject *createFenceObject(bool signaled);
 };
 
 #endif // RENDERING_RENDERINGOBJECTSFACTORY_HPP

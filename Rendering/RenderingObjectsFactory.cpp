@@ -30,3 +30,9 @@ ImageObject *RenderingObjectsFactory::createImageObject(uint32_t width, uint32_t
 
     return new ImageObject(this->_renderingDevice, image, memory, imageView);
 }
+
+FenceObject *RenderingObjectsFactory::createFenceObject(bool signaled) {
+    VkFence fence = this->_renderingDevice->createFence(signaled);
+
+    return new FenceObject(this->_renderingDevice, fence);
+}

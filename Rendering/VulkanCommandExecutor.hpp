@@ -5,9 +5,11 @@
 #include <optional>
 
 #include "VulkanConstants.hpp"
-#include "Rendering/RenderingDevice.hpp"
 
 using VulkanCommand = std::function<void(VkCommandBuffer cmdBuffer)>;
+
+class RenderingDevice;
+class FenceObject;
 
 // TODO naming - remove Vulkan prefix
 class VulkanCommandExecution {
@@ -19,7 +21,7 @@ private:
     VkQueue _queue;
     bool _oneTimeBuffer;
 
-    VkFence _fence = VK_NULL_HANDLE;
+    FenceObject *_fence = nullptr;
     VkSemaphore _waitSemaphore = VK_NULL_HANDLE;
     VkSemaphore _signalSemaphore = VK_NULL_HANDLE;
     std::optional<VkPipelineStageFlags> _waitDstStageMask;
@@ -33,7 +35,7 @@ public:
                            bool oneTimeBuffer);
     ~VulkanCommandExecution();
 
-    VulkanCommandExecution &withFence(VkFence fence);
+    VulkanCommandExecution &withFence(FenceObject *fence);
     VulkanCommandExecution &withWaitSemaphore(VkSemaphore semaphore);
     VulkanCommandExecution &withSignalSemaphore(VkSemaphore semaphore);
     VulkanCommandExecution &withWaitDstStageMask(VkPipelineStageFlags waitDstStageMask);

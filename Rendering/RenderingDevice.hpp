@@ -51,6 +51,14 @@ public:
 
     VkFramebuffer createFramebuffer(VkRenderPass renderpass, VkExtent2D extent, std::vector<VkImageView> attachments);
     void destroyFramebuffer(VkFramebuffer framebuffer);
+
+    VkFence createFence(bool signaled);
+    void waitForFence(VkFence fence, uint64_t timeout);
+    void resetFence(VkFence fence);
+    void destroyFence(VkFence fence);
+
+    VkSemaphore createSemaphore();
+    void destroySemaphore(VkSemaphore semaphore);
 };
 
 #endif // RENDERING_RENDERINGDEVICE_HPP

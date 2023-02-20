@@ -43,8 +43,8 @@ private:
     RenderingObjectsFactory *_renderingObjectsFactory;
     VulkanCommandExecutor *_commandExecutor;
     Swapchain *_swapchain;
+    std::array<FenceObject *, VK_MAX_INFLIGHT_FRAMES> _fences;
 
-    std::array<VkFence, VK_MAX_INFLIGHT_FRAMES> fences;
     std::array<VkSemaphore, VK_MAX_INFLIGHT_FRAMES> imageAvailableSemaphores, renderFinishedSemaphores;
 
     std::array<BufferObject *, VK_MAX_INFLIGHT_FRAMES> uniformBuffers;
@@ -56,7 +56,7 @@ private:
     std::vector<RenderpassBase *> _renderpasses;
     SceneRenderpass *_sceneRenderpass;
 
-    uint32_t frameIdx = 0;
+    uint32_t _currentFrameIdx = 0;
     bool resizeRequested = false;
     UniformBufferObject ubo = {};
 

@@ -24,9 +24,10 @@ src = [
     'Rendering/VulkanPhysicalDevice.cpp',
     'Rendering/RenderingDevice.cpp',
     'Rendering/RenderingObjectsFactory.cpp',
-    'Rendering/BufferObject.cpp',
-    'Rendering/ImageObject.cpp',
-    'Rendering/Swapchain.cpp'
+    'Rendering/Objects/BufferObject.cpp',
+    'Rendering/Objects/ImageObject.cpp',
+    'Rendering/Swapchain.cpp',
+    'Rendering/Objects/FenceObject.cpp'
 ]
 
 # shaders compilation

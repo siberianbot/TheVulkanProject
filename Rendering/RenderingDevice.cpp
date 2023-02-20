@@ -244,3 +244,45 @@ VkFramebuffer RenderingDevice::createFramebuffer(VkRenderPass renderpass, VkExte
 void RenderingDevice::destroyFramebuffer(VkFramebuffer framebuffer) {
     vkDestroyFramebuffer(this->_device, framebuffer, nullptr);
 }
+
+VkFence RenderingDevice::createFence(bool signaled) {
+    VkFenceCreateInfo createInfo = {
+            .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = signaled ? VK_FENCE_CREATE_SIGNALED_BIT : (VkFenceCreateFlags) 0
+    };
+
+    VkFence fence;
+    vkEnsure(vkCreateFence(this->_device, &createInfo, nullptr, &fence));
+
+    return fence;
+}
+
+void RenderingDevice::waitForFence(VkFence fence, uint64_t timeout) {
+    vkEnsure(vkWaitForFences(this->_device, 1, &fence, VK_TRUE, timeout));
+}
+
+void RenderingDevice::resetFence(VkFence fence) {
+    vkEnsure(vkResetFences(this->_device, 1, &fence));
+}
+
+void RenderingDevice::destroyFence(VkFence fence) {
+    vkDestroyFence(this->_device, fence, nullptr);
+}
+
+VkSemaphore RenderingDevice::createSemaphore() {
+    VkSemaphoreCreateInfo createInfo = {
+            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0
+    };
+
+    VkSemaphore semaphore;
+    vkEnsure(vkCreateSemaphore(this->_device, &createInfo, nullptr, &semaphore));
+
+    return semaphore;
+}
+
+void RenderingDevice::destroySemaphore(VkSemaphore semaphore) {
+    vkDestroySemaphore(this->_device, semaphore, nullptr);
+}

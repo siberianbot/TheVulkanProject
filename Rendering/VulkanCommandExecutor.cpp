@@ -4,6 +4,8 @@
 
 #include "VulkanCommon.hpp"
 #include "Rendering/VulkanPhysicalDevice.hpp"
+#include "Rendering/RenderingDevice.hpp"
+#include "Rendering/Objects/FenceObject.hpp"
 
 VulkanCommandExecution::VulkanCommandExecution(VulkanCommand command,
                                                VkDevice device,
@@ -28,7 +30,7 @@ VulkanCommandExecution::~VulkanCommandExecution() {
     vkFreeCommandBuffers(this->_device, this->_commandPool, 1, &this->_commandBuffer);
 }
 
-VulkanCommandExecution &VulkanCommandExecution::withFence(VkFence fence) {
+VulkanCommandExecution &VulkanCommandExecution::withFence(FenceObject *fence) {
     this->_fence = fence;
 
     return *this;
@@ -86,8 +88,8 @@ void VulkanCommandExecution::submit(bool waitQueueIdle) {
                                  : nullptr
     };
 
-    VkFence fence = _fence != VK_NULL_HANDLE
-                    ? _fence
+    VkFence fence = this->_fence != nullptr
+                    ? this->_fence->getHandle()
                     : VK_NULL_HANDLE;
 
     vkEnsure(vkQueueSubmit(this->_queue, 1, &submitInfo, fence));

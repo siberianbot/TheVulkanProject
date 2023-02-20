@@ -3,7 +3,6 @@
 #include <set>
 #include <iostream>
 #include <array>
-#include <limits>
 
 #include "Constants.hpp"
 #include "Engine.hpp"
@@ -12,7 +11,6 @@
 #include "VulkanCommon.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
-
 #include <stb/stb_image.h>
 
 std::vector<const char *> vkRequiredExtensions() {
@@ -74,6 +72,10 @@ void Renderer::init() {
     this->_commandExecutor = new VulkanCommandExecutor(this->_renderingDevice);
     this->_swapchain = new Swapchain(this->_renderingDevice, this->_renderingObjectsFactory);
 
+    for (uint32_t frameIdx = 0; frameIdx < MAX_INFLIGHT_FRAMES; frameIdx++) {
+        this->_fences[frameIdx] = this->_renderingObjectsFactory->createFenceObject(true);
+    }
+
     initSync();
     initUniformBuffers();
     initTextureSampler();
@@ -115,12 +117,13 @@ void Renderer::cleanup() {
 
     vkDestroySampler(this->_renderingDevice->getHandle(), this->textureSampler, nullptr);
 
-    for (int idx = 0; idx < VK_MAX_INFLIGHT_FRAMES; idx++) {
-        vkDestroySemaphore(this->_renderingDevice->getHandle(), this->renderFinishedSemaphores[idx], nullptr);
-        vkDestroySemaphore(this->_renderingDevice->getHandle(), this->imageAvailableSemaphores[idx], nullptr);
-        vkDestroyFence(this->_renderingDevice->getHandle(), this->fences[idx], nullptr);
+    for (uint32_t frameIdx = 0; frameIdx < MAX_INFLIGHT_FRAMES; frameIdx++) {
+        vkDestroySemaphore(this->_renderingDevice->getHandle(), this->renderFinishedSemaphores[frameIdx], nullptr);
+        vkDestroySemaphore(this->_renderingDevice->getHandle(), this->imageAvailableSemaphores[frameIdx], nullptr);
 
-        delete this->uniformBuffers[idx];
+        delete this->uniformBuffers[frameIdx];
+
+        delete this->_fences[frameIdx];
     }
 
     delete this->_swapchain;
@@ -199,7 +202,6 @@ void Renderer::initSync() {
     };
 
     for (int idx = 0; idx < VK_MAX_INFLIGHT_FRAMES; idx++) {
-        vkEnsure(vkCreateFence(this->_renderingDevice->getHandle(), &fenceCreateInfo, nullptr, &this->fences[idx]));
         vkEnsure(vkCreateSemaphore(this->_renderingDevice->getHandle(), &semaphoreCreateInfo, nullptr,
                                    &this->imageAvailableSemaphores[idx]));
         vkEnsure(vkCreateSemaphore(this->_renderingDevice->getHandle(), &semaphoreCreateInfo, nullptr,
@@ -331,19 +333,17 @@ void Renderer::handleResize() {
 }
 
 void Renderer::render() {
-    VkFence currentFence = this->fences[frameIdx];
-    VkSemaphore currentImageAvailableSemaphore = this->imageAvailableSemaphores[frameIdx];
-    VkSemaphore currentRenderFinishedSemaphore = this->renderFinishedSemaphores[frameIdx];
+    FenceObject *currentFence = this->_fences[_currentFrameIdx];
+    VkSemaphore currentImageAvailableSemaphore = this->imageAvailableSemaphores[_currentFrameIdx];
+    VkSemaphore currentRenderFinishedSemaphore = this->renderFinishedSemaphores[_currentFrameIdx];
 
-    vkWaitForFences(this->_renderingDevice->getHandle(), 1, &currentFence, VK_TRUE, UINT64_MAX);
-    vkResetFences(this->_renderingDevice->getHandle(), 1, &currentFence);
+    currentFence->wait(UINT64_MAX);
+    currentFence->reset();
 
     uint32_t imageIdx;
     VkResult result = vkAcquireNextImageKHR(this->_renderingDevice->getHandle(), this->_swapchain->getHandle(),
                                             UINT64_MAX, currentImageAvailableSemaphore,
                                             VK_NULL_HANDLE, &imageIdx);
-
-    VkExtent2D extent = this->_swapchain->getSwapchainExtent();
 
     if (result == VK_ERROR_OUT_OF_DATE_KHR) {
         handleResize();
@@ -352,19 +352,21 @@ void Renderer::render() {
         throw std::runtime_error("Vulkan acquire next image failure");
     }
 
+    VkExtent2D extent = this->_swapchain->getSwapchainExtent();
+
     ubo.view = this->engine->camera().view();
     ubo.proj = glm::perspective(glm::radians(45.0f), extent.width / (float) extent.height, 0.1f, 10.0f);
     ubo.proj[1][1] *= -1;
-    memcpy(this->uniformBuffers[frameIdx]->map(), &ubo, sizeof(ubo));
+    memcpy(this->uniformBuffers[_currentFrameIdx]->map(), &ubo, sizeof(ubo));
 
-    this->_commandExecutor->beginMainExecution(frameIdx, [this, &extent, &imageIdx](VkCommandBuffer cmdBuffer) {
-                VkRect2D renderArea = VkRect2D{
+    this->_commandExecutor->beginMainExecution(_currentFrameIdx, [this, &extent, &imageIdx](VkCommandBuffer cmdBuffer) {
+                VkRect2D renderArea = {
                         .offset = {0, 0},
                         .extent = extent
                 };
 
                 for (RenderpassBase *renderpass: this->_renderpasses) {
-                    renderpass->recordCommands(cmdBuffer, renderArea, frameIdx, imageIdx);
+                    renderpass->recordCommands(cmdBuffer, renderArea, _currentFrameIdx, imageIdx);
                 }
             })
             .withFence(currentFence)
@@ -394,7 +396,7 @@ void Renderer::render() {
         throw std::runtime_error("Vulkan present failure");
     }
 
-    frameIdx = (frameIdx + 1) % VK_MAX_INFLIGHT_FRAMES;
+    _currentFrameIdx = (_currentFrameIdx + 1) % MAX_INFLIGHT_FRAMES;
 }
 
 BufferObject *Renderer::uploadVertices(const std::vector<Vertex> &vertices) {

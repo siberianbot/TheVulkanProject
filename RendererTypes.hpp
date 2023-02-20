@@ -4,8 +4,8 @@
 #include <glm/glm.hpp>
 #include <vulkan/vulkan.hpp>
 
-#include "Rendering/BufferObject.hpp"
-#include "Rendering/ImageObject.hpp"
+#include "Rendering/Objects/BufferObject.hpp"
+#include "Rendering/Objects/ImageObject.hpp"
 
 static constexpr const int VK_MAX_INFLIGHT_FRAMES = 2;
 

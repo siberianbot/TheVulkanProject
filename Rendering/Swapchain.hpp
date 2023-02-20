@@ -5,7 +5,7 @@
 
 #include <vulkan/vulkan.hpp>
 
-#include "Rendering/ImageObject.hpp"
+#include "Rendering/Objects/ImageObject.hpp"
 
 class RenderingDevice;
 class RenderingObjectsFactory;
