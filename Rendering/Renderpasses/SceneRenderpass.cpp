@@ -4,12 +4,15 @@
 
 #include "Engine.hpp"
 #include "Mesh.hpp"
-#include "VulkanCommon.hpp"
+#include "Rendering/Common.hpp"
+#include "Rendering/RenderingDevice.hpp"
 #include "Rendering/Swapchain.hpp"
-#include "Rendering/VulkanCommandExecutor.hpp"
-#include "Rendering/VulkanRenderpassBuilder.hpp"
-#include "Rendering/VulkanPipelineBuilder.hpp"
-#include "Rendering/VulkanPhysicalDevice.hpp"
+#include "Rendering/CommandExecutor.hpp"
+#include "Rendering/RenderpassBuilder.hpp"
+#include "Rendering/PipelineBuilder.hpp"
+#include "Rendering/PhysicalDevice.hpp"
+#include "Rendering/Objects/BufferObject.hpp"
+#include "Rendering/Objects/ImageObject.hpp"
 #include "Rendering/RenderingObjectsFactory.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -27,7 +30,7 @@ static constexpr const char *DEFAULT_FRAGMENT_SHADER = "shaders/default.frag.spv
 void SceneRenderpass::initUniformBuffers() {
     VkDeviceSize uboSize = sizeof(UniformBufferObject);
 
-    for (size_t idx = 0; idx < VK_MAX_INFLIGHT_FRAMES; idx++) {
+    for (size_t idx = 0; idx < MAX_INFLIGHT_FRAMES; idx++) {
         this->uniformBuffers[idx] = this->_renderingObjectsFactory
                 ->createBufferObject(uboSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                                      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
@@ -63,11 +66,11 @@ void SceneRenderpass::initDescriptors() {
     std::array<VkDescriptorPoolSize, 2> descriptorPoolSizes = {
             VkDescriptorPoolSize{
                     .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                    .descriptorCount = VK_MAX_INFLIGHT_FRAMES
+                    .descriptorCount = MAX_INFLIGHT_FRAMES
             },
             VkDescriptorPoolSize{
                     .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                    .descriptorCount = VK_MAX_INFLIGHT_FRAMES
+                    .descriptorCount = MAX_INFLIGHT_FRAMES
             }
     };
 
@@ -75,7 +78,7 @@ void SceneRenderpass::initDescriptors() {
             .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
             .pNext = nullptr,
             .flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
-            .maxSets = 4 * VK_MAX_INFLIGHT_FRAMES,
+            .maxSets = 4 * MAX_INFLIGHT_FRAMES,
             .poolSizeCount = static_cast<uint32_t>(descriptorPoolSizes.size()),
             .pPoolSizes = descriptorPoolSizes.data()
     };
@@ -135,7 +138,7 @@ void SceneRenderpass::initLayouts() {
 
 SceneRenderpass::SceneRenderpass(RenderingDevice *renderingDevice, Swapchain *swapchain,
                                  RenderingObjectsFactory *renderingObjectsFactory, Engine *engine,
-                                 VulkanCommandExecutor *commandExecutor)
+                                 CommandExecutor *commandExecutor)
         : RenderpassBase(renderingDevice, swapchain),
           _renderingObjectsFactory(renderingObjectsFactory),
           _engine(engine),
@@ -210,11 +213,11 @@ void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D ren
 }
 
 void SceneRenderpass::initRenderpass() {
-    this->_renderpass = VulkanRenderpassBuilder(this->_renderingDevice)
+    this->_renderpass = RenderpassBuilder(this->_renderingDevice)
             .load()
             .build();
 
-    this->_pipeline = VulkanPipelineBuilder(this->_renderingDevice, this->_renderpass, this->_pipelineLayout)
+    this->_pipeline = PipelineBuilder(this->_renderingDevice, this->_renderpass, this->_pipelineLayout)
             .addVertexShader(DEFAULT_VERTEX_SHADER)
             .addFragmentShader(DEFAULT_FRAGMENT_SHADER)
             .addBinding(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
@@ -246,7 +249,7 @@ SceneRenderpass::~SceneRenderpass() {
 
     vkDestroySampler(this->_renderingDevice->getHandle(), this->textureSampler, nullptr);
 
-    for (uint32_t frameIdx = 0; frameIdx < VK_MAX_INFLIGHT_FRAMES; frameIdx++) {
+    for (uint32_t frameIdx = 0; frameIdx < MAX_INFLIGHT_FRAMES; frameIdx++) {
         delete this->uniformBuffers[frameIdx];
     }
 }
@@ -381,9 +384,9 @@ ImageObject *SceneRenderpass::uploadTexture(const std::string &texturePath) {
     return image;
 }
 
-std::array<VkDescriptorSet, VK_MAX_INFLIGHT_FRAMES> SceneRenderpass::initDescriptorSets(VkImageView textureImageView) {
-    std::vector<VkDescriptorSetLayout> layouts(VK_MAX_INFLIGHT_FRAMES, this->descriptorSetLayout);
-    std::array<VkDescriptorSet, VK_MAX_INFLIGHT_FRAMES> descriptorSets = {};
+std::array<VkDescriptorSet, MAX_INFLIGHT_FRAMES> SceneRenderpass::initDescriptorSets(VkImageView textureImageView) {
+    std::vector<VkDescriptorSetLayout> layouts(MAX_INFLIGHT_FRAMES, this->descriptorSetLayout);
+    std::array<VkDescriptorSet, MAX_INFLIGHT_FRAMES> descriptorSets = {};
 
     VkDescriptorSetAllocateInfo descriptorSetAllocateInfo = {
             .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
@@ -396,7 +399,7 @@ std::array<VkDescriptorSet, VK_MAX_INFLIGHT_FRAMES> SceneRenderpass::initDescrip
     vkEnsure(vkAllocateDescriptorSets(this->_renderingDevice->getHandle(), &descriptorSetAllocateInfo,
                                       descriptorSets.data()));
 
-    for (uint32_t idx = 0; idx < VK_MAX_INFLIGHT_FRAMES; idx++) {
+    for (uint32_t idx = 0; idx < MAX_INFLIGHT_FRAMES; idx++) {
         VkDescriptorBufferInfo bufferInfo = {
                 .buffer = this->uniformBuffers[idx]->getHandle(),
                 .offset = 0,

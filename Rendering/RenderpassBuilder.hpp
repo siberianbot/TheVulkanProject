@@ -1,13 +1,14 @@
-#ifndef RENDERING_VULKANRENDERPASSBUILDER_HPP
-#define RENDERING_VULKANRENDERPASSBUILDER_HPP
+#ifndef RENDERING_RENDERPASSBUILDER_HPP
+#define RENDERING_RENDERPASSBUILDER_HPP
 
 #include <optional>
 #include <vector>
 
-#include "Rendering/RenderingDevice.hpp"
+#include <vulkan/vulkan.hpp>
 
-// TODO naming - remove Vulkan prefix
-class VulkanRenderpassBuilder {
+class RenderingDevice;
+
+class RenderpassBuilder {
 private:
     struct Attachment {
         VkImageLayout layout;
@@ -23,13 +24,13 @@ private:
     std::optional<Attachment> _resolveAttachment;
 
 public:
-    explicit VulkanRenderpassBuilder(RenderingDevice *renderingDevice);
+    explicit RenderpassBuilder(RenderingDevice *renderingDevice);
 
-    VulkanRenderpassBuilder &clear();
-    VulkanRenderpassBuilder &load();
-    VulkanRenderpassBuilder &addResolveAttachment();
+    RenderpassBuilder &clear();
+    RenderpassBuilder &load();
+    RenderpassBuilder &addResolveAttachment();
 
     VkRenderPass build();
 };
 
-#endif // RENDERING_VULKANRENDERPASSBUILDER_HPP
+#endif // RENDERING_RENDERPASSBUILDER_HPP

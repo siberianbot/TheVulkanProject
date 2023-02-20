@@ -5,10 +5,9 @@
 
 #include <vulkan/vulkan.hpp>
 
-#include "Rendering/Objects/ImageObject.hpp"
-
 class RenderingDevice;
 class RenderingObjectsFactory;
+class ImageObject;
 
 class Swapchain {
 private:

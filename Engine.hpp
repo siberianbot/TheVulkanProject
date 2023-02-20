@@ -1,10 +1,10 @@
 #ifndef ENGINE_HPP
 #define ENGINE_HPP
 
-#include "Renderer.hpp"
+#include "Rendering/Renderer.hpp"
 #include "Input.hpp"
 #include "Camera.hpp"
-#include "RendererTypes.hpp"
+#include "Rendering/Renderpasses/SceneRenderpass.hpp"
 
 class Engine {
 private:

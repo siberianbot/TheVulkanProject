@@ -1,19 +1,18 @@
-#include "VulkanCommandExecutor.hpp"
+#include "CommandExecutor.hpp"
 
 #include <utility>
 
-#include "VulkanCommon.hpp"
-#include "Rendering/VulkanPhysicalDevice.hpp"
+#include "Rendering/PhysicalDevice.hpp"
 #include "Rendering/RenderingDevice.hpp"
 #include "Rendering/Objects/FenceObject.hpp"
 #include "Rendering/Objects/SemaphoreObject.hpp"
 
-VulkanCommandExecution::VulkanCommandExecution(VulkanCommand command,
-                                               VkDevice device,
-                                               VkCommandPool commandPool,
-                                               VkCommandBuffer commandBuffer,
-                                               VkQueue queue,
-                                               bool oneTimeBuffer)
+CommandExecution::CommandExecution(Command command,
+                                   VkDevice device,
+                                   VkCommandPool commandPool,
+                                   VkCommandBuffer commandBuffer,
+                                   VkQueue queue,
+                                   bool oneTimeBuffer)
         : _command(std::move(command)),
           _device(device),
           _commandPool(commandPool),
@@ -23,7 +22,7 @@ VulkanCommandExecution::VulkanCommandExecution(VulkanCommand command,
     //
 }
 
-VulkanCommandExecution::~VulkanCommandExecution() {
+CommandExecution::~CommandExecution() {
     if (!this->_oneTimeBuffer) {
         return;
     }
@@ -31,31 +30,31 @@ VulkanCommandExecution::~VulkanCommandExecution() {
     vkFreeCommandBuffers(this->_device, this->_commandPool, 1, &this->_commandBuffer);
 }
 
-VulkanCommandExecution &VulkanCommandExecution::withFence(FenceObject *fence) {
+CommandExecution &CommandExecution::withFence(FenceObject *fence) {
     this->_fence = fence;
 
     return *this;
 }
 
-VulkanCommandExecution &VulkanCommandExecution::withWaitSemaphore(SemaphoreObject *semaphore) {
+CommandExecution &CommandExecution::withWaitSemaphore(SemaphoreObject *semaphore) {
     this->_waitSemaphores.push_back(semaphore->getHandle());
 
     return *this;
 }
 
-VulkanCommandExecution &VulkanCommandExecution::withSignalSemaphore(SemaphoreObject *semaphore) {
+CommandExecution &CommandExecution::withSignalSemaphore(SemaphoreObject *semaphore) {
     this->_signalSemaphores.push_back(semaphore->getHandle());
 
     return *this;
 }
 
-VulkanCommandExecution &VulkanCommandExecution::withWaitDstStageMask(VkPipelineStageFlags waitDstStageMask) {
+CommandExecution &CommandExecution::withWaitDstStageMask(VkPipelineStageFlags waitDstStageMask) {
     this->_waitDstStageMask = waitDstStageMask;
 
     return *this;
 }
 
-void VulkanCommandExecution::submit(bool waitQueueIdle) {
+void CommandExecution::submit(bool waitQueueIdle) {
     VkCommandBufferBeginInfo beginInfo = {
             .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
             .pNext = nullptr,
@@ -98,7 +97,7 @@ void VulkanCommandExecution::submit(bool waitQueueIdle) {
     vkEnsure(vkQueueWaitIdle(this->_queue));
 }
 
-VulkanCommandExecutor::VulkanCommandExecutor(RenderingDevice *renderingDevice)
+CommandExecutor::CommandExecutor(RenderingDevice *renderingDevice)
         : _renderingDevice(renderingDevice) {
     VkCommandPoolCreateInfo commandPoolCreateInfo = {
             .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
@@ -122,13 +121,13 @@ VulkanCommandExecutor::VulkanCommandExecutor(RenderingDevice *renderingDevice)
                                       this->_mainBuffers.data()));
 }
 
-VulkanCommandExecutor::~VulkanCommandExecutor() {
+CommandExecutor::~CommandExecutor() {
     vkFreeCommandBuffers(this->_renderingDevice->getHandle(), this->_commandPool,
                          static_cast<uint32_t>(this->_mainBuffers.size()), this->_mainBuffers.data());
     vkDestroyCommandPool(this->_renderingDevice->getHandle(), this->_commandPool, nullptr);
 }
 
-VulkanCommandExecution VulkanCommandExecutor::beginMainExecution(uint32_t frameIdx, VulkanCommand command) {
+CommandExecution CommandExecutor::beginMainExecution(uint32_t frameIdx, Command command) {
     VkCommandBuffer commandBuffer = this->_mainBuffers[frameIdx];
 
     vkEnsure(vkResetCommandBuffer(commandBuffer, 0));
@@ -140,7 +139,7 @@ VulkanCommandExecution VulkanCommandExecutor::beginMainExecution(uint32_t frameI
     };
 }
 
-VulkanCommandExecution VulkanCommandExecutor::beginOneTimeExecution(VulkanCommand command) {
+CommandExecution CommandExecutor::beginOneTimeExecution(Command command) {
     VkCommandBuffer commandBuffer;
 
     VkCommandBufferAllocateInfo allocateInfo = {

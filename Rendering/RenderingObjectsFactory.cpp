@@ -1,5 +1,11 @@
 #include "RenderingObjectsFactory.hpp"
 
+#include "Rendering/RenderingDevice.hpp"
+#include "Rendering/Objects/BufferObject.hpp"
+#include "Rendering/Objects/FenceObject.hpp"
+#include "Rendering/Objects/ImageObject.hpp"
+#include "Rendering/Objects/SemaphoreObject.hpp"
+
 RenderingObjectsFactory::RenderingObjectsFactory(RenderingDevice *renderingDevice)
         : _renderingDevice(renderingDevice) {
     //

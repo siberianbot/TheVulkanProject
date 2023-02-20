@@ -1,11 +1,13 @@
 #ifndef RENDERING_RENDERINGOBJECTSFACTORY_HPP
 #define RENDERING_RENDERINGOBJECTSFACTORY_HPP
 
-#include "Rendering/RenderingDevice.hpp"
-#include "Rendering/Objects/BufferObject.hpp"
-#include "Rendering/Objects/ImageObject.hpp"
-#include "Rendering/Objects/FenceObject.hpp"
-#include "Rendering/Objects/SemaphoreObject.hpp"
+#include <vulkan/vulkan.hpp>
+
+class RenderingDevice;
+class BufferObject;
+class ImageObject;
+class FenceObject;
+class SemaphoreObject;
 
 class RenderingObjectsFactory {
 private:

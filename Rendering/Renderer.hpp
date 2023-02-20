@@ -1,5 +1,5 @@
-#ifndef RENDERER_HPP
-#define RENDERER_HPP
+#ifndef RENDERING_RENDERER_HPP
+#define RENDERING_RENDERER_HPP
 
 #include <array>
 #include <optional>
@@ -8,18 +8,18 @@
 #include <vulkan/vulkan.hpp>
 #include <GLFW/glfw3.h>
 
-#include "VulkanConstants.hpp"
+#include "Rendering/Common.hpp"
 
 class Engine;
-class VulkanPhysicalDevice;
+class PhysicalDevice;
 class RenderingDevice;
-class RenderingObjectsFactory;
-class VulkanCommandExecutor;
+class CommandExecutor;
 class Swapchain;
-class RenderpassBase;
-class SceneRenderpass;
+class RenderingObjectsFactory;
 class FenceObject;
 class SemaphoreObject;
+class RenderpassBase;
+class SceneRenderpass;
 
 class Renderer {
 private:
@@ -37,10 +37,10 @@ private:
 
     VkInstance _instance = VK_NULL_HANDLE;
     VkSurfaceKHR _surface = VK_NULL_HANDLE;
-    VulkanPhysicalDevice *_physicalDevice;
+    PhysicalDevice *_physicalDevice;
     RenderingDevice *_renderingDevice;
     RenderingObjectsFactory *_renderingObjectsFactory;
-    VulkanCommandExecutor *_commandExecutor;
+    CommandExecutor *_commandExecutor;
     Swapchain *_swapchain;
     std::array<SyncObjectsGroup *, MAX_INFLIGHT_FRAMES> _syncObjectsGroups;
     std::vector<RenderpassBase *> _renderpasses;
@@ -69,4 +69,4 @@ public:
     [[deprecated]] SceneRenderpass *sceneRenderpass() const { return this->_sceneRenderpass; };
 };
 
-#endif // RENDERER_HPP
+#endif // RENDERING_RENDERER_HPP

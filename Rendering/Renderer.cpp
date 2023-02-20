@@ -4,14 +4,14 @@
 
 #include "Constants.hpp"
 #include "Engine.hpp"
-#include "VulkanCommon.hpp"
-#include "Rendering/VulkanPhysicalDevice.hpp"
+#include "Rendering/CommandExecutor.hpp"
+#include "Rendering/PhysicalDevice.hpp"
+#include "Rendering/RenderingDevice.hpp"
 #include "Rendering/RenderingObjectsFactory.hpp"
-#include "Rendering/VulkanCommandExecutor.hpp"
 #include "Rendering/Swapchain.hpp"
-#include "Rendering/Renderpasses/RenderpassBase.hpp"
+#include "Rendering/Objects/FenceObject.hpp"
+#include "Rendering/Objects/SemaphoreObject.hpp"
 #include "Rendering/Renderpasses/ClearRenderpass.hpp"
-#include "Rendering/Renderpasses/SceneRenderpass.hpp"
 #include "Rendering/Renderpasses/FinalRenderpass.hpp"
 
 Renderer::SyncObjectsGroup::~SyncObjectsGroup() {
@@ -63,10 +63,10 @@ void Renderer::init() {
     this->_instance = createInstance();
     this->_surface = createSurface(this->_engine->window());
 
-    this->_physicalDevice = VulkanPhysicalDevice::selectSuitable(this->_instance, this->_surface);
+    this->_physicalDevice = PhysicalDevice::selectSuitable(this->_instance, this->_surface);
     this->_renderingDevice = this->_physicalDevice->createRenderingDevice();
     this->_renderingObjectsFactory = new RenderingObjectsFactory(this->_renderingDevice);
-    this->_commandExecutor = new VulkanCommandExecutor(this->_renderingDevice);
+    this->_commandExecutor = new CommandExecutor(this->_renderingDevice);
     this->_swapchain = new Swapchain(this->_renderingDevice, this->_renderingObjectsFactory);
 
     for (uint32_t frameIdx = 0; frameIdx < MAX_INFLIGHT_FRAMES; frameIdx++) {
@@ -165,8 +165,8 @@ VkInstance Renderer::createInstance() {
             .pNext = &debugUtilsMessengerCreateInfoExt,
             .flags = 0,
             .pApplicationInfo = &appInfo,
-            .enabledLayerCount = static_cast<uint32_t>(VK_VALIDATION_LAYERS.size()),
-            .ppEnabledLayerNames = VK_VALIDATION_LAYERS.data(),
+            .enabledLayerCount = static_cast<uint32_t>(VALIDATION_LAYERS.size()),
+            .ppEnabledLayerNames = VALIDATION_LAYERS.data(),
             .enabledExtensionCount = static_cast<uint32_t>(extensions.size()),
             .ppEnabledExtensionNames = extensions.data()
     };

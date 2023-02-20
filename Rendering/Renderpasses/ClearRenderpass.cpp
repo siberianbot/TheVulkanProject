@@ -2,7 +2,7 @@
 
 #include <array>
 
-#include "Rendering/VulkanRenderpassBuilder.hpp"
+#include "Rendering/RenderpassBuilder.hpp"
 
 ClearRenderpass::ClearRenderpass(RenderingDevice *renderingDevice, Swapchain *swapchain)
         : RenderpassBase(renderingDevice, swapchain) {
@@ -31,7 +31,7 @@ void ClearRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D ren
 }
 
 void ClearRenderpass::initRenderpass() {
-    this->_renderpass = VulkanRenderpassBuilder(this->_renderingDevice)
+    this->_renderpass = RenderpassBuilder(this->_renderingDevice)
             .clear()
             .build();
 }

@@ -1,9 +1,9 @@
 #include "RenderingDevice.hpp"
 
-#include "VulkanCommon.hpp"
-#include "Rendering/VulkanPhysicalDevice.hpp"
+#include "Rendering/Common.hpp"
+#include "Rendering/PhysicalDevice.hpp"
 
-RenderingDevice::RenderingDevice(VulkanPhysicalDevice *physicalDevice, VkDevice device,
+RenderingDevice::RenderingDevice(PhysicalDevice *physicalDevice, VkDevice device,
                                  VkQueue graphicsQueue, VkQueue presentQueue)
         : _physicalDevice(physicalDevice),
           _device(device),

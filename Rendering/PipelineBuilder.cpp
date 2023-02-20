@@ -1,11 +1,12 @@
-#include "VulkanPipelineBuilder.hpp"
+#include "PipelineBuilder.hpp"
 
 #include <fstream>
 
-#include "VulkanCommon.hpp"
-#include "Rendering/VulkanPhysicalDevice.hpp"
+#include "Rendering/Common.hpp"
+#include "Rendering/RenderingDevice.hpp"
+#include "Rendering/PhysicalDevice.hpp"
 
-VkShaderModule VulkanPipelineBuilder::createShaderModule(const std::string &path) {
+VkShaderModule PipelineBuilder::createShaderModule(const std::string &path) {
     std::ifstream file(path, std::ios::ate | std::ios::binary);
     if (!file.is_open()) {
         throw std::runtime_error("shader file read failure");
@@ -33,15 +34,15 @@ VkShaderModule VulkanPipelineBuilder::createShaderModule(const std::string &path
     return shaderModule;
 }
 
-VulkanPipelineBuilder::VulkanPipelineBuilder(RenderingDevice *renderingDevice,
-                                             VkRenderPass renderpass, VkPipelineLayout pipelineLayout)
+PipelineBuilder::PipelineBuilder(RenderingDevice *renderingDevice,
+                                 VkRenderPass renderpass, VkPipelineLayout pipelineLayout)
         : _renderingDevice(renderingDevice),
           _renderpass(renderpass),
           _pipelineLayout(pipelineLayout) {
     //
 }
 
-VulkanPipelineBuilder::~VulkanPipelineBuilder() {
+PipelineBuilder::~PipelineBuilder() {
     if (this->_vertexShader != VK_NULL_HANDLE) {
         vkDestroyShaderModule(this->_renderingDevice->getHandle(), this->_vertexShader, nullptr);
     }
@@ -51,20 +52,20 @@ VulkanPipelineBuilder::~VulkanPipelineBuilder() {
     }
 }
 
-VulkanPipelineBuilder &VulkanPipelineBuilder::addVertexShader(const std::string &path) {
+PipelineBuilder &PipelineBuilder::addVertexShader(const std::string &path) {
     this->_vertexShader = createShaderModule(path);
 
     return *this;
 }
 
-VulkanPipelineBuilder &VulkanPipelineBuilder::addFragmentShader(const std::string &path) {
+PipelineBuilder &PipelineBuilder::addFragmentShader(const std::string &path) {
     this->_fragmentShader = createShaderModule(path);
 
     return *this;
 }
 
-VulkanPipelineBuilder &VulkanPipelineBuilder::addBinding(uint32_t bindingIdx, uint32_t stride,
-                                                         VkVertexInputRate inputRate) {
+PipelineBuilder &PipelineBuilder::addBinding(uint32_t bindingIdx, uint32_t stride,
+                                             VkVertexInputRate inputRate) {
     this->_bindings.push_back(VkVertexInputBindingDescription{
             .binding = bindingIdx,
             .stride = stride,
@@ -74,8 +75,8 @@ VulkanPipelineBuilder &VulkanPipelineBuilder::addBinding(uint32_t bindingIdx, ui
     return *this;
 }
 
-VulkanPipelineBuilder &VulkanPipelineBuilder::addAttribute(uint32_t bindingIdx, uint32_t locationIdx,
-                                                           uint32_t offset, VkFormat format) {
+PipelineBuilder &PipelineBuilder::addAttribute(uint32_t bindingIdx, uint32_t locationIdx,
+                                               uint32_t offset, VkFormat format) {
     this->_attributes.push_back(VkVertexInputAttributeDescription{
             .location = locationIdx,
             .binding = bindingIdx,
@@ -86,7 +87,7 @@ VulkanPipelineBuilder &VulkanPipelineBuilder::addAttribute(uint32_t bindingIdx, 
     return *this;
 }
 
-VkPipeline VulkanPipelineBuilder::build() {
+VkPipeline PipelineBuilder::build() {
     if (this->_vertexShader == VK_NULL_HANDLE || this->_fragmentShader == VK_NULL_HANDLE) {
         throw std::runtime_error("Vertex and fragment shaders are required");
     }

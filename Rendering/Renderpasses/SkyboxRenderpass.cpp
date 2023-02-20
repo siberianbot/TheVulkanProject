@@ -2,7 +2,7 @@
 
 #include "../../Mesh.hpp"
 
-#include "../../VulkanCommon.hpp"
+#include "../Common.hpp"
 
 static constexpr const char SKYBOX_TEXTURE_PATH[] = "textures/skybox.png";
 static constexpr std::array<Vertex, 36> SKYBOX_TRIANGLES = {

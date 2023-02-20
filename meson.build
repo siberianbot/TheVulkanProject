@@ -8,27 +8,32 @@ glfw = dependency('glfw3')
 src = [
     'Main.cpp',
     'Engine.cpp',
-    'Renderer.cpp',
     'Input.cpp',
     'Mesh.cpp',
     'Camera.cpp',
+
+    # Rendering
+    'Rendering/Renderer.cpp',
+    'Rendering/PhysicalDevice.cpp',
+    'Rendering/RenderingDevice.cpp',
+    'Rendering/CommandExecutor.cpp',
+    'Rendering/Swapchain.cpp',
+
+    'Rendering/FramebuffersBuilder.cpp',
+    'Rendering/PipelineBuilder.cpp',
+    'Rendering/RenderpassBuilder.cpp',
+
+    'Rendering/RenderingObjectsFactory.cpp',
+    'Rendering/Objects/BufferObject.cpp',
+    'Rendering/Objects/FenceObject.cpp',
+    'Rendering/Objects/ImageObject.cpp',
+    'Rendering/Objects/SemaphoreObject.cpp',
+
     'Rendering/Renderpasses/RenderpassBase.cpp',
     'Rendering/Renderpasses/ClearRenderpass.cpp',
     'Rendering/Renderpasses/FinalRenderpass.cpp',
     'Rendering/Renderpasses/SceneRenderpass.cpp',
-    # 'SkyboxRenderpass.cpp',
-    'Rendering/VulkanRenderpassBuilder.cpp',
-    'Rendering/FramebuffersBuilder.cpp',
-    'Rendering/VulkanPipelineBuilder.cpp',
-    'Rendering/VulkanCommandExecutor.cpp',
-    'Rendering/VulkanPhysicalDevice.cpp',
-    'Rendering/RenderingDevice.cpp',
-    'Rendering/RenderingObjectsFactory.cpp',
-    'Rendering/Objects/BufferObject.cpp',
-    'Rendering/Objects/ImageObject.cpp',
-    'Rendering/Swapchain.cpp',
-    'Rendering/Objects/FenceObject.cpp',
-    'Rendering/Objects/SemaphoreObject.cpp'
+    # 'Rendering/Renderpasses/SkyboxRenderpass.cpp',
 ]
 
 # shaders compilation

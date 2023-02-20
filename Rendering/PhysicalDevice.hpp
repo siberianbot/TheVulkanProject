@@ -1,14 +1,13 @@
-#ifndef RENDERING_VULKANPHYSICALDEVICE_HPP
-#define RENDERING_VULKANPHYSICALDEVICE_HPP
+#ifndef RENDERING_PHYSICALDEVICE_HPP
+#define RENDERING_PHYSICALDEVICE_HPP
 
 #include <optional>
 
 #include <vulkan/vulkan.hpp>
 
-#include "Rendering/RenderingDevice.hpp"
+class RenderingDevice;
 
-// TODO naming - remove Vulkan prefix
-class VulkanPhysicalDevice {
+class PhysicalDevice {
 private:
     struct QueueFamilies {
         std::optional<uint32_t> graphicsIdx;
@@ -24,8 +23,8 @@ private:
     uint32_t _graphicsQueueFamilyIdx;
     uint32_t _presentQueueFamilyIdx;
 
-    explicit VulkanPhysicalDevice(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface,
-                                  uint32_t graphicsQueueFamilyIdx, uint32_t presentQueueFamilyIdx);
+    explicit PhysicalDevice(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface,
+                            uint32_t graphicsQueueFamilyIdx, uint32_t presentQueueFamilyIdx);
 
     static QueueFamilies getQueueFamilies(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface);
     static std::vector<std::string> getExtensions(VkPhysicalDevice physicalDevice);
@@ -53,7 +52,7 @@ public:
 
     RenderingDevice *createRenderingDevice();
 
-    static VulkanPhysicalDevice *selectSuitable(VkInstance instance, VkSurfaceKHR surface);
+    static PhysicalDevice *selectSuitable(VkInstance instance, VkSurfaceKHR surface);
 };
 
-#endif // RENDERING_VULKANPHYSICALDEVICE_HPP
+#endif // RENDERING_PHYSICALDEVICE_HPP

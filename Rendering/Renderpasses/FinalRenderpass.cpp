@@ -1,6 +1,6 @@
 #include "FinalRenderpass.hpp"
 
-#include "Rendering/VulkanRenderpassBuilder.hpp"
+#include "Rendering/RenderpassBuilder.hpp"
 #include "Rendering/FramebuffersBuilder.hpp"
 
 FinalRenderpass::FinalRenderpass(RenderingDevice *renderingDevice, Swapchain *swapchain)
@@ -25,7 +25,7 @@ void FinalRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D ren
 }
 
 void FinalRenderpass::initRenderpass() {
-    this->_renderpass = VulkanRenderpassBuilder(this->_renderingDevice)
+    this->_renderpass = RenderpassBuilder(this->_renderingDevice)
             .load()
             .addResolveAttachment()
             .build();

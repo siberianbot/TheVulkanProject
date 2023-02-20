@@ -1,9 +1,9 @@
 #include "Swapchain.hpp"
 
-#include "VulkanCommon.hpp"
-#include "Rendering/VulkanPhysicalDevice.hpp"
+#include "Rendering/PhysicalDevice.hpp"
 #include "Rendering/RenderingDevice.hpp"
 #include "Rendering/RenderingObjectsFactory.hpp"
+#include "Rendering/Objects/ImageObject.hpp"
 
 Swapchain::Swapchain(RenderingDevice *renderingDevice, RenderingObjectsFactory *renderingObjectsFactory)
         : _renderingDevice(renderingDevice),

@@ -2,6 +2,7 @@
 
 #include "Rendering/RenderingDevice.hpp"
 #include "Rendering/Swapchain.hpp"
+#include "Rendering/Objects/ImageObject.hpp"
 
 FramebuffersBuilder::FramebuffersBuilder(RenderingDevice *renderingDevice,
                                          Swapchain *swapchain,

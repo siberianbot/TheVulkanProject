@@ -1,9 +1,9 @@
-#include "VulkanPhysicalDevice.hpp"
+#include "PhysicalDevice.hpp"
 
 #include <set>
 
-#include "VulkanConstants.hpp"
-#include "VulkanCommon.hpp"
+#include "Rendering/Common.hpp"
+#include "Rendering/RenderingDevice.hpp"
 
 static constexpr VkFormat PREFERRED_DEPTH_FORMATS[] = {
         VK_FORMAT_D32_SFLOAT,
@@ -11,8 +11,8 @@ static constexpr VkFormat PREFERRED_DEPTH_FORMATS[] = {
         VK_FORMAT_D24_UNORM_S8_UINT
 };
 
-VulkanPhysicalDevice::VulkanPhysicalDevice(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface,
-                                           uint32_t graphicsQueueFamilyIdx, uint32_t presentQueueFamilyIdx)
+PhysicalDevice::PhysicalDevice(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface,
+                               uint32_t graphicsQueueFamilyIdx, uint32_t presentQueueFamilyIdx)
         : _physicalDevice(physicalDevice),
           _surface(surface),
           _graphicsQueueFamilyIdx(graphicsQueueFamilyIdx),
@@ -20,15 +20,15 @@ VulkanPhysicalDevice::VulkanPhysicalDevice(VkPhysicalDevice physicalDevice, VkSu
     //
 }
 
-VulkanPhysicalDevice::QueueFamilies VulkanPhysicalDevice::getQueueFamilies(VkPhysicalDevice physicalDevice,
-                                                                           VkSurfaceKHR surface) {
+PhysicalDevice::QueueFamilies PhysicalDevice::getQueueFamilies(VkPhysicalDevice physicalDevice,
+                                                               VkSurfaceKHR surface) {
     uint32_t count;
     vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &count, nullptr);
 
     std::vector<VkQueueFamilyProperties> propertiesCollection(count);
     vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &count, propertiesCollection.data());
 
-    VulkanPhysicalDevice::QueueFamilies queueFamilies;
+    PhysicalDevice::QueueFamilies queueFamilies;
     for (uint32_t idx = 0; idx < count; idx++) {
         VkQueueFamilyProperties properties = propertiesCollection[idx];
 
@@ -51,7 +51,7 @@ VulkanPhysicalDevice::QueueFamilies VulkanPhysicalDevice::getQueueFamilies(VkPhy
     return queueFamilies;
 }
 
-std::vector<std::string> VulkanPhysicalDevice::getExtensions(VkPhysicalDevice physicalDevice) {
+std::vector<std::string> PhysicalDevice::getExtensions(VkPhysicalDevice physicalDevice) {
     uint32_t count;
     vkEnsure(vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &count, nullptr));
 
@@ -66,21 +66,21 @@ std::vector<std::string> VulkanPhysicalDevice::getExtensions(VkPhysicalDevice ph
     return extensions;
 }
 
-VkPhysicalDeviceProperties VulkanPhysicalDevice::getProperties() {
+VkPhysicalDeviceProperties PhysicalDevice::getProperties() {
     VkPhysicalDeviceProperties properties;
     vkGetPhysicalDeviceProperties(this->_physicalDevice, &properties);
 
     return properties;
 }
 
-VkSurfaceCapabilitiesKHR VulkanPhysicalDevice::getSurfaceCapabilities() {
+VkSurfaceCapabilitiesKHR PhysicalDevice::getSurfaceCapabilities() {
     VkSurfaceCapabilitiesKHR capabilities;
     vkEnsure(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(this->_physicalDevice, this->_surface, &capabilities));
 
     return capabilities;
 }
 
-std::vector<VkPresentModeKHR> VulkanPhysicalDevice::getPresentModes() {
+std::vector<VkPresentModeKHR> PhysicalDevice::getPresentModes() {
     uint32_t count;
     vkEnsure(vkGetPhysicalDeviceSurfacePresentModesKHR(this->_physicalDevice, this->_surface, &count, nullptr));
 
@@ -91,7 +91,7 @@ std::vector<VkPresentModeKHR> VulkanPhysicalDevice::getPresentModes() {
     return presentModes;
 }
 
-std::vector<VkSurfaceFormatKHR> VulkanPhysicalDevice::getSurfaceFormats() {
+std::vector<VkSurfaceFormatKHR> PhysicalDevice::getSurfaceFormats() {
     uint32_t count;
     vkEnsure(vkGetPhysicalDeviceSurfaceFormatsKHR(this->_physicalDevice, this->_surface, &count, nullptr));
 
@@ -102,7 +102,7 @@ std::vector<VkSurfaceFormatKHR> VulkanPhysicalDevice::getSurfaceFormats() {
     return surfaceFormats;
 }
 
-VkSurfaceFormatKHR VulkanPhysicalDevice::getPreferredSurfaceFormat() {
+VkSurfaceFormatKHR PhysicalDevice::getPreferredSurfaceFormat() {
     std::vector<VkSurfaceFormatKHR> formats = getSurfaceFormats();
 
     auto it = std::find_if(formats.begin(), formats.end(), [](const VkSurfaceFormatKHR &format) {
@@ -115,7 +115,7 @@ VkSurfaceFormatKHR VulkanPhysicalDevice::getPreferredSurfaceFormat() {
            : formats[0];
 }
 
-VkPresentModeKHR VulkanPhysicalDevice::getPreferredPresentMode() {
+VkPresentModeKHR PhysicalDevice::getPreferredPresentMode() {
     std::vector<VkPresentModeKHR> presentModes = getPresentModes();
 
     auto it = std::find(presentModes.begin(), presentModes.end(), VK_PRESENT_MODE_MAILBOX_KHR);
@@ -125,11 +125,11 @@ VkPresentModeKHR VulkanPhysicalDevice::getPreferredPresentMode() {
            : VK_PRESENT_MODE_FIFO_KHR;
 }
 
-VkFormat VulkanPhysicalDevice::getColorFormat() {
+VkFormat PhysicalDevice::getColorFormat() {
     return getPreferredSurfaceFormat().format;
 }
 
-VkFormat VulkanPhysicalDevice::getDepthFormat() {
+VkFormat PhysicalDevice::getDepthFormat() {
     for (VkFormat depthFormat: PREFERRED_DEPTH_FORMATS) {
         VkFormatProperties formatProps;
         vkGetPhysicalDeviceFormatProperties(this->_physicalDevice, depthFormat, &formatProps);
@@ -142,7 +142,7 @@ VkFormat VulkanPhysicalDevice::getDepthFormat() {
     throw std::runtime_error("No depth format available");
 }
 
-VkSampleCountFlagBits VulkanPhysicalDevice::getMsaaSamples() {
+VkSampleCountFlagBits PhysicalDevice::getMsaaSamples() {
     VkPhysicalDeviceProperties properties = getProperties();
 
     VkSampleCountFlags counts = properties.limits.framebufferColorSampleCounts &
@@ -158,11 +158,11 @@ VkSampleCountFlagBits VulkanPhysicalDevice::getMsaaSamples() {
     return VK_SAMPLE_COUNT_1_BIT;
 }
 
-float VulkanPhysicalDevice::getMaxSamplerAnisotropy() {
+float PhysicalDevice::getMaxSamplerAnisotropy() {
     return getProperties().limits.maxSamplerAnisotropy;
 }
 
-uint32_t VulkanPhysicalDevice::getSuitableMemoryType(uint32_t memoryTypeBits, VkMemoryPropertyFlags memoryProperty) {
+uint32_t PhysicalDevice::getSuitableMemoryType(uint32_t memoryTypeBits, VkMemoryPropertyFlags memoryProperty) {
     VkPhysicalDeviceMemoryProperties properties;
     vkGetPhysicalDeviceMemoryProperties(this->_physicalDevice, &properties);
 
@@ -180,7 +180,7 @@ uint32_t VulkanPhysicalDevice::getSuitableMemoryType(uint32_t memoryTypeBits, Vk
     throw std::runtime_error("No suitable memory type available");
 }
 
-VulkanPhysicalDevice *VulkanPhysicalDevice::selectSuitable(VkInstance instance, VkSurfaceKHR surface) {
+PhysicalDevice *PhysicalDevice::selectSuitable(VkInstance instance, VkSurfaceKHR surface) {
     uint32_t count;
     vkEnsure(vkEnumeratePhysicalDevices(instance, &count, nullptr));
 
@@ -209,14 +209,14 @@ VulkanPhysicalDevice *VulkanPhysicalDevice::selectSuitable(VkInstance instance, 
             continue;
         }
 
-        return new VulkanPhysicalDevice(physicalDevice, surface,
-                                        queueFamilies.graphicsIdx.value(), queueFamilies.presentIdx.value());
+        return new PhysicalDevice(physicalDevice, surface,
+                                  queueFamilies.graphicsIdx.value(), queueFamilies.presentIdx.value());
     }
 
     throw std::runtime_error("No supported physical device available");
 }
 
-RenderingDevice *VulkanPhysicalDevice::createRenderingDevice() {
+RenderingDevice *PhysicalDevice::createRenderingDevice() {
     const float queuePriority = 1.0f;
 
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;

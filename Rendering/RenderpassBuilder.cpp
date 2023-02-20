@@ -1,15 +1,15 @@
-#include "VulkanRenderpassBuilder.hpp"
+#include "RenderpassBuilder.hpp"
 
-#include "VulkanCommon.hpp"
-#include "VulkanConstants.hpp"
-#include "Rendering/VulkanPhysicalDevice.hpp"
+#include "Rendering/Common.hpp"
+#include "Rendering/PhysicalDevice.hpp"
+#include "Rendering/RenderingDevice.hpp"
 
-VulkanRenderpassBuilder::VulkanRenderpassBuilder(RenderingDevice *renderingDevice)
+RenderpassBuilder::RenderpassBuilder(RenderingDevice *renderingDevice)
         : _renderingDevice(renderingDevice) {
     //
 }
 
-VulkanRenderpassBuilder &VulkanRenderpassBuilder::clear() {
+RenderpassBuilder &RenderpassBuilder::clear() {
     this->_loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 
     this->_colorAttachment = Attachment{
@@ -27,7 +27,7 @@ VulkanRenderpassBuilder &VulkanRenderpassBuilder::clear() {
     return *this;
 }
 
-VulkanRenderpassBuilder &VulkanRenderpassBuilder::load() {
+RenderpassBuilder &RenderpassBuilder::load() {
     this->_loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
 
     this->_colorAttachment = Attachment{
@@ -45,7 +45,7 @@ VulkanRenderpassBuilder &VulkanRenderpassBuilder::load() {
     return *this;
 }
 
-VulkanRenderpassBuilder &VulkanRenderpassBuilder::addResolveAttachment() {
+RenderpassBuilder &RenderpassBuilder::addResolveAttachment() {
     this->_resolveAttachment = Attachment{
             .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
             .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
@@ -55,7 +55,7 @@ VulkanRenderpassBuilder &VulkanRenderpassBuilder::addResolveAttachment() {
     return *this;
 }
 
-VkRenderPass VulkanRenderpassBuilder::build() {
+VkRenderPass RenderpassBuilder::build() {
     if (!this->_loadOp.has_value()) {
         throw std::runtime_error("Load operator is required");
     }

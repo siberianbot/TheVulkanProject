@@ -1,5 +1,5 @@
-#ifndef RENDERING_IMAGEOBJECT_HPP
-#define RENDERING_IMAGEOBJECT_HPP
+#ifndef RENDERING_OBJECTS_IMAGEOBJECT_HPP
+#define RENDERING_OBJECTS_IMAGEOBJECT_HPP
 
 #include <vulkan/vulkan.hpp>
 
@@ -24,4 +24,4 @@ public:
     [[nodiscard]] VkImageView getImageViewHandle() const { return this->_imageView; }
 };
 
-#endif // RENDERING_IMAGEOBJECT_HPP
+#endif // RENDERING_OBJECTS_IMAGEOBJECT_HPP
