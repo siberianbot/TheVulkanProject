@@ -1,13 +1,13 @@
 #version 450
 
-layout (set = 0, binding = 0) uniform UniformBufferObject {
+layout (set = 0, binding = 0) uniform SceneData {
     mat4 view;
-    mat4 proj;
-} ubo;
+    mat4 projection;
+} sceneData;
 
-layout (push_constant) uniform Constants {
+layout (push_constant) uniform MeshConstants {
     mat4 model;
-} constants;
+} meshConstants;
 
 layout (location = 0) in vec3 inPosition;
 layout (location = 1) in vec3 inColor;
@@ -22,5 +22,8 @@ void main() {
     fragColor = inColor;
     fragTexCoord = inTexCoord;
 
-    gl_Position = ubo.proj * ubo.view * constants.model * vec4(inPosition, 1.0);
+    gl_Position = sceneData.projection
+                    * sceneData.view
+                    * meshConstants.model
+                    * vec4(inPosition, 1.0);
 }
