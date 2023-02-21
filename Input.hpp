@@ -5,7 +5,7 @@
 #include <map>
 #include <vector>
 
-using InputHandler = std::function<void()>;
+using InputHandler = std::function<void(float)>;
 
 class Input {
 private:
@@ -18,7 +18,7 @@ public:
     void press(int key);
     void release(int key);
 
-    void process();
+    void process(float delta);
 };
 
 using MouseInputHandler = std::function<void(double, double)>;

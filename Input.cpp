@@ -12,7 +12,7 @@ void Input::release(int key) {
     this->pressed[key] = false;
 }
 
-void Input::process() {
+void Input::process(float delta) {
     for (auto pair: this->pressed) {
         if (!pair.second) {
             continue;
@@ -20,7 +20,7 @@ void Input::process() {
 
         auto it = this->handlers.find(pair.first);
         if (it != this->handlers.end()) {
-            it->second();
+            it->second(delta);
         }
     }
 }

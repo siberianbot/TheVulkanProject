@@ -9,6 +9,7 @@
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_ENABLE_EXPERIMENTAL
+
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -29,21 +30,21 @@ void Engine::init() {
     glfwSetKeyCallback(_window, keyCallback);
     glfwSetCursorPosCallback(_window, cursorCallback);
 
-    this->input.addHandler(GLFW_KEY_ESCAPE, [this]() {
+    this->input.addHandler(GLFW_KEY_ESCAPE, [this](float delta) {
         glfwSetWindowShouldClose(this->_window, GLFW_TRUE);
     });
 
-    this->input.addHandler(GLFW_KEY_W, [this]() {
-        this->_camera.pos() += 0.1f * forward(this->_camera.yaw(), this->_camera.pitch());
+    this->input.addHandler(GLFW_KEY_W, [this](float delta) {
+        this->_camera.pos() += 5 * delta * forward(this->_camera.yaw(), this->_camera.pitch());
     });
-    this->input.addHandler(GLFW_KEY_S, [this]() {
-        this->_camera.pos() -= 0.1f * forward(this->_camera.yaw(), this->_camera.pitch());
+    this->input.addHandler(GLFW_KEY_S, [this](float delta) {
+        this->_camera.pos() -= 5 * delta * forward(this->_camera.yaw(), this->_camera.pitch());
     });
-    this->input.addHandler(GLFW_KEY_A, [this]() {
-        this->_camera.pos() -= 0.1f * side(this->_camera.yaw());
+    this->input.addHandler(GLFW_KEY_A, [this](float delta) {
+        this->_camera.pos() -= 5 * delta * side(this->_camera.yaw());
     });
-    this->input.addHandler(GLFW_KEY_D, [this]() {
-        this->_camera.pos() += 0.1f * side(this->_camera.yaw());
+    this->input.addHandler(GLFW_KEY_D, [this](float delta) {
+        this->_camera.pos() += 5 * delta * side(this->_camera.yaw());
     });
 
     this->mouseInput.addHandler([this](double dx, double dy) {
@@ -95,11 +96,16 @@ void Engine::cleanup() {
 }
 
 void Engine::run() {
+    float delta = 0;
     while (!glfwWindowShouldClose(this->_window)) {
+        double startTime = glfwGetTime();
+
         glfwPollEvents();
 
-        this->input.process();
+        this->input.process(delta);
         this->renderer.render();
+
+        delta = glfwGetTime() - startTime;
     }
 }
 
