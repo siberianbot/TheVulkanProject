@@ -1,52 +1,37 @@
 #ifndef RENDERING_RENDERPASSES_SCENERENDERPASS_HPP
 #define RENDERING_RENDERPASSES_SCENERENDERPASS_HPP
 
+#include <map>
+
 #include "RenderpassBase.hpp"
 
-#include "Mesh.hpp"
-#include "Texture.hpp"
-
-#include "Rendering/Common.hpp"
-
 class Engine;
-class CommandExecutor;
+class Object;
 class RenderingObjectsFactory;
-class BufferObject;
 class DescriptorSetObject;
-class ImageObject;
 class ImageViewObject;
 class RenderingLayoutObject;
 
-struct BoundMeshInfo {
-    BufferObject *vertexBuffer;
-    BufferObject *indexBuffer;
-    ImageObject *texture;
-    ImageViewObject *textureView;
-    glm::mat4 model;
-    uint32_t indicesCount;
-    DescriptorSetObject *descriptorSet;
-};
-
 class SceneRenderpass : public RenderpassBase {
 private:
+    struct RenderData {
+        ImageViewObject *textureView;
+        DescriptorSetObject *descriptorSet;
+    };
+
     RenderingObjectsFactory *_renderingObjectsFactory;
-    RenderingLayoutObject *_renderingLayoutObject;
     Engine *_engine;
-    CommandExecutor *_commandExecutor;
+    RenderingLayoutObject *_renderingLayoutObject;
+    VkSampler _textureSampler;
+    std::map<Object *, RenderData> _renderData;
 
     VkPipeline _pipeline = VK_NULL_HANDLE;
-    std::vector<BoundMeshInfo *> _meshes;
 
-    VkSampler _textureSampler;
-
-    BufferObject *uploadVertices(std::vector<Vertex> &vertices);
-    BufferObject *uploadIndices(std::vector<uint32_t> &indices);
-    ImageObject *uploadTexture(const Texture &texture);
+    RenderData getRenderData(Object *object);
 
 public:
     SceneRenderpass(RenderingDevice *renderingDevice, Swapchain *swapchain,
-                    RenderingObjectsFactory *renderingObjectsFactory, Engine *engine,
-                    CommandExecutor *commandExecutor);
+                    RenderingObjectsFactory *renderingObjectsFactory, Engine *engine);
     ~SceneRenderpass() override;
 
     void recordCommands(VkCommandBuffer commandBuffer, VkRect2D renderArea,
@@ -54,12 +39,6 @@ public:
 
     void initRenderpass() override;
     void destroyRenderpass() override;
-
-    void addMesh(BoundMeshInfo *mesh);
-    void removeMesh(BoundMeshInfo *mesh);
-
-    BoundMeshInfo *uploadMesh(Mesh &mesh, const Texture &texture);
-    void freeMesh(BoundMeshInfo *meshInfo);
 };
 
 #endif // RENDERING_RENDERPASSES_SCENERENDERPASS_HPP

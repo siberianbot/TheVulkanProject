@@ -19,7 +19,7 @@ class RenderingObjectsFactory;
 class FenceObject;
 class SemaphoreObject;
 class RenderpassBase;
-class SceneRenderpass;
+class RenderingResourcesManager;
 
 class Renderer {
 private:
@@ -42,9 +42,9 @@ private:
     RenderingObjectsFactory *_renderingObjectsFactory;
     CommandExecutor *_commandExecutor;
     Swapchain *_swapchain;
+    RenderingResourcesManager *_renderingResourcesManager;
     std::array<SyncObjectsGroup *, MAX_INFLIGHT_FRAMES> _syncObjectsGroups;
     std::vector<RenderpassBase *> _renderpasses;
-    SceneRenderpass *_sceneRenderpass;
 
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
                                                         VkDebugUtilsMessageTypeFlagsEXT messageType,
@@ -63,10 +63,13 @@ public:
     void cleanup();
 
     void render();
+    void wait();
 
     void requestResize();
 
-    [[deprecated]] SceneRenderpass *sceneRenderpass() const { return this->_sceneRenderpass; };
+    [[nodiscard]] RenderingResourcesManager *getRenderingResourcesManager() const {
+        return this->_renderingResourcesManager;
+    }
 };
 
 #endif // RENDERING_RENDERER_HPP

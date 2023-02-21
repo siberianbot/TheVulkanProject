@@ -12,6 +12,7 @@ src = [
     'Mesh.cpp',
     'Texture.cpp',
     'Camera.cpp',
+    'Object.cpp',
 
     # Rendering
     'Rendering/Renderer.cpp',
@@ -19,6 +20,7 @@ src = [
     'Rendering/RenderingDevice.cpp',
     'Rendering/CommandExecutor.cpp',
     'Rendering/Swapchain.cpp',
+    'Rendering/RenderingResourcesManager.cpp',
 
     'Rendering/FramebuffersBuilder.cpp',
     'Rendering/PipelineBuilder.cpp',

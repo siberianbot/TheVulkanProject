@@ -8,10 +8,12 @@
 #include "Rendering/PhysicalDevice.hpp"
 #include "Rendering/RenderingDevice.hpp"
 #include "Rendering/RenderingObjectsFactory.hpp"
+#include "Rendering/RenderingResourcesManager.hpp"
 #include "Rendering/Swapchain.hpp"
 #include "Rendering/Objects/FenceObject.hpp"
 #include "Rendering/Objects/SemaphoreObject.hpp"
 #include "Rendering/Renderpasses/ClearRenderpass.hpp"
+#include "Rendering/Renderpasses/SceneRenderpass.hpp"
 #include "Rendering/Renderpasses/FinalRenderpass.hpp"
 
 Renderer::SyncObjectsGroup::~SyncObjectsGroup() {
@@ -67,6 +69,8 @@ void Renderer::init() {
     this->_renderingDevice = this->_physicalDevice->createRenderingDevice();
     this->_renderingObjectsFactory = new RenderingObjectsFactory(this->_renderingDevice);
     this->_commandExecutor = new CommandExecutor(this->_renderingDevice);
+    this->_renderingResourcesManager = new RenderingResourcesManager(this->_renderingObjectsFactory,
+                                                                     this->_commandExecutor);
     this->_swapchain = new Swapchain(this->_renderingDevice, this->_renderingObjectsFactory);
 
     for (uint32_t frameIdx = 0; frameIdx < MAX_INFLIGHT_FRAMES; frameIdx++) {
@@ -80,10 +84,8 @@ void Renderer::init() {
     this->_swapchain->create();
 
     this->_renderpasses.push_back(new ClearRenderpass(this->_renderingDevice, this->_swapchain));
-    this->_sceneRenderpass = new SceneRenderpass(this->_renderingDevice, this->_swapchain,
-                                                 this->_renderingObjectsFactory,
-                                                 this->_engine, this->_commandExecutor);
-    this->_renderpasses.push_back(this->_sceneRenderpass);
+    this->_renderpasses.push_back(new SceneRenderpass(this->_renderingDevice, this->_swapchain,
+                                                      this->_renderingObjectsFactory, this->_engine));
     this->_renderpasses.push_back(new FinalRenderpass(this->_renderingDevice, this->_swapchain));
 
     for (RenderpassBase *renderpass: this->_renderpasses) {
@@ -101,7 +103,6 @@ void Renderer::cleanup() {
 
     this->_swapchain->destroy();
 
-    this->_sceneRenderpass = nullptr;
     for (RenderpassBase *renderpass: this->_renderpasses) {
         renderpass->destroyRenderpass();
         delete renderpass;
@@ -119,10 +120,6 @@ void Renderer::cleanup() {
 
     vkDestroySurfaceKHR(this->_instance, this->_surface, nullptr);
     vkDestroyInstance(this->_instance, nullptr);
-}
-
-void Renderer::requestResize() {
-    handleResize();
 }
 
 VkInstance Renderer::createInstance() {
@@ -256,4 +253,12 @@ void Renderer::render() {
     }
 
     _currentFrameIdx = (_currentFrameIdx + 1) % MAX_INFLIGHT_FRAMES;
+}
+
+void Renderer::wait() {
+    this->_renderingDevice->waitIdle();
+}
+
+void Renderer::requestResize() {
+    handleResize();
 }

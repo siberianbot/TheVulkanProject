@@ -1,13 +1,11 @@
 #include "SceneRenderpass.hpp"
 
-#include <fstream>
-
 #include "Engine.hpp"
+#include "Object.hpp"
 #include "Mesh.hpp"
-#include "Rendering/Common.hpp"
 #include "Rendering/RenderingDevice.hpp"
+#include "Rendering/RenderingObjectsFactory.hpp"
 #include "Rendering/Swapchain.hpp"
-#include "Rendering/CommandExecutor.hpp"
 #include "Rendering/RenderpassBuilder.hpp"
 #include "Rendering/PipelineBuilder.hpp"
 #include "Rendering/PhysicalDevice.hpp"
@@ -16,7 +14,6 @@
 #include "Rendering/Objects/ImageViewObject.hpp"
 #include "Rendering/Objects/DescriptorSetObject.hpp"
 #include "Rendering/Objects/RenderingLayoutObject.hpp"
-#include "Rendering/RenderingObjectsFactory.hpp"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -28,15 +25,44 @@
 static constexpr const char *DEFAULT_VERTEX_SHADER = "shaders/default.vert.spv";
 static constexpr const char *DEFAULT_FRAGMENT_SHADER = "shaders/default.frag.spv";
 
+SceneRenderpass::RenderData SceneRenderpass::getRenderData(Object *object) {
+    auto it = this->_renderData.find(object);
+
+    if (it != this->_renderData.end()) {
+        return it->second;
+    }
+
+    ImageViewObject *textureView = this->_renderingObjectsFactory->createImageViewObject(object->texture->texture,
+                                                                                         VK_IMAGE_ASPECT_COLOR_BIT);
+
+    RenderData renderData = {
+            .textureView = textureView,
+            .descriptorSet = this->_renderingLayoutObject->createMeshDataDescriptor(this->_textureSampler,
+                                                                                    textureView->getHandle())
+    };
+
+    this->_renderData[object] = renderData;
+
+    return renderData;
+}
+
 SceneRenderpass::SceneRenderpass(RenderingDevice *renderingDevice, Swapchain *swapchain,
-                                 RenderingObjectsFactory *renderingObjectsFactory, Engine *engine,
-                                 CommandExecutor *commandExecutor)
+                                 RenderingObjectsFactory *renderingObjectsFactory, Engine *engine)
         : RenderpassBase(renderingDevice, swapchain),
           _renderingObjectsFactory(renderingObjectsFactory),
-          _engine(engine),
-          _commandExecutor(commandExecutor) {
+          _engine(engine) {
     this->_textureSampler = this->_renderingDevice->createSampler();
-    this->_renderingLayoutObject = this->_renderingObjectsFactory->createRenderingLayoutObject();
+    this->_renderingLayoutObject = renderingObjectsFactory->createRenderingLayoutObject();
+}
+
+SceneRenderpass::~SceneRenderpass() {
+    for (auto &it: this->_renderData) {
+        delete it.second.descriptorSet;
+        delete it.second.textureView;
+    }
+
+    delete this->_renderingLayoutObject;
+    this->_renderingDevice->destroySampler(this->_textureSampler);
 }
 
 void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D renderArea,
@@ -85,25 +111,27 @@ void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D ren
     };
     vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-    int idx = 0;
-    for (BoundMeshInfo *mesh: this->_meshes) {
+    uint32_t idx = 0;
+    for (Object *object: this->_engine->objects()) {
+        RenderData renderData = getRenderData(object);
+
         VkDeviceSize offset = 0;
-        VkDescriptorSet descriptorSet = mesh->descriptorSet->getDescriptorSet(frameIdx);
+        VkDescriptorSet descriptorSet = renderData.descriptorSet->getDescriptorSet(frameIdx);
 
         MeshConstants constants = {
-                .model = mesh->model
+                .model = glm::translate(glm::mat4(1), object->pos)
         };
         vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshConstants),
                            &constants);
 
-        VkBuffer vertexBuffer = mesh->vertexBuffer->getHandle();
+        VkBuffer vertexBuffer = object->mesh->vertices->getHandle();
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer, &offset);
-        vkCmdBindIndexBuffer(commandBuffer, mesh->indexBuffer->getHandle(), 0, VK_INDEX_TYPE_UINT32);
+        vkCmdBindIndexBuffer(commandBuffer, object->mesh->indices->getHandle(), 0, VK_INDEX_TYPE_UINT32);
 
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout,
                                 1, 1, &descriptorSet, 0, nullptr);
 
-        vkCmdDrawIndexed(commandBuffer, mesh->indicesCount, 1, 0, 0, idx++);
+        vkCmdDrawIndexed(commandBuffer, object->mesh->indicesCount, 1, 0, 0, idx++);
     }
 
     vkCmdEndRenderPass(commandBuffer);
@@ -129,178 +157,4 @@ void SceneRenderpass::destroyRenderpass() {
     vkDestroyPipeline(this->_renderingDevice->getHandle(), this->_pipeline, nullptr);
 
     RenderpassBase::destroyRenderpass();
-}
-
-void SceneRenderpass::addMesh(BoundMeshInfo *mesh) {
-    this->_meshes.push_back(mesh);
-}
-
-void SceneRenderpass::removeMesh(BoundMeshInfo *mesh) {
-    this->_meshes.erase(std::remove(this->_meshes.begin(), this->_meshes.end(), mesh));
-}
-
-SceneRenderpass::~SceneRenderpass() {
-    // TODO: release meshes
-
-    delete this->_renderingLayoutObject;
-    this->_renderingDevice->destroySampler(this->_textureSampler);
-}
-
-BufferObject *SceneRenderpass::uploadVertices(std::vector<Vertex> &vertices) {
-    // TODO: use staging buffer to restrict usage of GPU memory by CPU
-
-    VkDeviceSize size = sizeof(vertices[0]) * vertices.size();
-
-    BufferObject *buffer = this->_renderingObjectsFactory->createBufferObject(size,
-                                                                              VK_BUFFER_USAGE_TRANSFER_SRC_BIT |
-                                                                              VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                                                                              VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                                                                              VK_MEMORY_PROPERTY_HOST_COHERENT_BIT |
-                                                                              VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-    memcpy(buffer->map(), vertices.data(), size);
-    buffer->unmap();
-
-    return buffer;
-}
-
-BufferObject *SceneRenderpass::uploadIndices(std::vector<uint32_t> &indices) {
-    // TODO: use staging buffer to restrict usage of GPU memory by CPU
-
-    VkDeviceSize size = sizeof(indices[0]) * indices.size();
-
-    BufferObject *buffer = this->_renderingObjectsFactory->createBufferObject(size,
-                                                                              VK_BUFFER_USAGE_TRANSFER_SRC_BIT |
-                                                                              VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-                                                                              VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                                                                              VK_MEMORY_PROPERTY_HOST_COHERENT_BIT |
-                                                                              VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-    memcpy(buffer->map(), indices.data(), size);
-    buffer->unmap();
-
-    return buffer;
-}
-
-ImageObject *SceneRenderpass::uploadTexture(const Texture &texture) {
-    VkDeviceSize imageSize = texture.size();
-
-    BufferObject *stagingBuffer = this->_renderingObjectsFactory->createBufferObject(imageSize,
-                                                                                     VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                                                                                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                                                                                     VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-    memcpy(stagingBuffer->map(), texture.data(), static_cast<size_t>(imageSize));
-    stagingBuffer->unmap();
-
-    ImageObject *image = this->_renderingObjectsFactory->createImageObject(texture.width(), texture.height(),
-                                                                           VK_FORMAT_R8G8B8A8_SRGB,
-                                                                           VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
-                                                                           VK_IMAGE_USAGE_TRANSFER_DST_BIT |
-                                                                           VK_IMAGE_USAGE_SAMPLED_BIT,
-                                                                           VK_SAMPLE_COUNT_1_BIT,
-                                                                           VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-    this->_commandExecutor->beginOneTimeExecution(
-                    [&image, &stagingBuffer, &texture](VkCommandBuffer cmdBuffer) {
-                        VkImageMemoryBarrier imageMemoryBarrier = {
-                                .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-                                .pNext = nullptr,
-                                .srcAccessMask = 0,
-                                .dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
-                                .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-                                .newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                                .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                                .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                                .image = image->getHandle(),
-                                .subresourceRange = {
-                                        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-                                        .baseMipLevel = 0,
-                                        .levelCount = 1,
-                                        .baseArrayLayer = 0,
-                                        .layerCount = 1
-                                }
-                        };
-                        vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-                                             VK_PIPELINE_STAGE_TRANSFER_BIT,
-                                             0, 0, nullptr, 0, nullptr, 1, &imageMemoryBarrier);
-
-                        VkBufferImageCopy bufferImageCopy = {
-                                .bufferOffset = 0,
-                                .bufferRowLength = 0,
-                                .bufferImageHeight = 0,
-                                .imageSubresource = {
-                                        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-                                        .mipLevel = 0,
-                                        .baseArrayLayer = 0,
-                                        .layerCount = 1
-                                },
-                                .imageOffset = {0, 0, 0},
-                                .imageExtent = {texture.width(), texture.height(), 1}
-                        };
-                        vkCmdCopyBufferToImage(cmdBuffer, stagingBuffer->getHandle(), image->getHandle(),
-                                               VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1,
-                                               &bufferImageCopy);
-
-                        VkImageMemoryBarrier anotherImageMemoryBarrier = {
-                                .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-                                .pNext = nullptr,
-                                .srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
-                                .dstAccessMask = VK_ACCESS_SHADER_READ_BIT,
-                                .oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                                .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                                .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                                .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                                .image = image->getHandle(),
-                                .subresourceRange = {
-                                        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-                                        .baseMipLevel = 0,
-                                        .levelCount = 1,
-                                        .baseArrayLayer = 0,
-                                        .layerCount = 1
-                                }
-                        };
-                        vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT,
-                                             VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-                                             0, 0, nullptr, 0, nullptr, 1, &anotherImageMemoryBarrier);
-
-                    })
-            .submit(true);
-
-    delete stagingBuffer;
-
-    return image;
-}
-
-BoundMeshInfo *SceneRenderpass::uploadMesh(Mesh &mesh, const Texture &texture) {
-    ImageObject *textureData = uploadTexture(texture);
-    ImageViewObject *textureView = this->_renderingObjectsFactory->createImageViewObject(textureData,
-                                                                                         VK_IMAGE_ASPECT_COLOR_BIT);
-
-    auto boundMeshInfo = new BoundMeshInfo{
-            .vertexBuffer = uploadVertices(mesh.vertices()),
-            .indexBuffer = uploadIndices(mesh.indices()),
-            .texture = textureData,
-            .textureView = textureView,
-            .model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -0.5f, 0.0f)),
-            .indicesCount = static_cast<uint32_t>(mesh.indices().size()),
-            .descriptorSet = this->_renderingLayoutObject->createMeshDataDescriptor(this->_textureSampler,
-                                                                                    textureView->getHandle())
-    };
-
-    this->addMesh(boundMeshInfo);
-
-    return boundMeshInfo;
-}
-
-void SceneRenderpass::freeMesh(BoundMeshInfo *meshInfo) {
-    this->_renderingDevice->waitIdle();
-
-    delete meshInfo->descriptorSet;
-    delete meshInfo->textureView;
-    delete meshInfo->texture;
-    delete meshInfo->vertexBuffer;
-    delete meshInfo->indexBuffer;
-
-    this->removeMesh(meshInfo);
 }

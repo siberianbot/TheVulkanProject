@@ -4,7 +4,7 @@
 #include "Mesh.hpp"
 #include "Math.hpp"
 #include "Texture.hpp"
-#include "Rendering/Renderpasses/SceneRenderpass.hpp"
+#include "Object.hpp"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -72,20 +72,40 @@ void Engine::init() {
     Mesh vikingRoomMesh = Mesh::fromFile("models/viking_room.obj");
     Texture vikingRoomTexture = Texture::fromFile("textures/viking_room.png");
 
-    this->firstBoundMesh = this->renderer.sceneRenderpass()->uploadMesh(vikingRoomMesh, vikingRoomTexture);
-    this->firstBoundMesh->model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -0.5f, 0.0f));
+    this->_meshResource = this->renderer.getRenderingResourcesManager()->loadMesh(&vikingRoomMesh);
+    this->_textureResource = this->renderer.getRenderingResourcesManager()->loadTexture(&vikingRoomTexture);
 
-    this->secondBoundMesh = this->renderer.sceneRenderpass()->uploadMesh(vikingRoomMesh, vikingRoomTexture);
-    this->secondBoundMesh->model = glm::translate(glm::mat4(1.0f), glm::vec3(-2.0f, -0.5f, 0.0f));
+    this->_objects.push_back(new Object{
+            .mesh = &this->_meshResource,
+            .texture = &this->_textureResource,
+            .pos = glm::vec3(0.0f, -0.5f, 0.0f)
+    });
 
-    this->thirdBoundMesh = this->renderer.sceneRenderpass()->uploadMesh(vikingRoomMesh, vikingRoomTexture);
-    this->thirdBoundMesh->model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -0.5f, 2.0f));
+    this->_objects.push_back(new Object{
+            .mesh = &this->_meshResource,
+            .texture = &this->_textureResource,
+            .pos = glm::vec3(-2.0f, -0.5f, 0.0f)
+    });
+
+    this->_objects.push_back(new Object{
+            .mesh = &this->_meshResource,
+            .texture = &this->_textureResource,
+            .pos = glm::vec3(0.0f, -0.5f, 2.0f)
+    });
 }
 
 void Engine::cleanup() {
-    this->renderer.sceneRenderpass()->freeMesh(this->thirdBoundMesh);
-    this->renderer.sceneRenderpass()->freeMesh(this->secondBoundMesh);
-    this->renderer.sceneRenderpass()->freeMesh(this->firstBoundMesh);
+    for (Object *object: this->_objects) {
+        delete object;
+    }
+
+    this->_objects.clear();
+
+    this->renderer.wait();
+
+    this->renderer.getRenderingResourcesManager()->freeMesh(this->_meshResource);
+    this->renderer.getRenderingResourcesManager()->freeTexture(this->_textureResource);
+
     this->renderer.cleanup();
 
     if (this->_window) {

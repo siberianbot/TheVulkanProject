@@ -1,10 +1,14 @@
 #ifndef ENGINE_HPP
 #define ENGINE_HPP
 
-#include "Rendering/Renderer.hpp"
+#include <vector>
+
 #include "Input.hpp"
 #include "Camera.hpp"
-#include "Rendering/Renderpasses/SceneRenderpass.hpp"
+#include "Rendering/Renderer.hpp"
+#include "Rendering/RenderingResourcesManager.hpp"
+
+class Object;
 
 class Engine {
 private:
@@ -14,11 +18,11 @@ private:
     Input input;
     MouseInput mouseInput;
 
-    BoundMeshInfo *firstBoundMesh;
-    BoundMeshInfo *secondBoundMesh;
-    BoundMeshInfo *thirdBoundMesh;
+    MeshResource _meshResource;
+    TextureResource _textureResource;
 
     Camera _camera;
+    std::vector<Object *> _objects;
 
     void initGlfw();
     void initWindow();
@@ -37,6 +41,8 @@ public:
 
     GLFWwindow *window() { return this->_window; }
     Camera &camera() { return this->_camera; }
+
+    [[nodiscard]] const std::vector<Object *> &objects() const { return this->_objects; }
 };
 
 #endif // ENGINE_HPP
