@@ -11,11 +11,18 @@ struct Vertex {
     glm::vec2 texCoord;
 };
 
-struct Mesh {
-    std::vector<Vertex> vertices;
-    std::vector<uint32_t> indices;
-};
+class Mesh {
+private:
+    std::vector<Vertex> _vertices;
+    std::vector<uint32_t> _indices;
 
-Mesh readMesh(const std::string &path);
+    Mesh() = default;
+
+public:
+    [[nodiscard]] std::vector<Vertex> &vertices() { return this->_vertices; }
+    [[nodiscard]] std::vector<uint32_t> &indices() { return this->_indices; }
+
+    [[nodiscard]] static Mesh fromFile(const std::string &path);
+};
 
 #endif // MESH_HPP

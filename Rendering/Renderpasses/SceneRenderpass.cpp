@@ -17,14 +17,9 @@
 #include "Rendering/Objects/RenderingLayoutObject.hpp"
 #include "Rendering/RenderingObjectsFactory.hpp"
 
-#define STB_IMAGE_IMPLEMENTATION
-
-#include <stb/stb_image.h>
-
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_ENABLE_EXPERIMENTAL
-
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -149,7 +144,7 @@ SceneRenderpass::~SceneRenderpass() {
     this->_renderingDevice->destroySampler(this->_textureSampler);
 }
 
-BufferObject *SceneRenderpass::uploadVertices(const std::vector<Vertex> &vertices) {
+BufferObject *SceneRenderpass::uploadVertices(std::vector<Vertex> &vertices) {
     // TODO: use staging buffer to restrict usage of GPU memory by CPU
 
     VkDeviceSize size = sizeof(vertices[0]) * vertices.size();
@@ -167,7 +162,7 @@ BufferObject *SceneRenderpass::uploadVertices(const std::vector<Vertex> &vertice
     return buffer;
 }
 
-BufferObject *SceneRenderpass::uploadIndices(const std::vector<uint32_t> &indices) {
+BufferObject *SceneRenderpass::uploadIndices(std::vector<uint32_t> &indices) {
     // TODO: use staging buffer to restrict usage of GPU memory by CPU
 
     VkDeviceSize size = sizeof(indices[0]) * indices.size();
@@ -185,22 +180,19 @@ BufferObject *SceneRenderpass::uploadIndices(const std::vector<uint32_t> &indice
     return buffer;
 }
 
-ImageObject *SceneRenderpass::uploadTexture(const std::string &texturePath) {
-    int width, height, channels;
-    stbi_uc *pixels = stbi_load(texturePath.c_str(), &width, &height, &channels, STBI_rgb_alpha);
-
-    VkDeviceSize imageSize = width * height * 4;
+ImageObject *SceneRenderpass::uploadTexture(const Texture &texture) {
+    VkDeviceSize imageSize = texture.size();
 
     BufferObject *stagingBuffer = this->_renderingObjectsFactory->createBufferObject(imageSize,
                                                                                      VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                                                                                      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
                                                                                      VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
-    memcpy(stagingBuffer->map(), pixels, static_cast<size_t>(imageSize));
+    memcpy(stagingBuffer->map(), texture.data(), static_cast<size_t>(imageSize));
     stagingBuffer->unmap();
-    stbi_image_free(pixels);
 
-    ImageObject *image = this->_renderingObjectsFactory->createImageObject(width, height, VK_FORMAT_R8G8B8A8_SRGB,
+    ImageObject *image = this->_renderingObjectsFactory->createImageObject(texture.width(), texture.height(),
+                                                                           VK_FORMAT_R8G8B8A8_SRGB,
                                                                            VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
                                                                            VK_IMAGE_USAGE_TRANSFER_DST_BIT |
                                                                            VK_IMAGE_USAGE_SAMPLED_BIT,
@@ -209,7 +201,7 @@ ImageObject *SceneRenderpass::uploadTexture(const std::string &texturePath) {
                                                                            VK_IMAGE_ASPECT_COLOR_BIT);
 
     this->_commandExecutor->beginOneTimeExecution(
-                    [&image, &width, &height, &stagingBuffer](VkCommandBuffer cmdBuffer) {
+                    [&image, &stagingBuffer, &texture](VkCommandBuffer cmdBuffer) {
                         VkImageMemoryBarrier imageMemoryBarrier = {
                                 .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
                                 .pNext = nullptr,
@@ -243,7 +235,7 @@ ImageObject *SceneRenderpass::uploadTexture(const std::string &texturePath) {
                                         .layerCount = 1
                                 },
                                 .imageOffset = {0, 0, 0},
-                                .imageExtent = {(uint32_t) width, (uint32_t) height, 1}
+                                .imageExtent = {texture.width(), texture.height(), 1}
                         };
                         vkCmdCopyBufferToImage(cmdBuffer, stagingBuffer->getHandle(), image->getImageHandle(),
                                                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1,
@@ -279,15 +271,15 @@ ImageObject *SceneRenderpass::uploadTexture(const std::string &texturePath) {
     return image;
 }
 
-BoundMeshInfo *SceneRenderpass::uploadMesh(const Mesh &mesh, const Texture &texture) {
-    ImageObject *textureData = uploadTexture(texture.path);
+BoundMeshInfo *SceneRenderpass::uploadMesh(Mesh &mesh, const Texture &texture) {
+    ImageObject *textureData = uploadTexture(texture);
 
     auto boundMeshInfo = new BoundMeshInfo{
-            .vertexBuffer = uploadVertices(mesh.vertices),
-            .indexBuffer = uploadIndices(mesh.indices),
+            .vertexBuffer = uploadVertices(mesh.vertices()),
+            .indexBuffer = uploadIndices(mesh.indices()),
             .texture = textureData,
             .model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -0.5f, 0.0f)),
-            .indicesCount = static_cast<uint32_t>(mesh.indices.size()),
+            .indicesCount = static_cast<uint32_t>(mesh.indices().size()),
             .descriptorSet = this->_renderingLayoutObject->createMeshDataDescriptor(this->_textureSampler,
                                                                                     textureData->getImageViewHandle())
     };

@@ -10,6 +10,7 @@ src = [
     'Engine.cpp',
     'Input.cpp',
     'Mesh.cpp',
+    'Texture.cpp',
     'Camera.cpp',
 
     # Rendering

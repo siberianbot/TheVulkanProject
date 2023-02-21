@@ -69,8 +69,8 @@ void Engine::init() {
         }
     });
 
-    Mesh vikingRoomMesh = readMesh("models/viking_room.obj");
-    Texture vikingRoomTexture = {"textures/viking_room.png"};
+    Mesh vikingRoomMesh = Mesh::fromFile("models/viking_room.obj");
+    Texture vikingRoomTexture = Texture::fromFile("textures/viking_room.png");
 
     this->firstBoundMesh = this->renderer.sceneRenderpass()->uploadMesh(vikingRoomMesh, vikingRoomTexture);
     this->firstBoundMesh->model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -0.5f, 0.0f));

@@ -37,9 +37,9 @@ private:
 
     VkSampler _textureSampler;
 
-    BufferObject *uploadVertices(const std::vector<Vertex> &vertices);
-    BufferObject *uploadIndices(const std::vector<uint32_t> &indices);
-    ImageObject *uploadTexture(const std::string &texturePath);
+    BufferObject *uploadVertices(std::vector<Vertex> &vertices);
+    BufferObject *uploadIndices(std::vector<uint32_t> &indices);
+    ImageObject *uploadTexture(const Texture &texture);
 
 public:
     SceneRenderpass(RenderingDevice *renderingDevice, Swapchain *swapchain,
@@ -56,7 +56,7 @@ public:
     void addMesh(BoundMeshInfo *mesh);
     void removeMesh(BoundMeshInfo *mesh);
 
-    BoundMeshInfo *uploadMesh(const Mesh &mesh, const Texture &texture);
+    BoundMeshInfo *uploadMesh(Mesh &mesh, const Texture &texture);
     void freeMesh(BoundMeshInfo *meshInfo);
 };
 
