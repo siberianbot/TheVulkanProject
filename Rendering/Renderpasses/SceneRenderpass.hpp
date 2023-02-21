@@ -9,15 +9,12 @@
 #include "Rendering/Common.hpp"
 
 class Engine;
-class RenderingObjectsFactory;
 class CommandExecutor;
+class RenderingObjectsFactory;
 class BufferObject;
+class DescriptorSetObject;
 class ImageObject;
-
-struct UniformBufferObject {
-    alignas(16) glm::mat4 view;
-    alignas(16) glm::mat4 proj;
-};
+class RenderingLayoutObject;
 
 struct BoundMeshInfo {
     BufferObject *vertexBuffer;
@@ -25,40 +22,24 @@ struct BoundMeshInfo {
     ImageObject *texture;
     glm::mat4 model;
     uint32_t indicesCount;
-    std::array<VkDescriptorSet, MAX_INFLIGHT_FRAMES> descriptorSets;
-};
-
-struct Constants {
-    alignas(16) glm::mat4 model;
+    DescriptorSetObject *descriptorSet;
 };
 
 class SceneRenderpass : public RenderpassBase {
 private:
     RenderingObjectsFactory *_renderingObjectsFactory;
+    RenderingLayoutObject *_renderingLayoutObject;
     Engine *_engine;
     CommandExecutor *_commandExecutor;
 
     VkPipeline _pipeline = VK_NULL_HANDLE;
     std::vector<BoundMeshInfo *> _meshes;
 
-    // TODO: REFACTOR!!!
-    std::array<BufferObject *, MAX_INFLIGHT_FRAMES> uniformBuffers;
-    VkSampler textureSampler;
-    VkDescriptorPool descriptorPool;
-    VkPipelineLayout _pipelineLayout;
-    VkDescriptorSetLayout descriptorSetLayout;
-
-    UniformBufferObject ubo = {};
-
-    void initUniformBuffers();
-    void initTextureSampler();
-    void initDescriptors();
-    void initLayouts();
+    VkSampler _textureSampler;
 
     BufferObject *uploadVertices(const std::vector<Vertex> &vertices);
     BufferObject *uploadIndices(const std::vector<uint32_t> &indices);
     ImageObject *uploadTexture(const std::string &texturePath);
-    std::array<VkDescriptorSet, MAX_INFLIGHT_FRAMES> initDescriptorSets(VkImageView textureImageView);
 
 public:
     SceneRenderpass(RenderingDevice *renderingDevice, Swapchain *swapchain,

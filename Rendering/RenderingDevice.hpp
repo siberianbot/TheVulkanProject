@@ -5,6 +5,8 @@
 
 #include <vulkan/vulkan.hpp>
 
+#include "Rendering/Common.hpp"
+
 class PhysicalDevice;
 
 class RenderingDevice {
@@ -63,6 +65,26 @@ public:
 
     VkSemaphore createSemaphore();
     void destroySemaphore(VkSemaphore semaphore);
+
+    VkSampler createSampler();
+    void destroySampler(VkSampler sampler);
+
+    VkDescriptorPool createDescriptorPool(const std::vector<VkDescriptorPoolSize> sizes, uint32_t maxSets);
+    void destroyDescriptorPool(VkDescriptorPool descriptorPool);
+
+    VkDescriptorSetLayout createDescriptorSetLayout(const std::vector<VkDescriptorSetLayoutBinding> bindings);
+    void destroyDescriptorSetLayout(VkDescriptorSetLayout descriptorSetLayout);
+
+    VkPipelineLayout createPipelineLayout(const std::vector<VkDescriptorSetLayout> descriptorSetLayouts,
+                                          const std::vector<VkPushConstantRange> pushConstants);
+    void destroyPipelineLayout(VkPipelineLayout pipelineLayout);
+
+    std::array<VkDescriptorSet, MAX_INFLIGHT_FRAMES> allocateDescriptorSets(VkDescriptorPool descriptorPool,
+                                                                            VkDescriptorSetLayout descriptorSetLayout);
+    void freeDescriptorSets(VkDescriptorPool descriptorPool,
+                            const std::array<VkDescriptorSet, MAX_INFLIGHT_FRAMES> &descriptorSets);
+
+    void updateDescriptorSets(std::vector<VkWriteDescriptorSet> writes);
 };
 
 #endif // RENDERING_RENDERINGDEVICE_HPP

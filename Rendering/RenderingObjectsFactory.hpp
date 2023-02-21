@@ -5,8 +5,10 @@
 
 class RenderingDevice;
 class BufferObject;
+class DescriptorSetObject;
 class ImageObject;
 class FenceObject;
+class RenderingLayoutObject;
 class SemaphoreObject;
 
 class RenderingObjectsFactory {
@@ -26,6 +28,11 @@ public:
     FenceObject *createFenceObject(bool signaled);
 
     SemaphoreObject *createSemaphoreObject();
+
+    RenderingLayoutObject *createRenderingLayoutObject();
+
+    DescriptorSetObject *createDescriptorSetObject(VkDescriptorPool descriptorPool,
+                                                   VkDescriptorSetLayout descriptorSetLayout);
 };
 
 #endif // RENDERING_RENDERINGOBJECTSFACTORY_HPP

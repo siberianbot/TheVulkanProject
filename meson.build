@@ -25,8 +25,10 @@ src = [
 
     'Rendering/RenderingObjectsFactory.cpp',
     'Rendering/Objects/BufferObject.cpp',
+    'Rendering/Objects/DescriptorSetObject.cpp',
     'Rendering/Objects/FenceObject.cpp',
     'Rendering/Objects/ImageObject.cpp',
+    'Rendering/Objects/RenderingLayoutObject.cpp',
     'Rendering/Objects/SemaphoreObject.cpp',
 
     'Rendering/Renderpasses/RenderpassBase.cpp',

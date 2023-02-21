@@ -18,11 +18,10 @@ public:
     BufferObject(RenderingDevice *renderingDevice, VkDeviceSize size, VkBuffer buffer, VkDeviceMemory memory);
     ~BufferObject();
 
-    [[deprecated]] [[nodiscard]] VkBuffer getHandle() const { return this->_buffer; }
-
+    [[nodiscard]] VkBuffer getHandle() const { return this->_buffer; }
     [[nodiscard]] VkDeviceSize getSize() const { return this->_size; }
 
-    void *map(); // TODO: ???
+    void *map();
     void unmap();
 };
 

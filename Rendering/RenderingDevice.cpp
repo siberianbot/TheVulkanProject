@@ -301,3 +301,126 @@ std::optional<uint32_t> RenderingDevice::acquireNextSwapchainImageIdx(VkSwapchai
 
     throw std::runtime_error("Vulkan runtime error");
 }
+
+VkSampler RenderingDevice::createSampler() {
+    VkSamplerCreateInfo createInfo = {
+            .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0,
+            .magFilter = VK_FILTER_LINEAR,
+            .minFilter = VK_FILTER_LINEAR,
+            .mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
+            .addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+            .addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+            .addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+            .mipLodBias = 0,
+            .anisotropyEnable = VK_TRUE,
+            .maxAnisotropy = this->_physicalDevice->getMaxSamplerAnisotropy(),
+            .compareEnable = VK_FALSE,
+            .compareOp = VK_COMPARE_OP_ALWAYS,
+            .minLod = 0,
+            .maxLod = 1,
+            .borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK,
+            .unnormalizedCoordinates = VK_FALSE
+    };
+
+    VkSampler sampler;
+    vkEnsure(vkCreateSampler(this->_device, &createInfo, nullptr, &sampler));
+
+    return sampler;
+}
+
+void RenderingDevice::destroySampler(VkSampler sampler) {
+    vkDestroySampler(this->_device, sampler, nullptr);
+}
+
+VkDescriptorPool RenderingDevice::createDescriptorPool(const std::vector<VkDescriptorPoolSize> sizes,
+                                                       uint32_t maxSets) {
+    VkDescriptorPoolCreateInfo createInfo = {
+            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
+            .maxSets = maxSets,
+            .poolSizeCount = static_cast<uint32_t>(sizes.size()),
+            .pPoolSizes = sizes.data()
+    };
+
+    VkDescriptorPool descriptorPool;
+    vkEnsure(vkCreateDescriptorPool(this->_device, &createInfo, nullptr, &descriptorPool));
+
+    return descriptorPool;
+}
+
+void RenderingDevice::destroyDescriptorPool(VkDescriptorPool descriptorPool) {
+    vkDestroyDescriptorPool(this->_device, descriptorPool, nullptr);
+}
+
+VkDescriptorSetLayout RenderingDevice::createDescriptorSetLayout(
+        const std::vector<VkDescriptorSetLayoutBinding> bindings) {
+    VkDescriptorSetLayoutCreateInfo createInfo = {
+            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0,
+            .bindingCount = static_cast<uint32_t>(bindings.size()),
+            .pBindings = bindings.data()
+    };
+
+    VkDescriptorSetLayout descriptorSetLayout;
+    vkEnsure(vkCreateDescriptorSetLayout(this->_device, &createInfo, nullptr, &descriptorSetLayout));
+
+    return descriptorSetLayout;
+}
+
+void RenderingDevice::destroyDescriptorSetLayout(VkDescriptorSetLayout descriptorSetLayout) {
+    vkDestroyDescriptorSetLayout(this->_device, descriptorSetLayout, nullptr);
+}
+
+VkPipelineLayout RenderingDevice::createPipelineLayout(const std::vector<VkDescriptorSetLayout> descriptorSetLayouts,
+                                                       const std::vector<VkPushConstantRange> pushConstants) {
+    VkPipelineLayoutCreateInfo createInfo = {
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0,
+            .setLayoutCount = static_cast<uint32_t>(descriptorSetLayouts.size()),
+            .pSetLayouts = descriptorSetLayouts.data(),
+            .pushConstantRangeCount = static_cast<uint32_t>(pushConstants.size()),
+            .pPushConstantRanges = pushConstants.data()
+    };
+
+    VkPipelineLayout pipelineLayout;
+    vkEnsure(vkCreatePipelineLayout(this->_device, &createInfo, nullptr, &pipelineLayout));
+
+    return pipelineLayout;
+}
+
+void RenderingDevice::destroyPipelineLayout(VkPipelineLayout pipelineLayout) {
+    vkDestroyPipelineLayout(this->_device, pipelineLayout, nullptr);
+}
+
+std::array<VkDescriptorSet, MAX_INFLIGHT_FRAMES> RenderingDevice::allocateDescriptorSets(
+        VkDescriptorPool descriptorPool, VkDescriptorSetLayout descriptorSetLayout) {
+    std::vector<VkDescriptorSetLayout> layouts(MAX_INFLIGHT_FRAMES, descriptorSetLayout);
+    std::array<VkDescriptorSet, MAX_INFLIGHT_FRAMES> descriptorSets = {};
+
+    VkDescriptorSetAllocateInfo allocateInfo = {
+            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+            .pNext = nullptr,
+            .descriptorPool = descriptorPool,
+            .descriptorSetCount = static_cast<uint32_t>(descriptorSets.size()),
+            .pSetLayouts = layouts.data()
+    };
+
+    vkEnsure(vkAllocateDescriptorSets(this->_device, &allocateInfo, descriptorSets.data()));
+
+    return descriptorSets;
+}
+
+void RenderingDevice::freeDescriptorSets(VkDescriptorPool descriptorPool,
+                                         const std::array<VkDescriptorSet, MAX_INFLIGHT_FRAMES> &descriptorSets) {
+    vkEnsure(vkFreeDescriptorSets(this->_device, descriptorPool, static_cast<uint32_t>(descriptorSets.size()),
+                                  descriptorSets.data()));
+}
+
+void RenderingDevice::updateDescriptorSets(std::vector<VkWriteDescriptorSet> writes) {
+    vkUpdateDescriptorSets(this->_device, static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
+}

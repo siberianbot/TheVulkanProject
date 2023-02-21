@@ -20,6 +20,8 @@ static constexpr const uint32_t COLOR_ATTACHMENT_IDX = 0;
 static constexpr const uint32_t DEPTH_ATTACHMENT_IDX = 1;
 static constexpr const uint32_t RESOLVE_ATTACHMENT_IDX = 2;
 
+static constexpr const uint32_t MAX_MESH_DATA_DESCRIPTOR_SETS = 1024* MAX_INFLIGHT_FRAMES;
+
 static constexpr void vkEnsure(VkResult vkExpression) {
     if (vkExpression != VK_SUCCESS) {
         throw std::runtime_error("Vulkan runtime error");

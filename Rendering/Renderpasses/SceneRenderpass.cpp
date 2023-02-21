@@ -13,128 +13,23 @@
 #include "Rendering/PhysicalDevice.hpp"
 #include "Rendering/Objects/BufferObject.hpp"
 #include "Rendering/Objects/ImageObject.hpp"
+#include "Rendering/Objects/DescriptorSetObject.hpp"
+#include "Rendering/Objects/RenderingLayoutObject.hpp"
 #include "Rendering/RenderingObjectsFactory.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
+
 #include <stb/stb_image.h>
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_ENABLE_EXPERIMENTAL
+
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
 static constexpr const char *DEFAULT_VERTEX_SHADER = "shaders/default.vert.spv";
 static constexpr const char *DEFAULT_FRAGMENT_SHADER = "shaders/default.frag.spv";
-
-void SceneRenderpass::initUniformBuffers() {
-    VkDeviceSize uboSize = sizeof(UniformBufferObject);
-
-    for (size_t idx = 0; idx < MAX_INFLIGHT_FRAMES; idx++) {
-        this->uniformBuffers[idx] = this->_renderingObjectsFactory
-                ->createBufferObject(uboSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-    }
-}
-
-void SceneRenderpass::initTextureSampler() {
-    VkSamplerCreateInfo samplerCreateInfo = {
-            .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
-            .pNext = nullptr,
-            .flags = 0,
-            .magFilter = VK_FILTER_LINEAR,
-            .minFilter = VK_FILTER_LINEAR,
-            .mipmapMode = VkSamplerMipmapMode::VK_SAMPLER_MIPMAP_MODE_LINEAR,
-            .addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-            .addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-            .addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-            .mipLodBias = 0,
-            .anisotropyEnable = VK_TRUE,
-            .maxAnisotropy = this->_renderingDevice->getPhysicalDevice()->getMaxSamplerAnisotropy(),
-            .compareEnable = VK_FALSE,
-            .compareOp = VK_COMPARE_OP_ALWAYS,
-            .minLod = 0,
-            .maxLod = 1,
-            .borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK,
-            .unnormalizedCoordinates = VK_FALSE
-    };
-
-    vkEnsure(vkCreateSampler(this->_renderingDevice->getHandle(), &samplerCreateInfo, nullptr, &this->textureSampler));
-}
-
-void SceneRenderpass::initDescriptors() {
-    std::array<VkDescriptorPoolSize, 2> descriptorPoolSizes = {
-            VkDescriptorPoolSize{
-                    .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                    .descriptorCount = MAX_INFLIGHT_FRAMES
-            },
-            VkDescriptorPoolSize{
-                    .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                    .descriptorCount = MAX_INFLIGHT_FRAMES
-            }
-    };
-
-    VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = {
-            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-            .pNext = nullptr,
-            .flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
-            .maxSets = 4 * MAX_INFLIGHT_FRAMES,
-            .poolSizeCount = static_cast<uint32_t>(descriptorPoolSizes.size()),
-            .pPoolSizes = descriptorPoolSizes.data()
-    };
-
-    vkEnsure(vkCreateDescriptorPool(this->_renderingDevice->getHandle(), &descriptorPoolCreateInfo, nullptr,
-                                    &this->descriptorPool));
-}
-
-void SceneRenderpass::initLayouts() {
-    std::array<VkDescriptorSetLayoutBinding, 2> bindings = {
-            VkDescriptorSetLayoutBinding{
-                    .binding = 0,
-                    .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                    .descriptorCount = 1,
-                    .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
-                    .pImmutableSamplers = nullptr
-            },
-            VkDescriptorSetLayoutBinding{
-                    .binding = 1,
-                    .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                    .descriptorCount = 1,
-                    .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
-                    .pImmutableSamplers = nullptr
-            }
-    };
-
-    VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo = {
-            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-            .pNext = nullptr,
-            .flags = 0,
-            .bindingCount = static_cast<uint32_t>(bindings.size()),
-            .pBindings = bindings.data()
-    };
-
-    vkEnsure(vkCreateDescriptorSetLayout(this->_renderingDevice->getHandle(), &descriptorSetLayoutCreateInfo, nullptr,
-                                         &this->descriptorSetLayout));
-
-    VkPushConstantRange constantRange = {
-            .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
-            .offset = 0,
-            .size = sizeof(Constants)
-    };
-
-    VkPipelineLayoutCreateInfo pipelineLayoutInfo = {
-            .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-            .pNext = nullptr,
-            .flags = 0,
-            .setLayoutCount = 1,
-            .pSetLayouts = &this->descriptorSetLayout,
-            .pushConstantRangeCount = 1,
-            .pPushConstantRanges = &constantRange
-    };
-
-    vkEnsure(vkCreatePipelineLayout(this->_renderingDevice->getHandle(), &pipelineLayoutInfo, nullptr,
-                                    &this->_pipelineLayout));
-}
 
 SceneRenderpass::SceneRenderpass(RenderingDevice *renderingDevice, Swapchain *swapchain,
                                  RenderingObjectsFactory *renderingObjectsFactory, Engine *engine,
@@ -143,20 +38,22 @@ SceneRenderpass::SceneRenderpass(RenderingDevice *renderingDevice, Swapchain *sw
           _renderingObjectsFactory(renderingObjectsFactory),
           _engine(engine),
           _commandExecutor(commandExecutor) {
-    initUniformBuffers();
-    initTextureSampler();
-    initDescriptors();
-    initLayouts();
+    this->_textureSampler = this->_renderingDevice->createSampler();
+    this->_renderingLayoutObject = this->_renderingObjectsFactory->createRenderingLayoutObject();
 }
 
 void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D renderArea,
                                      uint32_t frameIdx, uint32_t imageIdx) {
     VkExtent2D extent = this->_swapchain->getSwapchainExtent();
+    VkPipelineLayout pipelineLayout = this->_renderingLayoutObject->getPipelineLayout();
 
-    ubo.view = this->_engine->camera().view();
-    ubo.proj = glm::perspective(glm::radians(45.0f), extent.width / (float) extent.height, 0.1f, 10.0f);
-    ubo.proj[1][1] *= -1;
-    memcpy(this->uniformBuffers[frameIdx]->map(), &ubo, sizeof(ubo));
+    SceneData *sceneData = this->_renderingLayoutObject->getSceneData(frameIdx);
+    sceneData->view = this->_engine->camera().view();
+    sceneData->projection = glm::perspective(glm::radians(45.0f), extent.width / (float) extent.height, 0.1f, 100.0f);
+    sceneData->projection[1][1] *= -1;
+
+    VkDescriptorSet sceneDataDescriptorSet = this->_renderingLayoutObject->getSceneDataDescriptorSetObject()
+            ->getDescriptorSet(frameIdx);
 
     const VkRenderPassBeginInfo renderPassBeginInfo = {
             .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
@@ -171,6 +68,9 @@ void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D ren
     vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->_pipeline);
+
+    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout,
+                            0, 1, &sceneDataDescriptorSet, 0, nullptr);
 
     VkViewport viewport = {
             .x = 0,
@@ -191,20 +91,20 @@ void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D ren
     int idx = 0;
     for (BoundMeshInfo *mesh: this->_meshes) {
         VkDeviceSize offset = 0;
-        VkDescriptorSet descriptorSet = mesh->descriptorSets[frameIdx];
+        VkDescriptorSet descriptorSet = mesh->descriptorSet->getDescriptorSet(frameIdx);
 
-        Constants constants = {
+        MeshConstants constants = {
                 .model = mesh->model
         };
-        vkCmdPushConstants(commandBuffer, this->_pipelineLayout,
-                           VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(Constants), &constants);
+        vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshConstants),
+                           &constants);
 
         VkBuffer vertexBuffer = mesh->vertexBuffer->getHandle();
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer, &offset);
         vkCmdBindIndexBuffer(commandBuffer, mesh->indexBuffer->getHandle(), 0, VK_INDEX_TYPE_UINT32);
 
-        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->_pipelineLayout,
-                                0, 1, &descriptorSet, 0, nullptr);
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout,
+                                1, 1, &descriptorSet, 0, nullptr);
 
         vkCmdDrawIndexed(commandBuffer, mesh->indicesCount, 1, 0, 0, idx++);
     }
@@ -217,7 +117,8 @@ void SceneRenderpass::initRenderpass() {
             .load()
             .build();
 
-    this->_pipeline = PipelineBuilder(this->_renderingDevice, this->_renderpass, this->_pipelineLayout)
+    this->_pipeline = PipelineBuilder(this->_renderingDevice, this->_renderpass,
+                                      this->_renderingLayoutObject->getPipelineLayout())
             .addVertexShader(DEFAULT_VERTEX_SHADER)
             .addFragmentShader(DEFAULT_FRAGMENT_SHADER)
             .addBinding(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
@@ -242,16 +143,10 @@ void SceneRenderpass::removeMesh(BoundMeshInfo *mesh) {
 }
 
 SceneRenderpass::~SceneRenderpass() {
-    vkDestroyPipelineLayout(this->_renderingDevice->getHandle(), this->_pipelineLayout, nullptr);
+    // TODO: release meshes
 
-    vkDestroyDescriptorSetLayout(this->_renderingDevice->getHandle(), this->descriptorSetLayout, nullptr);
-    vkDestroyDescriptorPool(this->_renderingDevice->getHandle(), this->descriptorPool, nullptr);
-
-    vkDestroySampler(this->_renderingDevice->getHandle(), this->textureSampler, nullptr);
-
-    for (uint32_t frameIdx = 0; frameIdx < MAX_INFLIGHT_FRAMES; frameIdx++) {
-        delete this->uniformBuffers[frameIdx];
-    }
+    delete this->_renderingLayoutObject;
+    this->_renderingDevice->destroySampler(this->_textureSampler);
 }
 
 BufferObject *SceneRenderpass::uploadVertices(const std::vector<Vertex> &vertices) {
@@ -384,68 +279,6 @@ ImageObject *SceneRenderpass::uploadTexture(const std::string &texturePath) {
     return image;
 }
 
-std::array<VkDescriptorSet, MAX_INFLIGHT_FRAMES> SceneRenderpass::initDescriptorSets(VkImageView textureImageView) {
-    std::vector<VkDescriptorSetLayout> layouts(MAX_INFLIGHT_FRAMES, this->descriptorSetLayout);
-    std::array<VkDescriptorSet, MAX_INFLIGHT_FRAMES> descriptorSets = {};
-
-    VkDescriptorSetAllocateInfo descriptorSetAllocateInfo = {
-            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-            .pNext = nullptr,
-            .descriptorPool = this->descriptorPool,
-            .descriptorSetCount = static_cast<uint32_t>(descriptorSets.size()),
-            .pSetLayouts = layouts.data()
-    };
-
-    vkEnsure(vkAllocateDescriptorSets(this->_renderingDevice->getHandle(), &descriptorSetAllocateInfo,
-                                      descriptorSets.data()));
-
-    for (uint32_t idx = 0; idx < MAX_INFLIGHT_FRAMES; idx++) {
-        VkDescriptorBufferInfo bufferInfo = {
-                .buffer = this->uniformBuffers[idx]->getHandle(),
-                .offset = 0,
-                .range = sizeof(UniformBufferObject)
-        };
-
-        VkDescriptorImageInfo imageInfo = {
-                .sampler = this->textureSampler,
-                .imageView = textureImageView,
-                .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-        };
-
-        std::array<VkWriteDescriptorSet, 2> writes = {
-                VkWriteDescriptorSet{
-                        .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                        .pNext = nullptr,
-                        .dstSet = descriptorSets[idx],
-                        .dstBinding = 0,
-                        .dstArrayElement = 0,
-                        .descriptorCount = 1,
-                        .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                        .pImageInfo = nullptr,
-                        .pBufferInfo = &bufferInfo,
-                        .pTexelBufferView = nullptr
-                },
-                VkWriteDescriptorSet{
-                        .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                        .pNext = nullptr,
-                        .dstSet = descriptorSets[idx],
-                        .dstBinding = 1,
-                        .dstArrayElement = 0,
-                        .descriptorCount = 1,
-                        .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                        .pImageInfo = &imageInfo,
-                        .pBufferInfo = nullptr,
-                        .pTexelBufferView = nullptr
-                }
-        };
-
-        vkUpdateDescriptorSets(this->_renderingDevice->getHandle(), static_cast<uint32_t>(writes.size()), writes.data(),
-                               0, nullptr);
-    }
-
-    return descriptorSets;
-}
-
 BoundMeshInfo *SceneRenderpass::uploadMesh(const Mesh &mesh, const Texture &texture) {
     ImageObject *textureData = uploadTexture(texture.path);
 
@@ -455,7 +288,8 @@ BoundMeshInfo *SceneRenderpass::uploadMesh(const Mesh &mesh, const Texture &text
             .texture = textureData,
             .model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -0.5f, 0.0f)),
             .indicesCount = static_cast<uint32_t>(mesh.indices.size()),
-            .descriptorSets = initDescriptorSets(textureData->getImageViewHandle())
+            .descriptorSet = this->_renderingLayoutObject->createMeshDataDescriptor(this->_textureSampler,
+                                                                                    textureData->getImageViewHandle())
     };
 
     this->addMesh(boundMeshInfo);
@@ -464,12 +298,9 @@ BoundMeshInfo *SceneRenderpass::uploadMesh(const Mesh &mesh, const Texture &text
 }
 
 void SceneRenderpass::freeMesh(BoundMeshInfo *meshInfo) {
-    vkEnsure(vkDeviceWaitIdle(this->_renderingDevice->getHandle()));
+    this->_renderingDevice->waitIdle();
 
-    vkFreeDescriptorSets(this->_renderingDevice->getHandle(), this->descriptorPool,
-                         static_cast<uint32_t>(meshInfo->descriptorSets.size()),
-                         meshInfo->descriptorSets.data());
-
+    delete meshInfo->descriptorSet;
     delete meshInfo->texture;
     delete meshInfo->vertexBuffer;
     delete meshInfo->indexBuffer;
