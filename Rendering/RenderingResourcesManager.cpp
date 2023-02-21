@@ -14,7 +14,7 @@ RenderingResourcesManager::RenderingResourcesManager(RenderingObjectsFactory *re
     //
 }
 
-BufferObject *RenderingResourcesManager::loadBuffer(uint64_t size, void *data, VkBufferUsageFlags usage) {
+BufferObject *RenderingResourcesManager::loadBuffer(uint64_t size, const void *data, VkBufferUsageFlags usage) {
     BufferObject *staging = this->_renderingObjectsFactory->createBufferObject(size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                                                                                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
                                                                                VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
@@ -48,6 +48,15 @@ MeshResource RenderingResourcesManager::loadMesh(Mesh *mesh) {
             .indices = loadBuffer(sizeof(uint32_t) * mesh->indices().size(), mesh->indices().data(),
                                   VK_BUFFER_USAGE_INDEX_BUFFER_BIT),
             .indicesCount = static_cast<uint32_t>(mesh->indices().size())
+    };
+}
+
+MeshResource RenderingResourcesManager::loadMesh(uint32_t count, const Vertex *data) {
+    return {
+            .vertices = loadBuffer(sizeof(Vertex) * count, reinterpret_cast<const void *>(data),
+                                   VK_BUFFER_USAGE_VERTEX_BUFFER_BIT),
+            .indices = nullptr,
+            .indicesCount = 0
     };
 }
 
@@ -139,8 +148,11 @@ TextureResource RenderingResourcesManager::loadTexture(Texture *texture) {
 }
 
 void RenderingResourcesManager::freeMesh(const MeshResource &meshResource) {
-    delete meshResource.indices;
     delete meshResource.vertices;
+
+    if (meshResource.indices != nullptr) {
+        delete meshResource.indices;
+    }
 }
 
 void RenderingResourcesManager::freeTexture(const TextureResource &textureResource) {

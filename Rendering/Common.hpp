@@ -20,7 +20,10 @@ static constexpr const uint32_t COLOR_ATTACHMENT_IDX = 0;
 static constexpr const uint32_t DEPTH_ATTACHMENT_IDX = 1;
 static constexpr const uint32_t RESOLVE_ATTACHMENT_IDX = 2;
 
-static constexpr const uint32_t MAX_MESH_DATA_DESCRIPTOR_SETS = 1024* MAX_INFLIGHT_FRAMES;
+static constexpr const uint32_t MAX_MESH_DATA_DESCRIPTOR_SETS = 1024 * MAX_INFLIGHT_FRAMES;
+
+static constexpr const char *DEFAULT_VERTEX_SHADER = "shaders/default.vert.spv";
+static constexpr const char *DEFAULT_FRAGMENT_SHADER = "shaders/default.frag.spv";
 
 static constexpr void vkEnsure(VkResult vkExpression) {
     if (vkExpression != VK_SUCCESS) {

@@ -16,6 +16,7 @@ void RenderpassBase::destroyRenderpass() {
 
 void RenderpassBase::createFramebuffers() {
     this->_framebuffers = FramebuffersBuilder(this->_renderingDevice, this->_swapchain, this->_renderpass)
+            .withDepthTargets()
             .build();
 }
 

@@ -8,7 +8,6 @@
 #include "Rendering/Swapchain.hpp"
 #include "Rendering/RenderpassBuilder.hpp"
 #include "Rendering/PipelineBuilder.hpp"
-#include "Rendering/PhysicalDevice.hpp"
 #include "Rendering/Objects/BufferObject.hpp"
 #include "Rendering/Objects/ImageObject.hpp"
 #include "Rendering/Objects/ImageViewObject.hpp"
@@ -18,12 +17,8 @@
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_ENABLE_EXPERIMENTAL
-
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-
-static constexpr const char *DEFAULT_VERTEX_SHADER = "shaders/default.vert.spv";
-static constexpr const char *DEFAULT_FRAGMENT_SHADER = "shaders/default.frag.spv";
 
 SceneRenderpass::RenderData SceneRenderpass::getRenderData(Object *object) {
     auto it = this->_renderData.find(object);

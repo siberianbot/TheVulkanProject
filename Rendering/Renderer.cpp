@@ -13,8 +13,9 @@
 #include "Rendering/Objects/FenceObject.hpp"
 #include "Rendering/Objects/SemaphoreObject.hpp"
 #include "Rendering/Renderpasses/ClearRenderpass.hpp"
-#include "Rendering/Renderpasses/SceneRenderpass.hpp"
 #include "Rendering/Renderpasses/FinalRenderpass.hpp"
+#include "Rendering/Renderpasses/SceneRenderpass.hpp"
+#include "Rendering/Renderpasses/SkyboxRenderpass.hpp"
 
 Renderer::SyncObjectsGroup::~SyncObjectsGroup() {
     delete this->fence;
@@ -84,6 +85,10 @@ void Renderer::init() {
     this->_swapchain->create();
 
     this->_renderpasses.push_back(new ClearRenderpass(this->_renderingDevice, this->_swapchain));
+    this->_renderpasses.push_back(new SkyboxRenderpass(this->_renderingDevice, this->_swapchain,
+                                                       this->_renderingObjectsFactory,
+                                                       this->_renderingResourcesManager,
+                                                       this->_engine));
     this->_renderpasses.push_back(new SceneRenderpass(this->_renderingDevice, this->_swapchain,
                                                       this->_renderingObjectsFactory, this->_engine));
     this->_renderpasses.push_back(new FinalRenderpass(this->_renderingDevice, this->_swapchain));

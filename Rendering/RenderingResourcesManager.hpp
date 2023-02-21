@@ -29,12 +29,13 @@ private:
     RenderingObjectsFactory *_renderingObjectsFactory;
     CommandExecutor *_commandExecutor;
 
-    BufferObject *loadBuffer(uint64_t size, void* data, VkBufferUsageFlags usage);
+    BufferObject *loadBuffer(uint64_t size, const void* data, VkBufferUsageFlags usage);
 
 public:
     RenderingResourcesManager(RenderingObjectsFactory *renderingObjectsFactory, CommandExecutor *commandExecutor);
 
     MeshResource loadMesh(Mesh *mesh);
+    MeshResource loadMesh(uint32_t count, const Vertex* data);
     TextureResource loadTexture(Texture *texture);
 
     void freeMesh(const MeshResource &meshResource);

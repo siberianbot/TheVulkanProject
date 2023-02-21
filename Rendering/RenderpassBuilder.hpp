@@ -18,6 +18,7 @@ private:
 
     RenderingDevice *_renderingDevice;
 
+    bool _noDepthAttachment = false;
     std::optional<VkAttachmentLoadOp> _loadOp;
     std::optional<Attachment> _colorAttachment;
     std::optional<Attachment> _depthAttachment;
@@ -26,6 +27,7 @@ private:
 public:
     explicit RenderpassBuilder(RenderingDevice *renderingDevice);
 
+    RenderpassBuilder &noDepthAttachment();
     RenderpassBuilder &clear();
     RenderpassBuilder &load();
     RenderpassBuilder &addResolveAttachment();

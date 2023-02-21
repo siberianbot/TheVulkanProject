@@ -12,6 +12,7 @@ private:
     Swapchain *_swapchain;
     VkRenderPass _renderpass;
 
+    bool _withDepthTargets = false;
     bool _withResolveTargets = false;
 
 public:
@@ -19,6 +20,7 @@ public:
                         Swapchain *swapchain,
                         VkRenderPass renderpass);
 
+    FramebuffersBuilder &withDepthTargets();
     FramebuffersBuilder &withResolveTargets();
 
     std::vector<VkFramebuffer> build();

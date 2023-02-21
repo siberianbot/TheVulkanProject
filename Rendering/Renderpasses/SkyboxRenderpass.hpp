@@ -1,26 +1,45 @@
-#ifndef SKYBOXRENDERPASS_HPP
-#define SKYBOXRENDERPASS_HPP
+#ifndef RENDERING_RENDERPASSES_SKYBOXRENDERPASS_HPP
+#define RENDERING_RENDERPASSES_SKYBOXRENDERPASS_HPP
 
 #include "RenderpassBase.hpp"
 
-class SkyboxRenderpass : RenderpassBase {
+// TODO: exclude (required because of resources)
+#include "Rendering/RenderingResourcesManager.hpp"
+
+class Engine;
+class Object;
+class RenderingObjectsFactory;
+class DescriptorSetObject;
+class ImageViewObject;
+class RenderingLayoutObject;
+
+class SkyboxRenderpass : public RenderpassBase {
 private:
-    TextureData _skybox;
-    BufferData _vertexBuffer;
-    std::array<VkDescriptorSet, VK_MAX_INFLIGHT_FRAMES> _descriptorSets;
-    VkPipeline _pipeline;
-    VkPipelineLayout _pipelineLayout;
+    Engine *_engine;
+    RenderingResourcesManager *_renderingResourcesManager;
+    MeshResource _meshResource;
+    TextureResource _textureResource;
+    ImageViewObject *_textureView;
+    VkSampler _textureSampler;
+    RenderingLayoutObject *_renderingLayoutObject;
+    DescriptorSetObject *_descriptorSet;
+
+    VkPipeline _pipeline = VK_NULL_HANDLE;
 
 public:
-    explicit SkyboxRenderpass(const DeviceData &deviceData);
+    SkyboxRenderpass(RenderingDevice *renderingDevice, Swapchain *swapchain,
+                     RenderingObjectsFactory *renderingObjectsFactory,
+                     RenderingResourcesManager *renderingResourcesManager, Engine *engine);
 
-    ~SkyboxRenderpass() override = default;
+    ~SkyboxRenderpass() override;
 
-private:
     void recordCommands(VkCommandBuffer commandBuffer, VkRect2D renderArea,
                         uint32_t frameIdx, uint32_t imageIdx) override;
 
     void initRenderpass() override;
+    void destroyRenderpass() override;
+
+    void createFramebuffers() override;
 };
 
-#endif // SKYBOXRENDERPASS_HPP
+#endif // RENDERING_RENDERPASSES_SKYBOXRENDERPASS_HPP

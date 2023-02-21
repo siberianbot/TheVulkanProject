@@ -39,7 +39,7 @@ src = [
     'Rendering/Renderpasses/ClearRenderpass.cpp',
     'Rendering/Renderpasses/FinalRenderpass.cpp',
     'Rendering/Renderpasses/SceneRenderpass.cpp',
-    # 'Rendering/Renderpasses/SkyboxRenderpass.cpp',
+    'Rendering/Renderpasses/SkyboxRenderpass.cpp',
 ]
 
 # shaders compilation

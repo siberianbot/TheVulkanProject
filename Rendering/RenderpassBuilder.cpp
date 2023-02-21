@@ -9,6 +9,12 @@ RenderpassBuilder::RenderpassBuilder(RenderingDevice *renderingDevice)
     //
 }
 
+RenderpassBuilder &RenderpassBuilder::noDepthAttachment() {
+    this->_noDepthAttachment = true;
+
+    return *this;
+}
+
 RenderpassBuilder &RenderpassBuilder::clear() {
     this->_loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 
@@ -18,11 +24,13 @@ RenderpassBuilder &RenderpassBuilder::clear() {
             .finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
     };
 
-    this->_depthAttachment = Attachment{
-            .layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-            .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-            .finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
-    };
+    if (!this->_noDepthAttachment) {
+        this->_depthAttachment = Attachment{
+                .layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+                .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+                .finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+        };
+    }
 
     return *this;
 }
@@ -36,11 +44,13 @@ RenderpassBuilder &RenderpassBuilder::load() {
             .finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
     };
 
-    this->_depthAttachment = Attachment{
-            .layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-            .initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-            .finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
-    };
+    if (!this->_noDepthAttachment) {
+        this->_depthAttachment = Attachment{
+                .layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+                .initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+                .finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+        };
+    }
 
     return *this;
 }
@@ -60,9 +70,8 @@ VkRenderPass RenderpassBuilder::build() {
         throw std::runtime_error("Load operator is required");
     }
 
-    if (!this->_colorAttachment.has_value() ||
-        !this->_depthAttachment.has_value()) {
-        throw std::runtime_error("Color and depth attachments are required");
+    if (!this->_colorAttachment.has_value()) {
+        throw std::runtime_error("Color attachment is required");
     }
 
     std::vector<VkAttachmentDescription> attachments = {
@@ -76,17 +85,6 @@ VkRenderPass RenderpassBuilder::build() {
                     .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
                     .initialLayout = this->_colorAttachment.value().initialLayout,
                     .finalLayout = this->_colorAttachment.value().finalLayout
-            },
-            VkAttachmentDescription{
-                    .flags = 0,
-                    .format = this->_renderingDevice->getPhysicalDevice()->getDepthFormat(),
-                    .samples = this->_renderingDevice->getPhysicalDevice()->getMsaaSamples(),
-                    .loadOp = this->_loadOp.value(),
-                    .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-                    .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-                    .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-                    .initialLayout = this->_depthAttachment.value().initialLayout,
-                    .finalLayout = this->_depthAttachment.value().finalLayout
             }
     };
 
@@ -95,13 +93,28 @@ VkRenderPass RenderpassBuilder::build() {
             .layout = this->_colorAttachment->layout
     };
 
-    const VkAttachmentReference depthReference = {
-            .attachment = DEPTH_ATTACHMENT_IDX,
-            .layout = this->_depthAttachment->layout
-    };
+    std::optional<VkAttachmentReference> depthReference;
+    if (this->_depthAttachment.has_value()) {
+        attachments.push_back(VkAttachmentDescription{
+                .flags = 0,
+                .format = this->_renderingDevice->getPhysicalDevice()->getDepthFormat(),
+                .samples = this->_renderingDevice->getPhysicalDevice()->getMsaaSamples(),
+                .loadOp = this->_loadOp.value(),
+                .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+                .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+                .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+                .initialLayout = this->_depthAttachment.value().initialLayout,
+                .finalLayout = this->_depthAttachment.value().finalLayout
+        });
+
+        depthReference = VkAttachmentReference{
+                .attachment = DEPTH_ATTACHMENT_IDX,
+                .layout = this->_depthAttachment->layout
+        };
+    }
 
     std::optional<VkAttachmentReference> resolveReference;
-    if (_resolveAttachment.has_value()) {
+    if (this->_resolveAttachment.has_value()) {
         attachments.push_back(VkAttachmentDescription{
                 .flags = 0,
                 .format = this->_renderingDevice->getPhysicalDevice()->getColorFormat(),
@@ -142,7 +155,9 @@ VkRenderPass RenderpassBuilder::build() {
             .pResolveAttachments = resolveReference.has_value()
                                    ? &resolveReference.value()
                                    : nullptr,
-            .pDepthStencilAttachment = &depthReference,
+            .pDepthStencilAttachment = depthReference.has_value()
+                                       ? &depthReference.value()
+                                       : nullptr,
             .preserveAttachmentCount = 0,
             .pPreserveAttachments = nullptr
     };

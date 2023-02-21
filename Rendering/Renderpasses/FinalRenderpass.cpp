@@ -33,6 +33,7 @@ void FinalRenderpass::initRenderpass() {
 
 void FinalRenderpass::createFramebuffers() {
     this->_framebuffers = FramebuffersBuilder(this->_renderingDevice, this->_swapchain, this->_renderpass)
+            .withDepthTargets()
             .withResolveTargets()
             .build();
 }
