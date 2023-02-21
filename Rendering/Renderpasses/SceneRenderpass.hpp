@@ -14,12 +14,14 @@ class RenderingObjectsFactory;
 class BufferObject;
 class DescriptorSetObject;
 class ImageObject;
+class ImageViewObject;
 class RenderingLayoutObject;
 
 struct BoundMeshInfo {
     BufferObject *vertexBuffer;
     BufferObject *indexBuffer;
     ImageObject *texture;
+    ImageViewObject *textureView;
     glm::mat4 model;
     uint32_t indicesCount;
     DescriptorSetObject *descriptorSet;

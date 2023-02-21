@@ -8,6 +8,7 @@
 class RenderingDevice;
 class RenderingObjectsFactory;
 class ImageObject;
+class ImageViewObject;
 
 class Swapchain {
 private:
@@ -16,10 +17,13 @@ private:
 
     VkSwapchainKHR _swapchain = VK_NULL_HANDLE;
     VkExtent2D _swapchainExtent = {};
-    std::vector<ImageObject *> _swapchainImages;
+    std::vector<VkImage> _swapchainImages;
+    std::vector<ImageViewObject *> _swapchainImageViews;
 
     ImageObject *_colorImage = nullptr;
+    ImageViewObject *_colorImageView = nullptr;
     ImageObject *_depthImage = nullptr;
+    ImageViewObject *_depthImageView = nullptr;
 
 public:
     explicit Swapchain(RenderingDevice *renderingDevice, RenderingObjectsFactory *renderingObjectsFactory);
@@ -30,9 +34,11 @@ public:
     [[nodiscard]] VkExtent2D getSwapchainExtent() const { return this->_swapchainExtent; }
     [[nodiscard]] uint32_t getImageCount() const { return this->_swapchainImages.size(); }
 
-    [[nodiscard]] ImageObject *getColorImage() const { return this->_colorImage; }
-    [[nodiscard]] ImageObject *getDepthImage() const { return this->_depthImage; }
-    [[nodiscard]] ImageObject *getSwapchainImage(uint32_t imageIdx) const { return this->_swapchainImages[imageIdx]; }
+    [[nodiscard]] ImageViewObject *getColorImageView() const { return this->_colorImageView; }
+    [[nodiscard]] ImageViewObject *getDepthImageView() const { return this->_depthImageView; }
+    [[nodiscard]] ImageViewObject *getSwapchainImageView(uint32_t imageIdx) const {
+        return this->_swapchainImageViews[imageIdx];
+    }
 
     void create();
     void destroy();

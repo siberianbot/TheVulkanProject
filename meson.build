@@ -1,6 +1,6 @@
 project('TheVulkanProject', 'cpp',
   version : '0.1',
-  default_options : ['warning_level=3', 'cpp_std=c++20', 'std=c++20'])
+  default_options : ['warning_level=3', 'cpp_std=c++20'])
 
 vulkan = dependency('vulkan')
 glfw = dependency('glfw3')
@@ -29,6 +29,7 @@ src = [
     'Rendering/Objects/DescriptorSetObject.cpp',
     'Rendering/Objects/FenceObject.cpp',
     'Rendering/Objects/ImageObject.cpp',
+    'Rendering/Objects/ImageViewObject.cpp',
     'Rendering/Objects/RenderingLayoutObject.cpp',
     'Rendering/Objects/SemaphoreObject.cpp',
 

@@ -2,7 +2,7 @@
 
 #include "Rendering/RenderingDevice.hpp"
 #include "Rendering/Swapchain.hpp"
-#include "Rendering/Objects/ImageObject.hpp"
+#include "Rendering/Objects/ImageViewObject.hpp"
 
 FramebuffersBuilder::FramebuffersBuilder(RenderingDevice *renderingDevice,
                                          Swapchain *swapchain,
@@ -25,12 +25,12 @@ std::vector<VkFramebuffer> FramebuffersBuilder::build() {
 
     for (uint32_t idx = 0; idx < count; idx++) {
         std::vector<VkImageView> attachments = {
-                this->_swapchain->getColorImage()->getImageViewHandle(),
-                this->_swapchain->getDepthImage()->getImageViewHandle()
+                this->_swapchain->getColorImageView()->getHandle(),
+                this->_swapchain->getDepthImageView()->getHandle()
         };
 
         if (this->_withResolveTargets) {
-            attachments.push_back(this->_swapchain->getSwapchainImage(idx)->getImageViewHandle());
+            attachments.push_back(this->_swapchain->getSwapchainImageView(idx)->getHandle());
         }
 
         framebuffers[idx] = this->_renderingDevice->createFramebuffer(this->_renderpass,

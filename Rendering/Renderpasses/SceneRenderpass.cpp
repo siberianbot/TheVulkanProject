@@ -13,6 +13,7 @@
 #include "Rendering/PhysicalDevice.hpp"
 #include "Rendering/Objects/BufferObject.hpp"
 #include "Rendering/Objects/ImageObject.hpp"
+#include "Rendering/Objects/ImageViewObject.hpp"
 #include "Rendering/Objects/DescriptorSetObject.hpp"
 #include "Rendering/Objects/RenderingLayoutObject.hpp"
 #include "Rendering/RenderingObjectsFactory.hpp"
@@ -20,6 +21,7 @@
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_ENABLE_EXPERIMENTAL
+
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -197,8 +199,7 @@ ImageObject *SceneRenderpass::uploadTexture(const Texture &texture) {
                                                                            VK_IMAGE_USAGE_TRANSFER_DST_BIT |
                                                                            VK_IMAGE_USAGE_SAMPLED_BIT,
                                                                            VK_SAMPLE_COUNT_1_BIT,
-                                                                           VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                                                                           VK_IMAGE_ASPECT_COLOR_BIT);
+                                                                           VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
     this->_commandExecutor->beginOneTimeExecution(
                     [&image, &stagingBuffer, &texture](VkCommandBuffer cmdBuffer) {
@@ -211,7 +212,7 @@ ImageObject *SceneRenderpass::uploadTexture(const Texture &texture) {
                                 .newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                                 .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
                                 .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                                .image = image->getImageHandle(),
+                                .image = image->getHandle(),
                                 .subresourceRange = {
                                         .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
                                         .baseMipLevel = 0,
@@ -237,7 +238,7 @@ ImageObject *SceneRenderpass::uploadTexture(const Texture &texture) {
                                 .imageOffset = {0, 0, 0},
                                 .imageExtent = {texture.width(), texture.height(), 1}
                         };
-                        vkCmdCopyBufferToImage(cmdBuffer, stagingBuffer->getHandle(), image->getImageHandle(),
+                        vkCmdCopyBufferToImage(cmdBuffer, stagingBuffer->getHandle(), image->getHandle(),
                                                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1,
                                                &bufferImageCopy);
 
@@ -250,7 +251,7 @@ ImageObject *SceneRenderpass::uploadTexture(const Texture &texture) {
                                 .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                                 .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
                                 .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-                                .image = image->getImageHandle(),
+                                .image = image->getHandle(),
                                 .subresourceRange = {
                                         .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
                                         .baseMipLevel = 0,
@@ -273,15 +274,18 @@ ImageObject *SceneRenderpass::uploadTexture(const Texture &texture) {
 
 BoundMeshInfo *SceneRenderpass::uploadMesh(Mesh &mesh, const Texture &texture) {
     ImageObject *textureData = uploadTexture(texture);
+    ImageViewObject *textureView = this->_renderingObjectsFactory->createImageViewObject(textureData,
+                                                                                         VK_IMAGE_ASPECT_COLOR_BIT);
 
     auto boundMeshInfo = new BoundMeshInfo{
             .vertexBuffer = uploadVertices(mesh.vertices()),
             .indexBuffer = uploadIndices(mesh.indices()),
             .texture = textureData,
+            .textureView = textureView,
             .model = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -0.5f, 0.0f)),
             .indicesCount = static_cast<uint32_t>(mesh.indices().size()),
             .descriptorSet = this->_renderingLayoutObject->createMeshDataDescriptor(this->_textureSampler,
-                                                                                    textureData->getImageViewHandle())
+                                                                                    textureView->getHandle())
     };
 
     this->addMesh(boundMeshInfo);
@@ -293,6 +297,7 @@ void SceneRenderpass::freeMesh(BoundMeshInfo *meshInfo) {
     this->_renderingDevice->waitIdle();
 
     delete meshInfo->descriptorSet;
+    delete meshInfo->textureView;
     delete meshInfo->texture;
     delete meshInfo->vertexBuffer;
     delete meshInfo->indexBuffer;
