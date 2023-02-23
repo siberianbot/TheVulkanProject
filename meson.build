@@ -10,47 +10,47 @@ glfw = dependency('glfw3')
 imgui = subproject('imgui', default_options: ['default_library=static'])
 
 src = [
-    'Main.cpp',
-    'Engine.cpp',
-    'Input.cpp',
-    'Mesh.cpp',
-    'Texture.cpp',
-    'Camera.cpp',
-    'Object.cpp',
+    'src/Main.cpp',
+    'src/Engine.cpp',
+    'src/Input.cpp',
+    'src/Mesh.cpp',
+    'src/Texture.cpp',
+    'src/Camera.cpp',
+    'src/Object.cpp',
 
     # Rendering
-    'Rendering/Renderer.cpp',
-    'Rendering/PhysicalDevice.cpp',
-    'Rendering/RenderingDevice.cpp',
-    'Rendering/CommandExecutor.cpp',
-    'Rendering/Swapchain.cpp',
-    'Rendering/RenderingResourcesManager.cpp',
+    'src/Rendering/Renderer.cpp',
+    'src/Rendering/PhysicalDevice.cpp',
+    'src/Rendering/RenderingDevice.cpp',
+    'src/Rendering/CommandExecutor.cpp',
+    'src/Rendering/Swapchain.cpp',
+    'src/Rendering/RenderingResourcesManager.cpp',
 
-    'Rendering/FramebuffersBuilder.cpp',
-    'Rendering/PipelineBuilder.cpp',
-    'Rendering/RenderpassBuilder.cpp',
+    'src/Rendering/FramebuffersBuilder.cpp',
+    'src/Rendering/PipelineBuilder.cpp',
+    'src/Rendering/RenderpassBuilder.cpp',
 
-    'Rendering/RenderingObjectsFactory.cpp',
-    'Rendering/Objects/BufferObject.cpp',
-    'Rendering/Objects/DescriptorSetObject.cpp',
-    'Rendering/Objects/FenceObject.cpp',
-    'Rendering/Objects/ImageObject.cpp',
-    'Rendering/Objects/ImageViewObject.cpp',
-    'Rendering/Objects/RenderingLayoutObject.cpp',
-    'Rendering/Objects/SemaphoreObject.cpp',
+    'src/Rendering/RenderingObjectsFactory.cpp',
+    'src/Rendering/Objects/BufferObject.cpp',
+    'src/Rendering/Objects/DescriptorSetObject.cpp',
+    'src/Rendering/Objects/FenceObject.cpp',
+    'src/Rendering/Objects/ImageObject.cpp',
+    'src/Rendering/Objects/ImageViewObject.cpp',
+    'src/Rendering/Objects/RenderingLayoutObject.cpp',
+    'src/Rendering/Objects/SemaphoreObject.cpp',
 
-    'Rendering/Renderpasses/RenderpassBase.cpp',
-    'Rendering/Renderpasses/ClearRenderpass.cpp',
-    'Rendering/Renderpasses/FinalRenderpass.cpp',
-    'Rendering/Renderpasses/ImguiRenderpass.cpp',
-    'Rendering/Renderpasses/SceneRenderpass.cpp',
-    'Rendering/Renderpasses/SkyboxRenderpass.cpp',
+    'src/Rendering/Renderpasses/RenderpassBase.cpp',
+    'src/Rendering/Renderpasses/ClearRenderpass.cpp',
+    'src/Rendering/Renderpasses/FinalRenderpass.cpp',
+    'src/Rendering/Renderpasses/ImguiRenderpass.cpp',
+    'src/Rendering/Renderpasses/SceneRenderpass.cpp',
+    'src/Rendering/Renderpasses/SkyboxRenderpass.cpp',
 ]
 
 # shaders compilation
 shaders = [
-    'shaders/default.frag',
-    'shaders/default.vert'
+    'data/shaders/default.frag',
+    'data/shaders/default.vert'
 ]
 
 foreach shader : shaders
