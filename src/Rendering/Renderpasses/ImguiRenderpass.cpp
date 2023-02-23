@@ -1,8 +1,7 @@
 #include "ImguiRenderpass.hpp"
 
-#include "subprojects/imgui-1.89.2/imgui.h"
-#include "subprojects/imgui-1.89.2/backends/imgui_impl_glfw.h"
-#include "subprojects/imgui-1.89.2/backends/imgui_impl_vulkan.h"
+#include <imgui.h>
+#include <imgui_impl_vulkan.h>
 
 #include <renderdoc_app.h>
 
@@ -14,12 +13,10 @@
 #include "src/Rendering/RenderpassBuilder.hpp"
 
 ImguiRenderpass::ImguiRenderpass(RenderingDevice *renderingDevice, Swapchain *swapchain, VkInstance instance,
-                                 PhysicalDevice *physicalDevice, GLFWwindow *window,
-                                 CommandExecutor *commandExecutor)
+                                 PhysicalDevice *physicalDevice, CommandExecutor *commandExecutor)
         : RenderpassBase(renderingDevice, swapchain),
           _instance(instance),
           _physicalDevice(physicalDevice),
-          _window(window),
           _commandExecutor(commandExecutor) {
     this->_descriptorPool = this->_renderingDevice->createDescriptorPool(
             {
@@ -39,12 +36,6 @@ ImguiRenderpass::ImguiRenderpass(RenderingDevice *renderingDevice, Swapchain *sw
 
 void ImguiRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D renderArea, uint32_t frameIdx,
                                      uint32_t imageIdx) {
-    ImGui_ImplVulkan_NewFrame();
-    ImGui_ImplGlfw_NewFrame();
-    ImGui::NewFrame();
-
-    ImGui::ShowDemoWindow();
-
     ImGui::Render();
     ImDrawData *drawData = ImGui::GetDrawData();
 
@@ -69,10 +60,6 @@ void ImguiRenderpass::initRenderpass() {
             .load()
             .build();
 
-    ImGui::CreateContext();
-    ImGui::StyleColorsDark();
-
-    ImGui_ImplGlfw_InitForVulkan(this->_window, true);
     ImGui_ImplVulkan_InitInfo initInfo = {
             .Instance = this->_instance,
             .PhysicalDevice = this->_physicalDevice->getHandle(),
@@ -100,7 +87,6 @@ void ImguiRenderpass::initRenderpass() {
 
 void ImguiRenderpass::destroyRenderpass() {
     ImGui_ImplVulkan_Shutdown();
-    ImGui::DestroyContext();
 
     this->_renderingDevice->destroyDescriptorPool(this->_descriptorPool);
 

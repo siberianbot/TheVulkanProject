@@ -1,5 +1,9 @@
 #include "Engine.hpp"
 
+#include <imgui.h>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_vulkan.h>
+
 #include "Constants.hpp"
 #include "Mesh.hpp"
 #include "Math.hpp"
@@ -23,27 +27,41 @@ void Engine::init() {
     initGlfw();
     initWindow();
 
-    this->renderer.init();
-
     glfwSetWindowUserPointer(this->_window, this);
     glfwSetFramebufferSizeCallback(_window, framebufferResizeCallback);
     glfwSetKeyCallback(_window, keyCallback);
+    glfwSetMouseButtonCallback(_window, mouseButtonCallback);
     glfwSetCursorPosCallback(_window, cursorCallback);
 
-    this->input.addHandler(GLFW_KEY_ESCAPE, [this](float delta) {
-        glfwSetWindowShouldClose(this->_window, GLFW_TRUE);
+    ImGui::CreateContext();
+    ImGui::StyleColorsDark();
+    ImGui_ImplGlfw_InitForVulkan(this->_window, true);
+
+    this->renderer.init();
+
+    this->input.addReleaseHandler(GLFW_KEY_ESCAPE, [this](float delta) {
+        switch (this->_state) {
+            case NotFocused:
+                glfwSetWindowShouldClose(this->_window, GLFW_TRUE);
+                break;
+
+            case Focused:
+                this->_state = NotFocused;
+                glfwSetInputMode(this->_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+                break;
+        }
     });
 
-    this->input.addHandler(GLFW_KEY_W, [this](float delta) {
+    this->input.addPressHandler(GLFW_KEY_W, [this](float delta) {
         this->_camera.pos() += 5 * delta * forward(this->_camera.yaw(), this->_camera.pitch());
     });
-    this->input.addHandler(GLFW_KEY_S, [this](float delta) {
+    this->input.addPressHandler(GLFW_KEY_S, [this](float delta) {
         this->_camera.pos() -= 5 * delta * forward(this->_camera.yaw(), this->_camera.pitch());
     });
-    this->input.addHandler(GLFW_KEY_A, [this](float delta) {
+    this->input.addPressHandler(GLFW_KEY_A, [this](float delta) {
         this->_camera.pos() -= 5 * delta * side(this->_camera.yaw());
     });
-    this->input.addHandler(GLFW_KEY_D, [this](float delta) {
+    this->input.addPressHandler(GLFW_KEY_D, [this](float delta) {
         this->_camera.pos() += 5 * delta * side(this->_camera.yaw());
     });
 
@@ -108,6 +126,8 @@ void Engine::cleanup() {
 
     this->renderer.cleanup();
 
+    ImGui::DestroyContext();
+
     if (this->_window) {
         glfwDestroyWindow(this->_window);
     }
@@ -121,6 +141,12 @@ void Engine::run() {
         double startTime = glfwGetTime();
 
         glfwPollEvents();
+
+        ImGui_ImplVulkan_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
+
+        ImGui::ShowDemoWindow();
 
         this->input.process(delta);
         this->renderer.render();
@@ -144,6 +170,27 @@ void Engine::initWindow() {
     }
 }
 
+void Engine::mouseButtonCallback(GLFWwindow *window, int button, int action, int mods) {
+    auto engine = reinterpret_cast<Engine *>(glfwGetWindowUserPointer(window));
+
+    ImGuiIO &io = ImGui::GetIO();
+    if (io.WantCaptureMouse) {
+        return;
+    }
+
+    if (engine->_state == NotFocused && action == GLFW_RELEASE) {
+        engine->_state = Focused;
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
+        int w, h;
+        glfwGetWindowSize(engine->_window, &w, &h);
+
+        double xcenter = ((double) w) / 2;
+        double ycenter = ((double) h) / 2;
+        glfwSetCursorPos(engine->_window, xcenter, ycenter);
+    }
+}
+
 void Engine::framebufferResizeCallback(GLFWwindow *window, int width, int height) {
     auto engine = reinterpret_cast<Engine *>(glfwGetWindowUserPointer(window));
 
@@ -162,6 +209,10 @@ void Engine::keyCallback(GLFWwindow *window, int key, int scancode, int action, 
 
 void Engine::cursorCallback(GLFWwindow *window, double xpos, double ypos) {
     auto engine = reinterpret_cast<Engine *>(glfwGetWindowUserPointer(window));
+
+    if (engine->_state == NotFocused) {
+        return;
+    }
 
     int w, h;
     glfwGetWindowSize(window, &w, &h);

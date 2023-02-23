@@ -10,6 +10,11 @@
 
 class Object;
 
+enum CameraControlState {
+    NotFocused,
+    Focused
+};
+
 class Engine {
 private:
     GLFWwindow *_window = nullptr;
@@ -21,12 +26,14 @@ private:
     MeshRenderingResource _meshResource;
     TextureRenderingResource _textureResource;
 
+    CameraControlState _state = NotFocused;
     Camera _camera;
     std::vector<Object *> _objects;
 
     void initGlfw();
     void initWindow();
 
+    static void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
     static void framebufferResizeCallback(GLFWwindow *window, int width, int height);
     static void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods);
     static void cursorCallback(GLFWwindow *window, double xpos, double ypos);
