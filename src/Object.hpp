@@ -3,14 +3,14 @@
 
 #include <glm/vec3.hpp>
 
-class MeshResource;
-class TextureResource;
+class MeshRenderingResource;
+class TextureRenderingResource;
 
 // TODO
 class Object {
 public:
-    MeshResource *mesh;
-    TextureResource *texture;
+    MeshRenderingResource *mesh;
+    TextureRenderingResource *texture;
     glm::vec3 pos;
 };
 

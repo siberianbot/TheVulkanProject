@@ -6,23 +6,13 @@
 
 #include <vulkan/vulkan.hpp>
 
+#include "src/Rendering/RenderingResources.hpp"
+
 struct Vertex;
 class Mesh;
 class Texture;
 class RenderingObjectsFactory;
 class CommandExecutor;
-class BufferObject;
-class ImageObject;
-
-struct MeshResource {
-    BufferObject *vertices;
-    BufferObject *indices;
-    uint32_t indicesCount;
-};
-
-struct TextureResource {
-    ImageObject *texture;
-};
 
 class RenderingResourcesManager {
 private:
@@ -34,12 +24,12 @@ private:
 public:
     RenderingResourcesManager(RenderingObjectsFactory *renderingObjectsFactory, CommandExecutor *commandExecutor);
 
-    MeshResource loadMesh(Mesh *mesh);
-    MeshResource loadMesh(uint32_t count, const Vertex* data);
-    TextureResource loadTexture(Texture *texture);
+    MeshRenderingResource loadMesh(Mesh *mesh);
+    MeshRenderingResource loadMesh(uint32_t count, const Vertex* data);
+    TextureRenderingResource loadTexture(Texture *texture);
 
-    void freeMesh(const MeshResource &meshResource);
-    void freeTexture(const TextureResource &textureResource);
+    void freeMesh(const MeshRenderingResource &meshResource);
+    void freeTexture(const TextureRenderingResource &textureResource);
 };
 
 

@@ -41,7 +41,7 @@ BufferObject *RenderingResourcesManager::loadBuffer(uint64_t size, const void *d
     return result;
 }
 
-MeshResource RenderingResourcesManager::loadMesh(Mesh *mesh) {
+MeshRenderingResource RenderingResourcesManager::loadMesh(Mesh *mesh) {
     return {
             .vertices = loadBuffer(sizeof(Vertex) * mesh->vertices().size(), mesh->vertices().data(),
                                    VK_BUFFER_USAGE_VERTEX_BUFFER_BIT),
@@ -51,7 +51,7 @@ MeshResource RenderingResourcesManager::loadMesh(Mesh *mesh) {
     };
 }
 
-MeshResource RenderingResourcesManager::loadMesh(uint32_t count, const Vertex *data) {
+MeshRenderingResource RenderingResourcesManager::loadMesh(uint32_t count, const Vertex *data) {
     return {
             .vertices = loadBuffer(sizeof(Vertex) * count, reinterpret_cast<const void *>(data),
                                    VK_BUFFER_USAGE_VERTEX_BUFFER_BIT),
@@ -60,7 +60,7 @@ MeshResource RenderingResourcesManager::loadMesh(uint32_t count, const Vertex *d
     };
 }
 
-TextureResource RenderingResourcesManager::loadTexture(Texture *texture) {
+TextureRenderingResource RenderingResourcesManager::loadTexture(Texture *texture) {
     BufferObject *staging = this->_renderingObjectsFactory->createBufferObject(texture->size(),
                                                                                VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
                                                                                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
@@ -147,7 +147,7 @@ TextureResource RenderingResourcesManager::loadTexture(Texture *texture) {
     };
 }
 
-void RenderingResourcesManager::freeMesh(const MeshResource &meshResource) {
+void RenderingResourcesManager::freeMesh(const MeshRenderingResource &meshResource) {
     delete meshResource.vertices;
 
     if (meshResource.indices != nullptr) {
@@ -155,6 +155,6 @@ void RenderingResourcesManager::freeMesh(const MeshResource &meshResource) {
     }
 }
 
-void RenderingResourcesManager::freeTexture(const TextureResource &textureResource) {
+void RenderingResourcesManager::freeTexture(const TextureRenderingResource &textureResource) {
     delete textureResource.texture;
 }

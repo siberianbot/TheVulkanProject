@@ -3,8 +3,7 @@
 
 #include "RenderpassBase.hpp"
 
-// TODO: exclude (required because of resources)
-#include "src/Rendering/RenderingResourcesManager.hpp"
+#include "src/Rendering/RenderingResources.hpp"
 
 class Engine;
 class Object;
@@ -12,13 +11,14 @@ class RenderingObjectsFactory;
 class DescriptorSetObject;
 class ImageViewObject;
 class RenderingLayoutObject;
+class RenderingResourcesManager;
 
 class SkyboxRenderpass : public RenderpassBase {
 private:
     Engine *_engine;
     RenderingResourcesManager *_renderingResourcesManager;
-    MeshResource _meshResource;
-    TextureResource _textureResource;
+    MeshRenderingResource _meshResource;
+    TextureRenderingResource _textureResource;
     ImageViewObject *_textureView;
     VkSampler _textureSampler;
     RenderingLayoutObject *_renderingLayoutObject;

@@ -18,8 +18,8 @@ private:
     Input input;
     MouseInput mouseInput;
 
-    MeshResource _meshResource;
-    TextureResource _textureResource;
+    MeshRenderingResource _meshResource;
+    TextureRenderingResource _textureResource;
 
     Camera _camera;
     std::vector<Object *> _objects;
