@@ -116,6 +116,7 @@ VkSurfaceFormatKHR PhysicalDevice::getPreferredSurfaceFormat() {
 }
 
 VkPresentModeKHR PhysicalDevice::getPreferredPresentMode() {
+#ifdef VSYNC
     std::vector<VkPresentModeKHR> presentModes = getPresentModes();
 
     auto it = std::find(presentModes.begin(), presentModes.end(), VK_PRESENT_MODE_MAILBOX_KHR);
@@ -123,6 +124,9 @@ VkPresentModeKHR PhysicalDevice::getPreferredPresentMode() {
     return it != presentModes.end()
            ? *it
            : VK_PRESENT_MODE_FIFO_KHR;
+#else
+    return VK_PRESENT_MODE_IMMEDIATE_KHR;
+#endif
 }
 
 VkFormat PhysicalDevice::getColorFormat() {

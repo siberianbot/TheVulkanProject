@@ -2,6 +2,9 @@ project('TheVulkanProject', 'cpp',
   version : '0.1',
   default_options : ['warning_level=3', 'cpp_std=c++20'])
 
+# turn on VSync (see PhysicalDevice::getPreferredPresentMode)
+# add_project_arguments('-DVSYNC', language: 'cpp')
+
 vulkan = dependency('vulkan')
 glfw = dependency('glfw3')
 imgui = subproject('imgui', default_options: ['default_library=static'])
