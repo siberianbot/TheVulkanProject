@@ -157,16 +157,10 @@ void RenderingDevice::destroyImageView(VkImageView imageView) {
     vkDestroyImageView(this->_device, imageView, nullptr);
 }
 
-VkSwapchainKHR RenderingDevice::createSwapchain(VkExtent2D extent) {
+VkSwapchainKHR RenderingDevice::createSwapchain(VkExtent2D extent, uint32_t minImageCount) {
     VkSurfaceFormatKHR surfaceFormat = this->_physicalDevice->getPreferredSurfaceFormat();
     VkPresentModeKHR presentMode = this->_physicalDevice->getPreferredPresentMode();
     VkSurfaceCapabilitiesKHR capabilities = this->_physicalDevice->getSurfaceCapabilities();
-
-    uint32_t minImageCount = capabilities.minImageCount + 1;
-    if (capabilities.maxImageCount > 0 &&
-        minImageCount > capabilities.maxImageCount) {
-        minImageCount = capabilities.maxImageCount;
-    }
 
     bool exclusiveSharingMode = this->_physicalDevice->getGraphicsQueueFamilyIdx() ==
                                 this->_physicalDevice->getPresentQueueFamilyIdx();

@@ -14,6 +14,7 @@
 #include "Rendering/Objects/SemaphoreObject.hpp"
 #include "Rendering/Renderpasses/ClearRenderpass.hpp"
 #include "Rendering/Renderpasses/FinalRenderpass.hpp"
+#include "Rendering/Renderpasses/ImguiRenderpass.hpp"
 #include "Rendering/Renderpasses/SceneRenderpass.hpp"
 #include "Rendering/Renderpasses/SkyboxRenderpass.hpp"
 
@@ -91,6 +92,9 @@ void Renderer::init() {
                                                        this->_engine));
     this->_renderpasses.push_back(new SceneRenderpass(this->_renderingDevice, this->_swapchain,
                                                       this->_renderingObjectsFactory, this->_engine));
+    this->_renderpasses.push_back(new ImguiRenderpass(this->_renderingDevice, this->_swapchain,
+                                                      this->_instance, this->_physicalDevice, this->_engine->window(),
+                                                      this->_commandExecutor));
     this->_renderpasses.push_back(new FinalRenderpass(this->_renderingDevice, this->_swapchain));
 
     for (RenderpassBase *renderpass: this->_renderpasses) {

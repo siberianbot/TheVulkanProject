@@ -49,7 +49,7 @@ public:
     VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectMask);
     void destroyImageView(VkImageView imageView);
 
-    VkSwapchainKHR createSwapchain(VkExtent2D extent);
+    VkSwapchainKHR createSwapchain(VkExtent2D extent, uint32_t minImageCount);
     std::vector<VkImage> getSwapchainImages(VkSwapchainKHR swapchain);
     std::optional<uint32_t> acquireNextSwapchainImageIdx(VkSwapchainKHR swapchain, uint64_t timeout,
                                                          VkSemaphore signalSemaphore);

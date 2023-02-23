@@ -19,6 +19,7 @@ private:
     VkExtent2D _swapchainExtent = {};
     std::vector<VkImage> _swapchainImages;
     std::vector<ImageViewObject *> _swapchainImageViews;
+    uint32_t _swapchainMinImageCount;
 
     ImageObject *_colorImage = nullptr;
     ImageViewObject *_colorImageView = nullptr;
@@ -33,6 +34,7 @@ public:
 
     [[nodiscard]] VkExtent2D getSwapchainExtent() const { return this->_swapchainExtent; }
     [[nodiscard]] uint32_t getImageCount() const { return this->_swapchainImages.size(); }
+    [[nodiscard]] uint32_t getMinImageCount() const { return this->_swapchainMinImageCount; }
 
     [[nodiscard]] ImageViewObject *getColorImageView() const { return this->_colorImageView; }
     [[nodiscard]] ImageViewObject *getDepthImageView() const { return this->_depthImageView; }

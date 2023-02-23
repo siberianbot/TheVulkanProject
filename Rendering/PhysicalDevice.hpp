@@ -30,6 +30,7 @@ private:
     static std::vector<std::string> getExtensions(VkPhysicalDevice physicalDevice);
 
 public:
+    [[nodiscard]] VkPhysicalDevice getHandle() const { return this->_physicalDevice; }
     [[nodiscard]] VkSurfaceKHR getSurface() const { return this->_surface; }
 
     [[nodiscard]] uint32_t getGraphicsQueueFamilyIdx() const { return this->_graphicsQueueFamilyIdx; }

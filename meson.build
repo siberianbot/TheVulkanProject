@@ -4,6 +4,7 @@ project('TheVulkanProject', 'cpp',
 
 vulkan = dependency('vulkan')
 glfw = dependency('glfw3')
+imgui = subproject('imgui', default_options: ['default_library=static'])
 
 src = [
     'Main.cpp',
@@ -38,6 +39,7 @@ src = [
     'Rendering/Renderpasses/RenderpassBase.cpp',
     'Rendering/Renderpasses/ClearRenderpass.cpp',
     'Rendering/Renderpasses/FinalRenderpass.cpp',
+    'Rendering/Renderpasses/ImguiRenderpass.cpp',
     'Rendering/Renderpasses/SceneRenderpass.cpp',
     'Rendering/Renderpasses/SkyboxRenderpass.cpp',
 ]
@@ -52,4 +54,5 @@ foreach shader : shaders
     run_command('glslangValidator', '-V', shader, '-o', shader + '.spv', check: true)
 endforeach
 
-exe = executable('thevulkanproject', src,  dependencies: [ glfw, vulkan ])
+exe = executable('thevulkanproject', src,
+  dependencies: [ glfw, vulkan, imgui.get_variable('imgui_dep') ])

@@ -21,11 +21,19 @@ void Swapchain::create() {
         destroy();
     }
 
+    VkSurfaceCapabilitiesKHR capabilities = this->_renderingDevice->getPhysicalDevice()->getSurfaceCapabilities();
+
     // TODO:
     //  capabilities.currentExtent may be not available on certain platform;
     //  future investigations required
-    this->_swapchainExtent = this->_renderingDevice->getPhysicalDevice()->getSurfaceCapabilities().currentExtent;
-    this->_swapchain = this->_renderingDevice->createSwapchain(this->_swapchainExtent);
+    this->_swapchainExtent = capabilities.currentExtent;
+    this->_swapchainMinImageCount = capabilities.minImageCount + 1;
+    if (capabilities.maxImageCount > 0 &&
+        this->_swapchainMinImageCount > capabilities.maxImageCount) {
+        this->_swapchainMinImageCount = capabilities.maxImageCount;
+    }
+
+    this->_swapchain = this->_renderingDevice->createSwapchain(this->_swapchainExtent, this->_swapchainMinImageCount);
 
     this->_swapchainImages = this->_renderingDevice->getSwapchainImages(this->_swapchain);
     VkFormat colorFormat = this->_renderingDevice->getPhysicalDevice()->getColorFormat();
