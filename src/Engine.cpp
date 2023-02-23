@@ -10,12 +10,7 @@
 #include "Texture.hpp"
 #include "Object.hpp"
 
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#define GLM_ENABLE_EXPERIMENTAL
-
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
+#include <glm/vec3.hpp>
 
 Engine::Engine()
         : renderer(this),
@@ -92,24 +87,6 @@ void Engine::init() {
 
     this->_meshResource = this->renderer.getRenderingResourcesManager()->loadMesh(&vikingRoomMesh);
     this->_textureResource = this->renderer.getRenderingResourcesManager()->loadTexture(&vikingRoomTexture);
-
-    this->_objects.push_back(new Object{
-            .mesh = &this->_meshResource,
-            .texture = &this->_textureResource,
-            .pos = glm::vec3(0.0f, -0.5f, 0.0f)
-    });
-
-    this->_objects.push_back(new Object{
-            .mesh = &this->_meshResource,
-            .texture = &this->_textureResource,
-            .pos = glm::vec3(-2.0f, -0.5f, 0.0f)
-    });
-
-    this->_objects.push_back(new Object{
-            .mesh = &this->_meshResource,
-            .texture = &this->_textureResource,
-            .pos = glm::vec3(0.0f, -0.5f, 2.0f)
-    });
 }
 
 void Engine::cleanup() {
@@ -136,7 +113,6 @@ void Engine::cleanup() {
 }
 
 void Engine::run() {
-    float delta = 0;
     while (!glfwWindowShouldClose(this->_window)) {
         double startTime = glfwGetTime();
 
@@ -146,12 +122,64 @@ void Engine::run() {
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        ImGui::ShowDemoWindow();
+        ImGui::SetNextWindowPos(ImVec2(this->_windowWidth - 160, this->_windowHeight - 80));
+        ImGui::SetNextWindowSize(ImVec2(150, 70));
+        ImGui::Begin("FPS", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse);
+        ImGui::Text("delta: %f", this->_delta);
+        ImGui::Text("fps: %f", 1.0f / this->_delta);
+        ImGui::End();
 
-        this->input.process(delta);
+        if (ImGui::Begin("Objects")) {
+            if (ImGui::Button("add")) {
+                Object *object = new Object(glm::vec3(0), glm::vec3(0), &this->_meshResource, &this->_textureResource);
+
+                this->_objects.push_back(object);
+            }
+
+            if (ImGui::BeginListBox("#objects", ImVec2(-FLT_MIN, 10 * ImGui::GetTextLineHeightWithSpacing()))) {
+                for (auto current = this->_objects.begin(); current != this->_objects.end(); ++current) {
+                    const bool isSelected = (this->_selectedObject == current);
+
+                    std::string name = std::string("object ") + std::to_string(reinterpret_cast<long>(*current));
+
+                    if (ImGui::Selectable(name.c_str(), isSelected)) {
+                        this->_selectedObject = current;
+                    }
+
+                    if (isSelected) {
+                        ImGui::SetItemDefaultFocus();
+                    }
+                }
+
+                ImGui::EndListBox();
+            }
+
+            if (this->_selectedObject.has_value()) {
+                Object *object = *this->_selectedObject.value();
+
+                ImGui::InputFloat3("position", reinterpret_cast<float *>(&object->position()));
+                ImGui::InputFloat3("rotation", reinterpret_cast<float *>(&object->rotation()));
+
+                if (ImGui::Button("delete")) {
+                    delete object;
+
+                    auto next = this->_objects.erase(this->_selectedObject.value());
+
+                    if (next == this->_objects.end()) {
+                        this->_selectedObject = std::nullopt;
+                    } else {
+                        this->_selectedObject = next;
+                    }
+                }
+            }
+
+            ImGui::End();
+        }
+
+        this->input.process(this->_delta);
         this->renderer.render();
 
-        delta = glfwGetTime() - startTime;
+        this->_delta = glfwGetTime() - startTime;
     }
 }
 
@@ -164,7 +192,7 @@ void Engine::initGlfw() {
 void Engine::initWindow() {
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
-    this->_window = glfwCreateWindow(1280, 720, NAME, nullptr, nullptr);
+    this->_window = glfwCreateWindow(this->_windowWidth, this->_windowHeight, NAME, nullptr, nullptr);
     if (!this->_window) {
         throw std::runtime_error("glfwCreateWindow() returned nullptr");
     }
@@ -194,6 +222,8 @@ void Engine::mouseButtonCallback(GLFWwindow *window, int button, int action, int
 void Engine::framebufferResizeCallback(GLFWwindow *window, int width, int height) {
     auto engine = reinterpret_cast<Engine *>(glfwGetWindowUserPointer(window));
 
+    engine->_windowWidth = width;
+    engine->_windowHeight = height;
     engine->renderer.requestResize();
 }
 

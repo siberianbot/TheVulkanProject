@@ -17,6 +17,7 @@
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_ENABLE_EXPERIMENTAL
+
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -27,7 +28,7 @@ SceneRenderpass::RenderData SceneRenderpass::getRenderData(Object *object) {
         return it->second;
     }
 
-    ImageViewObject *textureView = this->_renderingObjectsFactory->createImageViewObject(object->texture->texture,
+    ImageViewObject *textureView = this->_renderingObjectsFactory->createImageViewObject(object->texture()->texture,
                                                                                          VK_IMAGE_ASPECT_COLOR_BIT);
 
     RenderData renderData = {
@@ -114,19 +115,19 @@ void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D ren
         VkDescriptorSet descriptorSet = renderData.descriptorSet->getDescriptorSet(frameIdx);
 
         MeshConstants constants = {
-                .model = glm::translate(glm::mat4(1), object->pos)
+                .model = object->getModelMatrix()
         };
         vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshConstants),
                            &constants);
 
-        VkBuffer vertexBuffer = object->mesh->vertices->getHandle();
+        VkBuffer vertexBuffer = object->mesh()->vertices->getHandle();
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer, &offset);
-        vkCmdBindIndexBuffer(commandBuffer, object->mesh->indices->getHandle(), 0, VK_INDEX_TYPE_UINT32);
+        vkCmdBindIndexBuffer(commandBuffer, object->mesh()->indices->getHandle(), 0, VK_INDEX_TYPE_UINT32);
 
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout,
                                 1, 1, &descriptorSet, 0, nullptr);
 
-        vkCmdDrawIndexed(commandBuffer, object->mesh->indicesCount, 1, 0, 0, idx++);
+        vkCmdDrawIndexed(commandBuffer, object->mesh()->indicesCount, 1, 0, 0, idx++);
     }
 
     vkCmdEndRenderPass(commandBuffer);

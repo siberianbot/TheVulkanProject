@@ -6,7 +6,6 @@
 #include "src/Rendering/RenderingResources.hpp"
 
 class Engine;
-class Object;
 class RenderingObjectsFactory;
 class DescriptorSetObject;
 class ImageViewObject;

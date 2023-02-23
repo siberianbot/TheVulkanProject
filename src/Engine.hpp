@@ -26,6 +26,10 @@ private:
     MeshRenderingResource _meshResource;
     TextureRenderingResource _textureResource;
 
+    std::optional<std::vector<Object *>::iterator> _selectedObject = std::nullopt;
+    int _windowWidth = 1280;
+    int _windowHeight = 720;
+    float _delta = 0;
     CameraControlState _state = NotFocused;
     Camera _camera;
     std::vector<Object *> _objects;
