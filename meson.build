@@ -16,7 +16,6 @@ src = [
     'src/Mesh.cpp',
     'src/Texture.cpp',
     'src/Camera.cpp',
-    'src/Object.cpp',
 
     # Rendering
     'src/Rendering/Renderer.cpp',
@@ -45,6 +44,10 @@ src = [
     'src/Rendering/Renderpasses/ImguiRenderpass.cpp',
     'src/Rendering/Renderpasses/SceneRenderpass.cpp',
     'src/Rendering/Renderpasses/SkyboxRenderpass.cpp',
+
+    # Scene
+    'src/Scene/Object.cpp',
+    'src/Scene/Scene.cpp',
 ]
 
 # shaders compilation

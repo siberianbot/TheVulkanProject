@@ -1,7 +1,8 @@
 #include "SceneRenderpass.hpp"
 
 #include "src/Engine.hpp"
-#include "src/Object.hpp"
+#include "src/Scene/Object.hpp"
+#include "src/Scene/Scene.hpp"
 #include "src/Mesh.hpp"
 #include "src/Rendering/RenderingDevice.hpp"
 #include "src/Rendering/RenderingObjectsFactory.hpp"
@@ -108,7 +109,7 @@ void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D ren
     vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
     uint32_t idx = 0;
-    for (Object *object: this->_engine->objects()) {
+    for (Object *object: this->_engine->scene()->objects()) {
         RenderData renderData = getRenderData(object);
 
         VkDeviceSize offset = 0;

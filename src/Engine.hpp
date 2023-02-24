@@ -9,6 +9,7 @@
 #include "src/Rendering/RenderingResourcesManager.hpp"
 
 class Object;
+class Scene;
 
 enum CameraControlState {
     NotFocused,
@@ -26,13 +27,13 @@ private:
     MeshRenderingResource _meshResource;
     TextureRenderingResource _textureResource;
 
-    std::optional<std::vector<Object *>::iterator> _selectedObject = std::nullopt;
+    std::optional<std::vector<Object *>::const_iterator> _selectedObject = std::nullopt;
     int _windowWidth = 1280;
     int _windowHeight = 720;
     float _delta = 0;
     CameraControlState _state = NotFocused;
     Camera _camera;
-    std::vector<Object *> _objects;
+    Scene *_scene;
 
     void initGlfw();
     void initWindow();
@@ -53,7 +54,7 @@ public:
     GLFWwindow *window() { return this->_window; }
     Camera &camera() { return this->_camera; }
 
-    [[nodiscard]] const std::vector<Object *> &objects() const { return this->_objects; }
+    [[nodiscard]] const Scene *scene() const { return this->_scene; }
 };
 
 #endif // ENGINE_HPP

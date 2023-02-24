@@ -8,7 +8,8 @@
 #include "Mesh.hpp"
 #include "Math.hpp"
 #include "Texture.hpp"
-#include "Object.hpp"
+#include "src/Scene/Object.hpp"
+#include "src/Scene/Scene.hpp"
 
 #include <glm/vec3.hpp>
 
@@ -87,16 +88,14 @@ void Engine::init() {
 
     this->_meshResource = this->renderer.getRenderingResourcesManager()->loadMesh(&vikingRoomMesh);
     this->_textureResource = this->renderer.getRenderingResourcesManager()->loadTexture(&vikingRoomTexture);
+
+    this->_scene = new Scene();
 }
 
 void Engine::cleanup() {
-    for (Object *object: this->_objects) {
-        delete object;
-    }
-
-    this->_objects.clear();
-
     this->renderer.wait();
+
+    delete this->_scene;
 
     this->renderer.getRenderingResourcesManager()->freeMesh(this->_meshResource);
     this->renderer.getRenderingResourcesManager()->freeTexture(this->_textureResource);
@@ -131,13 +130,21 @@ void Engine::run() {
 
         if (ImGui::Begin("Objects")) {
             if (ImGui::Button("add")) {
-                Object *object = new Object(glm::vec3(0), glm::vec3(0), &this->_meshResource, &this->_textureResource);
+                Object *object = new Object(glm::vec3(0), glm::vec3(0), glm::vec3(1),
+                                            &this->_meshResource, &this->_textureResource);
 
-                this->_objects.push_back(object);
+                this->_scene->addObject(object);
+                this->_selectedObject = std::nullopt;
+            }
+
+            if (ImGui::Button("clear")) {
+                this->_scene->clear();
+                this->_selectedObject = std::nullopt;
             }
 
             if (ImGui::BeginListBox("#objects", ImVec2(-FLT_MIN, 10 * ImGui::GetTextLineHeightWithSpacing()))) {
-                for (auto current = this->_objects.begin(); current != this->_objects.end(); ++current) {
+                for (auto current = this->_scene->objects().begin();
+                     current != this->_scene->objects().end(); ++current) {
                     const bool isSelected = (this->_selectedObject == current);
 
                     std::string name = std::string("object ") + std::to_string(reinterpret_cast<long>(*current));
@@ -157,19 +164,14 @@ void Engine::run() {
             if (this->_selectedObject.has_value()) {
                 Object *object = *this->_selectedObject.value();
 
+                // TODO: magic
                 ImGui::InputFloat3("position", reinterpret_cast<float *>(&object->position()));
                 ImGui::InputFloat3("rotation", reinterpret_cast<float *>(&object->rotation()));
+                ImGui::InputFloat3("scale", reinterpret_cast<float *>(&object->scale()));
 
                 if (ImGui::Button("delete")) {
-                    delete object;
-
-                    auto next = this->_objects.erase(this->_selectedObject.value());
-
-                    if (next == this->_objects.end()) {
-                        this->_selectedObject = std::nullopt;
-                    } else {
-                        this->_selectedObject = next;
-                    }
+                    this->_scene->removeObject(object);
+                    this->_selectedObject = std::nullopt;
                 }
             }
 
