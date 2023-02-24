@@ -50,6 +50,9 @@ src = [
     # Scene
     'src/Scene/Object.cpp',
     'src/Scene/Scene.cpp',
+
+    # Debug only
+    'src/DebugUI.cpp',
 ]
 
 # shaders compilation

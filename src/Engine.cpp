@@ -2,7 +2,6 @@
 
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
-#include <imgui_impl_vulkan.h>
 
 #include "Constants.hpp"
 #include "src/Resources/Mesh.hpp"
@@ -10,12 +9,15 @@
 #include "src/Resources/Texture.hpp"
 #include "src/Scene/Object.hpp"
 #include "src/Scene/Scene.hpp"
+#include "DebugUI.hpp"
 
 #include <glm/vec3.hpp>
 
 Engine::Engine()
         : renderer(this),
-          _camera(glm::vec3(2, 2, -2), glm::radians(135.0f), glm::radians(50.0f)) {
+          _camera(glm::vec3(2, 2, -2), glm::radians(135.0f), glm::radians(50.0f)),
+          _scene(new Scene()),
+          _debugUI(new DebugUI(this)) {
     //
 }
 
@@ -88,8 +90,6 @@ void Engine::init() {
 
     this->_meshResource = this->renderer.getRenderingResourcesManager()->loadMesh(&vikingRoomMesh);
     this->_textureResource = this->renderer.getRenderingResourcesManager()->loadTexture(&vikingRoomTexture);
-
-    this->_scene = new Scene();
 }
 
 void Engine::cleanup() {
@@ -117,67 +117,7 @@ void Engine::run() {
 
         glfwPollEvents();
 
-        ImGui_ImplVulkan_NewFrame();
-        ImGui_ImplGlfw_NewFrame();
-        ImGui::NewFrame();
-
-        ImGui::SetNextWindowPos(ImVec2(this->_windowWidth - 160, this->_windowHeight - 80));
-        ImGui::SetNextWindowSize(ImVec2(150, 70));
-        ImGui::Begin("FPS", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse);
-        ImGui::Text("delta: %f", this->_delta);
-        ImGui::Text("fps: %f", 1.0f / this->_delta);
-        ImGui::End();
-
-        if (ImGui::Begin("Objects")) {
-            if (ImGui::Button("add")) {
-                Object *object = new Object(glm::vec3(0), glm::vec3(0), glm::vec3(1),
-                                            &this->_meshResource, &this->_textureResource);
-
-                this->_scene->addObject(object);
-                this->_selectedObject = std::nullopt;
-            }
-
-            if (ImGui::Button("clear")) {
-                this->_scene->clear();
-                this->_selectedObject = std::nullopt;
-            }
-
-            if (ImGui::BeginListBox("#objects", ImVec2(-FLT_MIN, 10 * ImGui::GetTextLineHeightWithSpacing()))) {
-                for (auto current = this->_scene->objects().begin();
-                     current != this->_scene->objects().end(); ++current) {
-                    const bool isSelected = (this->_selectedObject == current);
-
-                    std::string name = std::string("object ") + std::to_string(reinterpret_cast<long>(*current));
-
-                    if (ImGui::Selectable(name.c_str(), isSelected)) {
-                        this->_selectedObject = current;
-                    }
-
-                    if (isSelected) {
-                        ImGui::SetItemDefaultFocus();
-                    }
-                }
-
-                ImGui::EndListBox();
-            }
-
-            if (this->_selectedObject.has_value()) {
-                Object *object = *this->_selectedObject.value();
-
-                // TODO: magic
-                ImGui::InputFloat3("position", reinterpret_cast<float *>(&object->position()));
-                ImGui::InputFloat3("rotation", reinterpret_cast<float *>(&object->rotation()));
-                ImGui::InputFloat3("scale", reinterpret_cast<float *>(&object->scale()));
-
-                if (ImGui::Button("delete")) {
-                    this->_scene->removeObject(object);
-                    this->_selectedObject = std::nullopt;
-                }
-            }
-
-            ImGui::End();
-        }
-
+        this->_debugUI->update();
         this->input.process(this->_delta);
         this->renderer.render();
 
@@ -203,8 +143,7 @@ void Engine::initWindow() {
 void Engine::mouseButtonCallback(GLFWwindow *window, int button, int action, int mods) {
     auto engine = reinterpret_cast<Engine *>(glfwGetWindowUserPointer(window));
 
-    ImGuiIO &io = ImGui::GetIO();
-    if (io.WantCaptureMouse) {
+    if (ImGui::GetIO().WantCaptureMouse) {
         return;
     }
 

@@ -8,6 +8,7 @@
 #include "src/Rendering/Renderer.hpp"
 #include "src/Rendering/RenderingResourcesManager.hpp"
 
+class DebugUI;
 class Object;
 class Scene;
 
@@ -27,13 +28,13 @@ private:
     MeshRenderingResource _meshResource;
     TextureRenderingResource _textureResource;
 
-    std::optional<std::vector<Object *>::const_iterator> _selectedObject = std::nullopt;
     int _windowWidth = 1280;
     int _windowHeight = 720;
     float _delta = 0;
     CameraControlState _state = NotFocused;
     Camera _camera;
     Scene *_scene;
+    DebugUI *_debugUI;
 
     void initGlfw();
     void initWindow();
@@ -54,7 +55,13 @@ public:
     GLFWwindow *window() { return this->_window; }
     Camera &camera() { return this->_camera; }
 
-    [[nodiscard]] const Scene *scene() const { return this->_scene; }
+    [[nodiscard]] Scene *scene() { return this->_scene; }
+
+    uint32_t windowWidth() { return this->_windowWidth; }
+    uint32_t windowHeight() { return this->_windowHeight; }
+    float delta() { return this->_delta; }
+    MeshRenderingResource *meshResource() { return &this->_meshResource; }
+    TextureRenderingResource *textureResource() { return &this->_textureResource; }
 };
 
 #endif // ENGINE_HPP
