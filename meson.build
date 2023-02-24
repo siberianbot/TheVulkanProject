@@ -13,8 +13,6 @@ src = [
     'src/Main.cpp',
     'src/Engine.cpp',
     'src/Input.cpp',
-    'src/Mesh.cpp',
-    'src/Texture.cpp',
     'src/Camera.cpp',
 
     # Rendering
@@ -44,6 +42,10 @@ src = [
     'src/Rendering/Renderpasses/ImguiRenderpass.cpp',
     'src/Rendering/Renderpasses/SceneRenderpass.cpp',
     'src/Rendering/Renderpasses/SkyboxRenderpass.cpp',
+
+    # Resources
+    'src/Resources/Mesh.cpp',
+    'src/Resources/Texture.cpp',
 
     # Scene
     'src/Scene/Object.cpp',

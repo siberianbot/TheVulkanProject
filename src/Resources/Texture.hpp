@@ -1,5 +1,5 @@
-#ifndef TEXTURE_HPP
-#define TEXTURE_HPP
+#ifndef RESOURCES_TEXTURE_HPP
+#define RESOURCES_TEXTURE_HPP
 
 #include <string>
 
@@ -23,4 +23,4 @@ public:
     [[nodiscard]] static Texture fromFile(const std::string &path);
 };
 
-#endif // TEXTURE_HPP
+#endif // RESOURCES_TEXTURE_HPP

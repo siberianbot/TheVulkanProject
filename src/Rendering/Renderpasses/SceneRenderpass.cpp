@@ -3,7 +3,7 @@
 #include "src/Engine.hpp"
 #include "src/Scene/Object.hpp"
 #include "src/Scene/Scene.hpp"
-#include "src/Mesh.hpp"
+#include "src/Resources/Mesh.hpp"
 #include "src/Rendering/RenderingDevice.hpp"
 #include "src/Rendering/RenderingObjectsFactory.hpp"
 #include "src/Rendering/Swapchain.hpp"

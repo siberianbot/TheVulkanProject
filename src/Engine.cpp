@@ -5,9 +5,9 @@
 #include <imgui_impl_vulkan.h>
 
 #include "Constants.hpp"
-#include "Mesh.hpp"
+#include "src/Resources/Mesh.hpp"
 #include "Math.hpp"
-#include "Texture.hpp"
+#include "src/Resources/Texture.hpp"
 #include "src/Scene/Object.hpp"
 #include "src/Scene/Scene.hpp"
 

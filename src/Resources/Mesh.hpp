@@ -1,5 +1,5 @@
-#ifndef MESH_HPP
-#define MESH_HPP
+#ifndef RESOURCES_MESH_HPP
+#define RESOURCES_MESH_HPP
 
 #include <vector>
 #include <string>
@@ -25,4 +25,4 @@ public:
     [[nodiscard]] static Mesh fromFile(const std::string &path);
 };
 
-#endif // MESH_HPP
+#endif // RESOURCES_MESH_HPP

@@ -1,8 +1,8 @@
 #include "SkyboxRenderpass.hpp"
 
 #include "src/Engine.hpp"
-#include "src/Mesh.hpp"
-#include "src/Texture.hpp"
+#include "src/Resources/Mesh.hpp"
+#include "src/Resources/Texture.hpp"
 #include "src/Rendering/RenderingDevice.hpp"
 #include "src/Rendering/RenderingObjectsFactory.hpp"
 #include "src/Rendering/Swapchain.hpp"

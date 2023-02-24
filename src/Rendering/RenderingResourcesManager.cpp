@@ -1,7 +1,7 @@
 #include "RenderingResourcesManager.hpp"
 
-#include "src/Mesh.hpp"
-#include "src/Texture.hpp"
+#include "src/Resources/Mesh.hpp"
+#include "src/Resources/Texture.hpp"
 #include "RenderingObjectsFactory.hpp"
 #include "CommandExecutor.hpp"
 #include "src/Rendering/Objects/BufferObject.hpp"
