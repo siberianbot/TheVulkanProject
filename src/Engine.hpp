@@ -25,8 +25,10 @@ private:
     Input input;
     MouseInput mouseInput;
 
-    MeshRenderingResource _meshResource;
-    TextureRenderingResource _textureResource;
+    MeshRenderingResource _roomMeshResource;
+    TextureRenderingResource _roomTextureResource;
+    MeshRenderingResource _skyboxMeshResource;
+    TextureRenderingResource _skyboxTextureResource;
 
     int _windowWidth = 1280;
     int _windowHeight = 720;
@@ -60,8 +62,8 @@ public:
     uint32_t windowWidth() { return this->_windowWidth; }
     uint32_t windowHeight() { return this->_windowHeight; }
     float delta() { return this->_delta; }
-    MeshRenderingResource *meshResource() { return &this->_meshResource; }
-    TextureRenderingResource *textureResource() { return &this->_textureResource; }
+    MeshRenderingResource *meshResource() { return &this->_roomMeshResource; }
+    TextureRenderingResource *textureResource() { return &this->_roomTextureResource; }
 };
 
 #endif // ENGINE_HPP

@@ -7,7 +7,7 @@ class ImageObject;
 struct MeshRenderingResource {
     BufferObject *vertices;
     BufferObject *indices;
-    uint32_t indicesCount;
+    uint32_t count;
 };
 
 struct TextureRenderingResource {

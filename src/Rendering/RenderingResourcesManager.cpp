@@ -47,7 +47,7 @@ MeshRenderingResource RenderingResourcesManager::loadMesh(Mesh *mesh) {
                                    VK_BUFFER_USAGE_VERTEX_BUFFER_BIT),
             .indices = loadBuffer(sizeof(uint32_t) * mesh->indices().size(), mesh->indices().data(),
                                   VK_BUFFER_USAGE_INDEX_BUFFER_BIT),
-            .indicesCount = static_cast<uint32_t>(mesh->indices().size())
+            .count = static_cast<uint32_t>(mesh->indices().size())
     };
 }
 
@@ -56,7 +56,7 @@ MeshRenderingResource RenderingResourcesManager::loadMesh(uint32_t count, const 
             .vertices = loadBuffer(sizeof(Vertex) * count, reinterpret_cast<const void *>(data),
                                    VK_BUFFER_USAGE_VERTEX_BUFFER_BIT),
             .indices = nullptr,
-            .indicesCount = 0
+            .count = count
     };
 }
 

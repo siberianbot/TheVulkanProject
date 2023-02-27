@@ -128,7 +128,7 @@ void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D ren
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout,
                                 1, 1, &descriptorSet, 0, nullptr);
 
-        vkCmdDrawIndexed(commandBuffer, object->mesh()->indicesCount, 1, 0, 0, idx++);
+        vkCmdDrawIndexed(commandBuffer, object->mesh()->count, 1, 0, 0, idx++);
     }
 
     vkCmdEndRenderPass(commandBuffer);

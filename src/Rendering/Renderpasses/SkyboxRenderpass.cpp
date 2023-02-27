@@ -1,8 +1,9 @@
 #include "SkyboxRenderpass.hpp"
 
 #include "src/Engine.hpp"
+#include "src/Scene/Scene.hpp"
+#include "src/Scene/Skybox.hpp"
 #include "src/Resources/Mesh.hpp"
-#include "src/Resources/Texture.hpp"
 #include "src/Rendering/RenderingDevice.hpp"
 #include "src/Rendering/RenderingObjectsFactory.hpp"
 #include "src/Rendering/Swapchain.hpp"
@@ -18,74 +19,16 @@
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_ENABLE_EXPERIMENTAL
-
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-static constexpr const char SKYBOX_TEXTURE_PATH[] = "data/textures/skybox.png";
-static constexpr std::array<Vertex, 36> SKYBOX_TRIANGLES = {
-        // up
-        Vertex{.pos = {-1, 1, -1}, .color = {1, 1, 1}, .texCoord = {0.25, 0}},
-        Vertex{.pos = {1, 1, -1}, .color = {1, 1, 1}, .texCoord = {0.5, 0}},
-        Vertex{.pos = {1, 1, 1}, .color = {1, 1, 1}, .texCoord = {0.5, 1.0 / 3}},
-        Vertex{.pos = {1, 1, 1}, .color = {1, 1, 1}, .texCoord = {0.5, 1.0 / 3}},
-        Vertex{.pos = {-1, 1, 1}, .color = {1, 1, 1}, .texCoord = {0.25, 1.0 / 3}},
-        Vertex{.pos = {-1, 1, -1}, .color = {1, 1, 1}, .texCoord = {0.25, 0}},
-
-        // front
-        Vertex{.pos = {-1, 1, 1}, .color = {1, 1, 1}, .texCoord = {0.25, 1.0 / 3}},
-        Vertex{.pos = {1, 1, 1}, .color = {1, 1, 1}, .texCoord = {0.5, 1.0 / 3}},
-        Vertex{.pos = {1, -1, 1}, .color = {1, 1, 1}, .texCoord = {0.5, 2.0 / 3}},
-        Vertex{.pos = {1, -1, 1}, .color = {1, 1, 1}, .texCoord = {0.5, 2.0 / 3}},
-        Vertex{.pos = {-1, -1, 1}, .color = {1, 1, 1}, .texCoord = {0.25, 2.0 / 3}},
-        Vertex{.pos = {-1, 1, 1}, .color = {1, 1, 1}, .texCoord = {0.25, 1.0 / 3}},
-
-        // left
-        Vertex{.pos = {-1, 1, -1}, .color = {1, 1, 1}, .texCoord = {0, 1.0 / 3}},
-        Vertex{.pos = {-1, 1, 1}, .color = {1, 1, 1}, .texCoord = {0.25, 1.0 / 3}},
-        Vertex{.pos = {-1, -1, 1}, .color = {1, 1, 1}, .texCoord = {0.25, 2.0 / 3}},
-        Vertex{.pos = {-1, -1, 1}, .color = {1, 1, 1}, .texCoord = {0.25, 2.0 / 3}},
-        Vertex{.pos = {-1, -1, -1}, .color = {1, 1, 1}, .texCoord = {0, 2.0 / 3}},
-        Vertex{.pos = {-1, 1, -1}, .color = {1, 1, 1}, .texCoord = {0, 1.0 / 3}},
-
-        // right
-        Vertex{.pos = {1, 1, 1}, .color = {1, 1, 1}, .texCoord = {0.5, 1.0 / 3}},
-        Vertex{.pos = {1, 1, -1}, .color = {1, 1, 1}, .texCoord = {0.75, 1.0 / 3}},
-        Vertex{.pos = {1, -1, -1}, .color = {1, 1, 1}, .texCoord = {0.75, 2.0 / 3}},
-        Vertex{.pos = {1, -1, -1}, .color = {1, 1, 1}, .texCoord = {0.75, 2.0 / 3}},
-        Vertex{.pos = {1, -1, 1}, .color = {1, 1, 1}, .texCoord = {0.5, 2.0 / 3}},
-        Vertex{.pos = {1, 1, 1}, .color = {1, 1, 1}, .texCoord = {0.5, 1.0 / 3}},
-
-        // back
-        Vertex{.pos = {1, 1, -1}, .color = {1, 1, 1}, .texCoord = {0.75, 1.0 / 3}},
-        Vertex{.pos = {-1, 1, -1}, .color = {1, 1, 1}, .texCoord = {1, 1.0 / 3}},
-        Vertex{.pos = {-1, -1, -1}, .color = {1, 1, 1}, .texCoord = {1, 2.0 / 3}},
-        Vertex{.pos = {-1, -1, -1}, .color = {1, 1, 1}, .texCoord = {1, 2.0 / 3}},
-        Vertex{.pos = {1, -1, -1}, .color = {1, 1, 1}, .texCoord = {0.75, 2.0 / 3}},
-        Vertex{.pos = {1, 1, -1}, .color = {1, 1, 1}, .texCoord = {0.75, 1.0 / 3}},
-
-        // down
-        Vertex{.pos = {-1, -1, 1}, .color = {1, 1, 1}, .texCoord = {0.25, 2.0 / 3}},
-        Vertex{.pos = {1, -1, 1}, .color = {1, 1, 1}, .texCoord = {0.5, 2.0 / 3}},
-        Vertex{.pos = {1, -1, -1}, .color = {1, 1, 1}, .texCoord = {0.5, 1}},
-        Vertex{.pos = {1, -1, -1}, .color = {1, 1, 1}, .texCoord = {0.5, 1}},
-        Vertex{.pos = {-1, -1, -1}, .color = {1, 1, 1}, .texCoord = {0.25, 1}},
-        Vertex{.pos = {-1, -1, 1}, .color = {1, 1, 1}, .texCoord = {0.25, 2.0 / 3}},
-};
-
 SkyboxRenderpass::SkyboxRenderpass(RenderingDevice *renderingDevice, Swapchain *swapchain,
-                                   RenderingObjectsFactory *renderingObjectsFactory,
-                                   RenderingResourcesManager *renderingResourcesManager, Engine *engine)
+                                   RenderingObjectsFactory *renderingObjectsFactory, Engine *engine)
         : RenderpassBase(renderingDevice, swapchain),
-          _engine(engine),
-          _renderingResourcesManager(renderingResourcesManager) {
-    this->_meshResource = this->_renderingResourcesManager->loadMesh(SKYBOX_TRIANGLES.size(),
-                                                                     SKYBOX_TRIANGLES.data());
-
-    Texture texture = Texture::fromFile(SKYBOX_TEXTURE_PATH);
-    this->_textureResource = this->_renderingResourcesManager->loadTexture(&texture);
-    this->_textureView = renderingObjectsFactory->createImageViewObject(this->_textureResource.texture,
-                                                                        VK_IMAGE_ASPECT_COLOR_BIT);
+          _engine(engine) {
+    this->_textureView = renderingObjectsFactory->createImageViewObject(
+            this->_engine->scene()->skybox()->texture()->texture,
+            VK_IMAGE_ASPECT_COLOR_BIT);
 
     this->_textureSampler = this->_renderingDevice->createSampler();
     this->_renderingLayoutObject = renderingObjectsFactory->createRenderingLayoutObject();
@@ -99,8 +42,6 @@ SkyboxRenderpass::~SkyboxRenderpass() {
     this->_renderingDevice->destroySampler(this->_textureSampler);
 
     delete this->_textureView;
-    this->_renderingResourcesManager->freeTexture(this->_textureResource);
-    this->_renderingResourcesManager->freeMesh(this->_meshResource);
 }
 
 void SkyboxRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D renderArea,
@@ -161,10 +102,11 @@ void SkyboxRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D re
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout,
                             1, 1, &descriptorSet, 0, nullptr);
 
-    VkBuffer vertexBuffer = this->_meshResource.vertices->getHandle();
+    BufferObject *vertices = this->_engine->scene()->skybox()->mesh()->vertices;
+    VkBuffer vertexBuffer = vertices->getHandle();
     vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer, &offset);
 
-    vkCmdDraw(commandBuffer, SKYBOX_TRIANGLES.size(), 1, 0, 0);
+    vkCmdDraw(commandBuffer, vertices->getSize(), 1, 0, 0);
 
     vkCmdEndRenderPass(commandBuffer);
 }

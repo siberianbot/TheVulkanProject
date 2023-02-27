@@ -60,6 +60,7 @@ public:
     Renderer(Engine *engine);
 
     void init();
+    void initRenderpasses();
     void cleanup();
 
     void render();

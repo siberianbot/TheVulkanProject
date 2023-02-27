@@ -10,13 +10,14 @@
 #include "src/Scene/Object.hpp"
 #include "src/Scene/Scene.hpp"
 #include "DebugUI.hpp"
+#include "src/Scene/Skybox.hpp"
+#include "src/Scene/SkyboxMesh.hpp"
 
 #include <glm/vec3.hpp>
 
 Engine::Engine()
         : renderer(this),
           _camera(glm::vec3(2, 2, -2), glm::radians(135.0f), glm::radians(50.0f)),
-          _scene(new Scene()),
           _debugUI(new DebugUI(this)) {
     //
 }
@@ -85,11 +86,19 @@ void Engine::init() {
         }
     });
 
+    Texture skyboxTexture = Texture::fromFile("data/textures/skybox.png");
+    this->_skyboxMeshResource = this->renderer.getRenderingResourcesManager()->loadMesh(DEFAULT_SKYBOX_MESH.size(),
+                                                                                        DEFAULT_SKYBOX_MESH.data());
+    this->_skyboxTextureResource = this->renderer.getRenderingResourcesManager()->loadTexture(&skyboxTexture);
+
+    this->_scene = new Scene(new Skybox(&this->_skyboxMeshResource, &this->_skyboxTextureResource));
+
     Mesh vikingRoomMesh = Mesh::fromFile("data/models/viking_room.obj");
     Texture vikingRoomTexture = Texture::fromFile("data/textures/viking_room.png");
+    this->_roomMeshResource = this->renderer.getRenderingResourcesManager()->loadMesh(&vikingRoomMesh);
+    this->_roomTextureResource = this->renderer.getRenderingResourcesManager()->loadTexture(&vikingRoomTexture);
 
-    this->_meshResource = this->renderer.getRenderingResourcesManager()->loadMesh(&vikingRoomMesh);
-    this->_textureResource = this->renderer.getRenderingResourcesManager()->loadTexture(&vikingRoomTexture);
+    this->renderer.initRenderpasses();
 }
 
 void Engine::cleanup() {
@@ -97,8 +106,10 @@ void Engine::cleanup() {
 
     delete this->_scene;
 
-    this->renderer.getRenderingResourcesManager()->freeMesh(this->_meshResource);
-    this->renderer.getRenderingResourcesManager()->freeTexture(this->_textureResource);
+    this->renderer.getRenderingResourcesManager()->freeMesh(this->_roomMeshResource);
+    this->renderer.getRenderingResourcesManager()->freeTexture(this->_roomTextureResource);
+    this->renderer.getRenderingResourcesManager()->freeMesh(this->_skyboxMeshResource);
+    this->renderer.getRenderingResourcesManager()->freeTexture(this->_skyboxTextureResource);
 
     this->renderer.cleanup();
 

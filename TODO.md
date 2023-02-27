@@ -2,7 +2,10 @@
 
 ## Subpasses
 - [ ] Merge skybox renderpass with scene renderpass
-  - [ ] Move skybox model out of class
-  - [ ] Made skybox model part of the scene
+  - [x] Move skybox model out of class
+  - [x] Made skybox model part of the scene
   - [ ] Extend renderpass builder: introduce subpasses
   - [ ] ...
+
+## Resources
+- [ ] Improve resources loading and managing

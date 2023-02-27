@@ -84,12 +84,12 @@ void Renderer::init() {
     }
 
     this->_swapchain->create();
+}
 
+void Renderer::initRenderpasses() {
     this->_renderpasses.push_back(new ClearRenderpass(this->_renderingDevice, this->_swapchain));
     this->_renderpasses.push_back(new SkyboxRenderpass(this->_renderingDevice, this->_swapchain,
-                                                       this->_renderingObjectsFactory,
-                                                       this->_renderingResourcesManager,
-                                                       this->_engine));
+                                                       this->_renderingObjectsFactory, this->_engine));
     this->_renderpasses.push_back(new SceneRenderpass(this->_renderingDevice, this->_swapchain,
                                                       this->_renderingObjectsFactory, this->_engine));
     this->_renderpasses.push_back(new ImguiRenderpass(this->_renderingDevice, this->_swapchain,

@@ -50,6 +50,7 @@ src = [
     # Scene
     'src/Scene/Object.cpp',
     'src/Scene/Scene.cpp',
+    'src/Scene/Skybox.cpp',
 
     # Debug only
     'src/DebugUI.cpp',

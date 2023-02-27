@@ -4,6 +4,11 @@
 
 #include "src/Scene/Object.hpp"
 
+Scene::Scene(Skybox *skybox)
+        : _skybox(skybox) {
+    //
+}
+
 Scene::~Scene() {
     this->clear();
 }

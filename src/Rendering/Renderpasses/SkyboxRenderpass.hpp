@@ -15,9 +15,6 @@ class RenderingResourcesManager;
 class SkyboxRenderpass : public RenderpassBase {
 private:
     Engine *_engine;
-    RenderingResourcesManager *_renderingResourcesManager;
-    MeshRenderingResource _meshResource;
-    TextureRenderingResource _textureResource;
     ImageViewObject *_textureView;
     VkSampler _textureSampler;
     RenderingLayoutObject *_renderingLayoutObject;
@@ -27,8 +24,7 @@ private:
 
 public:
     SkyboxRenderpass(RenderingDevice *renderingDevice, Swapchain *swapchain,
-                     RenderingObjectsFactory *renderingObjectsFactory,
-                     RenderingResourcesManager *renderingResourcesManager, Engine *engine);
+                     RenderingObjectsFactory *renderingObjectsFactory, Engine *engine);
 
     ~SkyboxRenderpass() override;
 
