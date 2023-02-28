@@ -7,7 +7,6 @@
 
 class RenderingDevice;
 class RenderingObjectsFactory;
-class ImageObject;
 class ImageViewObject;
 
 class Swapchain {
@@ -21,11 +20,6 @@ private:
     std::vector<ImageViewObject *> _swapchainImageViews;
     uint32_t _swapchainMinImageCount;
 
-    ImageObject *_colorImage = nullptr;
-    ImageViewObject *_colorImageView = nullptr;
-    ImageObject *_depthImage = nullptr;
-    ImageViewObject *_depthImageView = nullptr;
-
 public:
     explicit Swapchain(RenderingDevice *renderingDevice, RenderingObjectsFactory *renderingObjectsFactory);
     ~Swapchain();
@@ -36,8 +30,6 @@ public:
     [[nodiscard]] uint32_t getImageCount() const { return this->_swapchainImages.size(); }
     [[nodiscard]] uint32_t getMinImageCount() const { return this->_swapchainMinImageCount; }
 
-    [[nodiscard]] ImageViewObject *getColorImageView() const { return this->_colorImageView; }
-    [[nodiscard]] ImageViewObject *getDepthImageView() const { return this->_depthImageView; }
     [[nodiscard]] ImageViewObject *getSwapchainImageView(uint32_t imageIdx) const {
         return this->_swapchainImageViews[imageIdx];
     }

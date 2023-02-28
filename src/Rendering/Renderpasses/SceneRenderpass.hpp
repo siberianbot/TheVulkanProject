@@ -9,6 +9,7 @@ class Engine;
 class Object;
 class RenderingObjectsFactory;
 class DescriptorSetObject;
+class ImageObject;
 class ImageViewObject;
 class RenderingLayoutObject;
 
@@ -25,6 +26,11 @@ private:
     VkSampler _textureSampler;
     std::map<Object *, RenderData> _renderData;
 
+    ImageObject *_colorImage = nullptr;
+    ImageViewObject *_colorImageView = nullptr;
+    ImageObject *_depthImage = nullptr;
+    ImageViewObject *_depthImageView = nullptr;
+
     VkPipeline _pipeline = VK_NULL_HANDLE;
 
     RenderData getRenderData(Object *object);
@@ -39,6 +45,9 @@ public:
 
     void initRenderpass() override;
     void destroyRenderpass() override;
+
+    void createFramebuffers() override;
+    void destroyFramebuffers() override;
 };
 
 #endif // RENDERING_RENDERPASSES_SCENERENDERPASS_HPP

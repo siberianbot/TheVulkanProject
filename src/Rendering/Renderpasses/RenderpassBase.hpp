@@ -27,7 +27,7 @@ public:
     virtual void destroyRenderpass();
 
     virtual void createFramebuffers();
-    void destroyFramebuffers();
+    virtual void destroyFramebuffers();
 };
 
 #endif // RENDERING_RENDERPASSES_RENDERPASSBASE_HPP

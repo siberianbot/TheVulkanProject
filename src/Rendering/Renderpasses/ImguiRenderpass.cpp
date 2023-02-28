@@ -57,7 +57,12 @@ void ImguiRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D ren
 
 void ImguiRenderpass::initRenderpass() {
     this->_renderpass = RenderpassBuilder(this->_renderingDevice)
-            .addAttachment([](AttachmentBuilder &builder) { builder.defaultColorAttachment(false); })
+            .addAttachment([](AttachmentBuilder &builder) {
+                builder
+                        .load()
+                        .withInitialLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
+                        .withFinalLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+            })
             .addSubpass([](SubpassBuilder &builder) {
                 builder.withColorAttachment(0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
             })
@@ -77,7 +82,7 @@ void ImguiRenderpass::initRenderpass() {
             .Subpass = 0,
             .MinImageCount = this->_swapchain->getMinImageCount(),
             .ImageCount = this->_swapchain->getImageCount(),
-            .MSAASamples = this->_physicalDevice->getMsaaSamples(),
+            .MSAASamples = VK_SAMPLE_COUNT_1_BIT, // this->_physicalDevice->getMsaaSamples(),
             .Allocator = nullptr,
             .CheckVkResultFn = vkEnsure,
     };
@@ -100,9 +105,7 @@ void ImguiRenderpass::destroyRenderpass() {
 }
 
 void ImguiRenderpass::createFramebuffers() {
-    this->_framebuffers = FramebuffersBuilder(this->_renderingDevice, this->_swapchain, this->_renderpass)
-            .addAttachment(this->_swapchain->getColorImageView()->getHandle())
-            .build();
+    RenderpassBase::createFramebuffers();
 
     ImGui_ImplVulkan_SetMinImageCount(this->_swapchain->getMinImageCount());
 }

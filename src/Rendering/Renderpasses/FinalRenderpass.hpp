@@ -12,8 +12,6 @@ public:
                         uint32_t frameIdx, uint32_t imageIdx) override;
 
     void initRenderpass() override;
-
-    void createFramebuffers() override;
 };
 
 #endif // RENDERING_RENDERPASSES_FINALRENDERPASS_HPP

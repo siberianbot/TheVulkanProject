@@ -4,10 +4,12 @@
 #include "src/Scene/Object.hpp"
 #include "src/Scene/Scene.hpp"
 #include "src/Resources/Mesh.hpp"
+#include "src/Rendering/PhysicalDevice.hpp"
 #include "src/Rendering/RenderingDevice.hpp"
 #include "src/Rendering/RenderingObjectsFactory.hpp"
 #include "src/Rendering/Swapchain.hpp"
 #include "src/Rendering/Builders/RenderpassBuilder.hpp"
+#include "src/Rendering/Builders/FramebuffersBuilder.hpp"
 #include "src/Rendering/Builders/PipelineBuilder.hpp"
 #include "src/Rendering/Builders/AttachmentBuilder.hpp"
 #include "src/Rendering/Builders/SubpassBuilder.hpp"
@@ -20,7 +22,6 @@
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_ENABLE_EXPERIMENTAL
-
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -77,14 +78,19 @@ void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D ren
     VkDescriptorSet sceneDataDescriptorSet = this->_renderingLayoutObject->getSceneDataDescriptorSetObject()
             ->getDescriptorSet(frameIdx);
 
+    const std::array<VkClearValue, 2> clearValues = {
+            VkClearValue{.color = {{0, 0, 0, 1}}},
+            VkClearValue{.depthStencil = {1, 0}}
+    };
+
     const VkRenderPassBeginInfo renderPassBeginInfo = {
             .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
             .pNext = nullptr,
             .renderPass = this->_renderpass,
             .framebuffer = this->_framebuffers[imageIdx],
             .renderArea = renderArea,
-            .clearValueCount = 0,
-            .pClearValues = nullptr
+            .clearValueCount = static_cast<uint32_t>(clearValues.size()),
+            .pClearValues = clearValues.data()
     };
 
     vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
@@ -138,12 +144,32 @@ void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D ren
 
 void SceneRenderpass::initRenderpass() {
     this->_renderpass = RenderpassBuilder(this->_renderingDevice)
-            .addAttachment([](AttachmentBuilder &builder) { builder.defaultColorAttachment(false); })
-            .addAttachment([](AttachmentBuilder &builder) { builder.defaultDepthAttachment(false); })
-            .addSubpass([](SubpassBuilder &builder) {
+            .addAttachment([this](AttachmentBuilder &builder) {
                 builder
-                        .withColorAttachment(0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
-                        .withDepthAttachment(1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+                        .clear()
+                        .withFormat(this->_renderingDevice->getPhysicalDevice()->getColorFormat())
+                        .withSamples(this->_renderingDevice->getPhysicalDevice()->getMsaaSamples())
+                        .withFinalLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+            })
+            .addAttachment([this](AttachmentBuilder &builder) {
+                builder
+                        .clear()
+                        .withFormat(this->_renderingDevice->getPhysicalDevice()->getDepthFormat())
+                        .withSamples(this->_renderingDevice->getPhysicalDevice()->getMsaaSamples())
+                        .withFinalLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+            })
+            .addAttachment([this](AttachmentBuilder &builder) {
+                builder
+                        .load()
+                        .withFormat(this->_renderingDevice->getPhysicalDevice()->getColorFormat())
+                        .withSamples(VK_SAMPLE_COUNT_1_BIT)
+                        .withInitialLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
+                        .withFinalLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+            })
+            .addSubpass([](SubpassBuilder &builder) {
+                builder.withColorAttachment(0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+                builder.withDepthAttachment(1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+                builder.withResolveAttachment(2, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
             })
             .addSubpassDependency(VK_SUBPASS_EXTERNAL, 0, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
                                   VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0,
@@ -165,4 +191,42 @@ void SceneRenderpass::destroyRenderpass() {
     vkDestroyPipeline(this->_renderingDevice->getHandle(), this->_pipeline, nullptr);
 
     RenderpassBase::destroyRenderpass();
+}
+
+void SceneRenderpass::createFramebuffers() {
+    VkExtent2D extent = this->_swapchain->getSwapchainExtent();
+    VkSampleCountFlagBits samples = this->_renderingDevice->getPhysicalDevice()->getMsaaSamples();
+
+    this->_colorImage = this->_renderingObjectsFactory->createImageObject(extent.width,
+                                                                          extent.height,
+                                                                          this->_renderingDevice->getPhysicalDevice()->getColorFormat(),
+                                                                          VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT |
+                                                                          VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+                                                                          samples,
+                                                                          VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    this->_colorImageView = this->_renderingObjectsFactory->createImageViewObject(this->_colorImage,
+                                                                                  VK_IMAGE_ASPECT_COLOR_BIT);
+
+    this->_depthImage = this->_renderingObjectsFactory->createImageObject(extent.width,
+                                                                          extent.height,
+                                                                          this->_renderingDevice->getPhysicalDevice()->getDepthFormat(),
+                                                                          VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+                                                                          samples,
+                                                                          VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    this->_depthImageView = this->_renderingObjectsFactory->createImageViewObject(this->_depthImage,
+                                                                                  VK_IMAGE_ASPECT_DEPTH_BIT);
+
+    this->_framebuffers = FramebuffersBuilder(this->_renderingDevice, this->_swapchain, this->_renderpass)
+            .addAttachment(this->_colorImageView->getHandle())
+            .addAttachment(this->_depthImageView->getHandle())
+            .build();
+}
+
+void SceneRenderpass::destroyFramebuffers() {
+    RenderpassBase::destroyFramebuffers();
+
+    delete this->_colorImageView;
+    delete this->_colorImage;
+    delete this->_depthImageView;
+    delete this->_depthImage;
 }

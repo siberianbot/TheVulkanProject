@@ -15,7 +15,6 @@ private:
     VkRenderPass _renderpass;
 
     std::vector<VkImageView> _attachments;
-    bool _withSwapchainAttachment = false;
 
 public:
     FramebuffersBuilder(RenderingDevice *renderingDevice,
@@ -23,9 +22,6 @@ public:
                         VkRenderPass renderpass);
 
     FramebuffersBuilder &addAttachment(VkImageView imageView);
-
-    // TODO: find a better way to add swapchain images
-    [[deprecated]] FramebuffersBuilder &addSwapchainAttachment();
 
     std::vector<VkFramebuffer> build();
 };

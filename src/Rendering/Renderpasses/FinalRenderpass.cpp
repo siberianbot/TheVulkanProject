@@ -30,25 +30,17 @@ void FinalRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D ren
 
 void FinalRenderpass::initRenderpass() {
     this->_renderpass = RenderpassBuilder(this->_renderingDevice)
-            .addAttachment([](AttachmentBuilder &builder) { builder.defaultColorAttachment(false); })
-            .addAttachment([](AttachmentBuilder &builder) { builder.defaultDepthAttachment(false); })
-            .addAttachment([](AttachmentBuilder &builder) { builder.defaultResolveAttachment(); })
-            .addSubpass([](SubpassBuilder &builder) {
+            .addAttachment([](AttachmentBuilder &builder) {
                 builder
-                        .withColorAttachment(0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
-                        .withDepthAttachment(1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
-                        .withResolveAttachment(2, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+                        .load()
+                        .withInitialLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
+                        .withFinalLayout(VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+            })
+            .addSubpass([](SubpassBuilder &builder) {
+                builder.withColorAttachment(0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
             })
             .addSubpassDependency(VK_SUBPASS_EXTERNAL, 0, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
                                   VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0,
                                   VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT)
-            .build();
-}
-
-void FinalRenderpass::createFramebuffers() {
-    this->_framebuffers = FramebuffersBuilder(this->_renderingDevice, this->_swapchain, this->_renderpass)
-            .addAttachment(this->_swapchain->getColorImageView()->getHandle())
-            .addAttachment(this->_swapchain->getDepthImageView()->getHandle())
-            .addSwapchainAttachment()
             .build();
 }

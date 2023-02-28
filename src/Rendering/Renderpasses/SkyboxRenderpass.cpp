@@ -4,6 +4,7 @@
 #include "src/Scene/Scene.hpp"
 #include "src/Scene/Skybox.hpp"
 #include "src/Resources/Mesh.hpp"
+#include "src/Rendering/PhysicalDevice.hpp"
 #include "src/Rendering/RenderingDevice.hpp"
 #include "src/Rendering/RenderingObjectsFactory.hpp"
 #include "src/Rendering/Swapchain.hpp"
@@ -21,14 +22,14 @@
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_ENABLE_EXPERIMENTAL
-
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
 SkyboxRenderpass::SkyboxRenderpass(RenderingDevice *renderingDevice, Swapchain *swapchain,
                                    RenderingObjectsFactory *renderingObjectsFactory, Engine *engine)
         : RenderpassBase(renderingDevice, swapchain),
-          _engine(engine) {
+          _engine(engine),
+          _renderingObjectsFactory(renderingObjectsFactory) {
     this->_textureView = renderingObjectsFactory->createImageViewObject(
             this->_engine->scene()->skybox()->texture()->texture,
             VK_IMAGE_ASPECT_COLOR_BIT);
@@ -60,14 +61,18 @@ void SkyboxRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D re
     VkDescriptorSet sceneDataDescriptorSet = this->_renderingLayoutObject->getSceneDataDescriptorSetObject()
             ->getDescriptorSet(frameIdx);
 
+    const std::array<VkClearValue, 1> clearValues = {
+            VkClearValue{.color = {{0, 0, 0, 1}}}
+    };
+
     const VkRenderPassBeginInfo renderPassBeginInfo = {
             .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
             .pNext = nullptr,
             .renderPass = this->_renderpass,
             .framebuffer = this->_framebuffers[imageIdx],
             .renderArea = renderArea,
-            .clearValueCount = 0,
-            .pClearValues = nullptr
+            .clearValueCount = static_cast<uint32_t>(clearValues.size()),
+            .pClearValues = clearValues.data()
     };
 
     vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
@@ -116,9 +121,24 @@ void SkyboxRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D re
 
 void SkyboxRenderpass::initRenderpass() {
     this->_renderpass = RenderpassBuilder(this->_renderingDevice)
-            .addAttachment([](AttachmentBuilder &builder) { builder.defaultColorAttachment(false); })
+            .addAttachment([this](AttachmentBuilder &builder) {
+                builder
+                        .clear()
+                        .withFormat(this->_renderingDevice->getPhysicalDevice()->getColorFormat())
+                        .withSamples(this->_renderingDevice->getPhysicalDevice()->getMsaaSamples())
+                        .withFinalLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+            })
+            .addAttachment([this](AttachmentBuilder &builder) {
+                builder
+                        .load()
+                        .withFormat(this->_renderingDevice->getPhysicalDevice()->getColorFormat())
+                        .withSamples(VK_SAMPLE_COUNT_1_BIT)
+                        .withInitialLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
+                        .withFinalLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+            })
             .addSubpass([](SubpassBuilder &builder) {
                 builder.withColorAttachment(0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+                builder.withResolveAttachment(1, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
             })
             .addSubpassDependency(VK_SUBPASS_EXTERNAL, 0, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
                                   VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0,
@@ -143,7 +163,24 @@ void SkyboxRenderpass::destroyRenderpass() {
 }
 
 void SkyboxRenderpass::createFramebuffers() {
+    this->_colorImage = this->_renderingObjectsFactory->createImageObject(this->_swapchain->getSwapchainExtent().width,
+                                                                          this->_swapchain->getSwapchainExtent().height,
+                                                                          this->_renderingDevice->getPhysicalDevice()->getColorFormat(),
+                                                                          VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT |
+                                                                          VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+                                                                          this->_renderingDevice->getPhysicalDevice()->getMsaaSamples(),
+                                                                          VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    this->_colorImageView = this->_renderingObjectsFactory->createImageViewObject(this->_colorImage,
+                                                                                  VK_IMAGE_ASPECT_COLOR_BIT);
+
     this->_framebuffers = FramebuffersBuilder(this->_renderingDevice, this->_swapchain, this->_renderpass)
-            .addAttachment(this->_swapchain->getColorImageView()->getHandle())
+            .addAttachment(this->_colorImageView->getHandle())
             .build();
+}
+
+void SkyboxRenderpass::destroyFramebuffers() {
+    RenderpassBase::destroyFramebuffers();
+
+    delete this->_colorImageView;
+    delete this->_colorImage;
 }

@@ -2,6 +2,9 @@
 
 #include <array>
 
+#include "src/Rendering/PhysicalDevice.hpp"
+#include "src/Rendering/RenderingDevice.hpp"
+#include "src/Rendering/Swapchain.hpp"
 #include "src/Rendering/Builders/RenderpassBuilder.hpp"
 #include "src/Rendering/Builders/AttachmentBuilder.hpp"
 #include "src/Rendering/Builders/SubpassBuilder.hpp"
@@ -13,9 +16,8 @@ ClearRenderpass::ClearRenderpass(RenderingDevice *renderingDevice, Swapchain *sw
 
 void ClearRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D renderArea,
                                      uint32_t frameIdx, uint32_t imageIdx) {
-    const std::array<VkClearValue, 2> clearValues = {
-            VkClearValue{.color = {{0, 0, 0, 1}}},
-            VkClearValue{.depthStencil = {1, 0}}
+    const std::array<VkClearValue, 1> clearValues = {
+            VkClearValue{.color = {{0, 0, 0, 1}}}
     };
 
     const VkRenderPassBeginInfo renderPassBeginInfo = {
@@ -34,12 +36,13 @@ void ClearRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D ren
 
 void ClearRenderpass::initRenderpass() {
     this->_renderpass = RenderpassBuilder(this->_renderingDevice)
-            .addAttachment([](AttachmentBuilder &builder) { builder.defaultColorAttachment(true); })
-            .addAttachment([](AttachmentBuilder &builder) { builder.defaultDepthAttachment(true); })
-            .addSubpass([](SubpassBuilder &builder) {
+            .addAttachment([](AttachmentBuilder &builder) {
                 builder
-                        .withColorAttachment(0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
-                        .withDepthAttachment(1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+                        .clear()
+                        .withFinalLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+            })
+            .addSubpass([](SubpassBuilder &builder) {
+                builder.withColorAttachment(0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
             })
             .addSubpassDependency(VK_SUBPASS_EXTERNAL, 0, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
                                   VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0,

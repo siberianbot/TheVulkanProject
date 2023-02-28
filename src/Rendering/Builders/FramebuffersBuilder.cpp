@@ -19,12 +19,6 @@ FramebuffersBuilder &FramebuffersBuilder::addAttachment(VkImageView imageView) {
     return *this;
 }
 
-FramebuffersBuilder &FramebuffersBuilder::addSwapchainAttachment() {
-    this->_withSwapchainAttachment = true;
-
-    return *this;
-}
-
 std::vector<VkFramebuffer> FramebuffersBuilder::build() {
     uint32_t count = this->_swapchain->getImageCount();
     std::vector<VkFramebuffer> framebuffers(count);
@@ -33,9 +27,7 @@ std::vector<VkFramebuffer> FramebuffersBuilder::build() {
         std::vector<VkImageView> attachments(this->_attachments.size());
         std::copy(this->_attachments.begin(), this->_attachments.end(), attachments.begin());
 
-        if (this->_withSwapchainAttachment) {
-            attachments.push_back(this->_swapchain->getSwapchainImageView(idx)->getHandle());
-        }
+        attachments.push_back(this->_swapchain->getSwapchainImageView(idx)->getHandle());
 
         framebuffers[idx] = this->_renderingDevice->createFramebuffer(this->_renderpass,
                                                                       this->_swapchain->getSwapchainExtent(),
