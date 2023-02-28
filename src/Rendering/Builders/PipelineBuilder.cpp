@@ -2,9 +2,9 @@
 
 #include <fstream>
 
-#include "Common.hpp"
-#include "RenderingDevice.hpp"
-#include "PhysicalDevice.hpp"
+#include "src/Rendering/Common.hpp"
+#include "src/Rendering/RenderingDevice.hpp"
+#include "src/Rendering/PhysicalDevice.hpp"
 
 VkShaderModule PipelineBuilder::createShaderModule(const std::string &path) {
     std::ifstream file(path, std::ios::ate | std::ios::binary);

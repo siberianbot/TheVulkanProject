@@ -23,10 +23,10 @@ src = [
     'src/Rendering/Swapchain.cpp',
     'src/Rendering/RenderingResourcesManager.cpp',
 
-    'src/Rendering/FramebuffersBuilder.cpp',
-    'src/Rendering/PipelineBuilder.cpp',
-    'src/Rendering/RenderpassBuilder.cpp',
     'src/Rendering/Builders/AttachmentBuilder.cpp',
+    'src/Rendering/Builders/FramebuffersBuilder.cpp',
+    'src/Rendering/Builders/PipelineBuilder.cpp',
+    'src/Rendering/Builders/RenderpassBuilder.cpp',
     'src/Rendering/Builders/SubpassBuilder.cpp',
 
     'src/Rendering/RenderingObjectsFactory.cpp',

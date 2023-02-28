@@ -1,7 +1,7 @@
 #include "FramebuffersBuilder.hpp"
 
-#include "RenderingDevice.hpp"
-#include "Swapchain.hpp"
+#include "src/Rendering/RenderingDevice.hpp"
+#include "src/Rendering/Swapchain.hpp"
 #include "src/Rendering/Objects/ImageViewObject.hpp"
 
 FramebuffersBuilder::FramebuffersBuilder(RenderingDevice *renderingDevice,

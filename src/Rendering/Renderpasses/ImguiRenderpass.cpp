@@ -7,8 +7,8 @@
 #include "src/Rendering/RenderingDevice.hpp"
 #include "src/Rendering/Swapchain.hpp"
 #include "src/Rendering/CommandExecutor.hpp"
-#include "src/Rendering/FramebuffersBuilder.hpp"
-#include "src/Rendering/RenderpassBuilder.hpp"
+#include "src/Rendering/Builders/FramebuffersBuilder.hpp"
+#include "src/Rendering/Builders/RenderpassBuilder.hpp"
 #include "src/Rendering/Builders/AttachmentBuilder.hpp"
 #include "src/Rendering/Builders/SubpassBuilder.hpp"
 

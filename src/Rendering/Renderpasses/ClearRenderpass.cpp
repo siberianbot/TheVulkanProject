@@ -2,7 +2,7 @@
 
 #include <array>
 
-#include "src/Rendering/RenderpassBuilder.hpp"
+#include "src/Rendering/Builders/RenderpassBuilder.hpp"
 #include "src/Rendering/Builders/AttachmentBuilder.hpp"
 #include "src/Rendering/Builders/SubpassBuilder.hpp"
 

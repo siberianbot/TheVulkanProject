@@ -1,8 +1,8 @@
 #include "RenderpassBuilder.hpp"
 
-#include "Common.hpp"
-#include "PhysicalDevice.hpp"
-#include "RenderingDevice.hpp"
+#include "src/Rendering/Common.hpp"
+#include "src/Rendering/PhysicalDevice.hpp"
+#include "src/Rendering/RenderingDevice.hpp"
 #include "src/Rendering/Builders/AttachmentBuilder.hpp"
 #include "src/Rendering/Builders/SubpassBuilder.hpp"
 
