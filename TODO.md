@@ -1,6 +1,6 @@
 # TODO
 
-## Subpasses
+## ~~Subpasses~~
 - [x] Merge skybox renderpass with scene renderpass
   - [x] Move skybox model out of class
   - [x] Made skybox model part of the scene
@@ -10,3 +10,5 @@
 - [ ] Improve resources loading and managing
 
 ## Lighting
+
+## Deferred rendering
