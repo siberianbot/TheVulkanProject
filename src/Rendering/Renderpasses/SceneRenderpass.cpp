@@ -3,6 +3,7 @@
 #include "src/Engine.hpp"
 #include "src/Scene/Object.hpp"
 #include "src/Scene/Scene.hpp"
+#include "src/Scene/Skybox.hpp"
 #include "src/Resources/Mesh.hpp"
 #include "src/Rendering/PhysicalDevice.hpp"
 #include "src/Rendering/RenderingDevice.hpp"
@@ -51,8 +52,14 @@ SceneRenderpass::SceneRenderpass(RenderingDevice *renderingDevice, Swapchain *sw
         : RenderpassBase(renderingDevice, swapchain),
           _renderingObjectsFactory(renderingObjectsFactory),
           _engine(engine) {
+    this->_skyboxTextureView = renderingObjectsFactory->createImageViewObject(
+            this->_engine->scene()->skybox()->texture()->texture,
+            VK_IMAGE_ASPECT_COLOR_BIT);
+
     this->_textureSampler = this->_renderingDevice->createSampler();
     this->_renderingLayoutObject = renderingObjectsFactory->createRenderingLayoutObject();
+    this->_skyboxDescriptorSet = this->_renderingLayoutObject->createMeshDataDescriptor(
+            this->_textureSampler, this->_skyboxTextureView->getHandle());
 }
 
 SceneRenderpass::~SceneRenderpass() {
@@ -61,8 +68,12 @@ SceneRenderpass::~SceneRenderpass() {
         delete it.second.textureView;
     }
 
+    delete this->_skyboxDescriptorSet;
+
     delete this->_renderingLayoutObject;
     this->_renderingDevice->destroySampler(this->_textureSampler);
+
+    delete this->_skyboxTextureView;
 }
 
 void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D renderArea,
@@ -70,15 +81,11 @@ void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D ren
     VkExtent2D extent = this->_swapchain->getSwapchainExtent();
     VkPipelineLayout pipelineLayout = this->_renderingLayoutObject->getPipelineLayout();
 
-    SceneData *sceneData = this->_renderingLayoutObject->getSceneData(frameIdx);
-    sceneData->view = this->_engine->camera().view();
-    sceneData->projection = glm::perspective(glm::radians(45.0f), extent.width / (float) extent.height, 0.1f, 100.0f);
-    sceneData->projection[1][1] *= -1;
-
     VkDescriptorSet sceneDataDescriptorSet = this->_renderingLayoutObject->getSceneDataDescriptorSetObject()
             ->getDescriptorSet(frameIdx);
 
-    const std::array<VkClearValue, 2> clearValues = {
+    const std::array<VkClearValue, 3> clearValues = {
+            VkClearValue{.color = {{0, 0, 0, 1}}},
             VkClearValue{.color = {{0, 0, 0, 1}}},
             VkClearValue{.depthStencil = {1, 0}}
     };
@@ -94,11 +101,6 @@ void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D ren
     };
 
     vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->_pipeline);
-
-    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout,
-                            0, 1, &sceneDataDescriptorSet, 0, nullptr);
 
     VkViewport viewport = {
             .x = 0,
@@ -116,27 +118,70 @@ void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D ren
     };
     vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-    uint32_t idx = 0;
-    for (Object *object: this->_engine->scene()->objects()) {
-        RenderData renderData = getRenderData(object);
+    VkDeviceSize offset = 0;
 
-        VkDeviceSize offset = 0;
-        VkDescriptorSet descriptorSet = renderData.descriptorSet->getDescriptorSet(frameIdx);
+    {
+        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->_skyboxPipeline);
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout,
+                                0, 1, &sceneDataDescriptorSet, 0, nullptr);
+
+        glm::mat4 view = glm::lookAt(glm::vec3(0), this->_engine->camera().forward(), glm::vec3(0, 1, 0));
+        glm::mat4 projection = glm::perspective(glm::radians(45.0f), extent.width / (float) extent.height, 0.1f, 100.0f);
+        projection[1][1] *= -1;
+
+        VkDescriptorSet descriptorSet = this->_skyboxDescriptorSet->getDescriptorSet(frameIdx);
 
         MeshConstants constants = {
-                .model = object->getModelMatrix()
+                .model = projection * view * glm::mat4(1)
         };
         vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshConstants),
                            &constants);
 
-        VkBuffer vertexBuffer = object->mesh()->vertices->getHandle();
-        vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer, &offset);
-        vkCmdBindIndexBuffer(commandBuffer, object->mesh()->indices->getHandle(), 0, VK_INDEX_TYPE_UINT32);
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout,
+                                0, 1, &sceneDataDescriptorSet, 0, nullptr);
 
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout,
                                 1, 1, &descriptorSet, 0, nullptr);
 
-        vkCmdDrawIndexed(commandBuffer, object->mesh()->count, 1, 0, 0, idx++);
+        BufferObject *vertices = this->_engine->scene()->skybox()->mesh()->vertices;
+        VkBuffer vertexBuffer = vertices->getHandle();
+        vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer, &offset);
+
+        vkCmdDraw(commandBuffer, vertices->getSize(), 1, 0, 0);
+    }
+
+    vkCmdNextSubpass(commandBuffer, VK_SUBPASS_CONTENTS_INLINE);
+
+    {
+        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->_scenePipeline);
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout,
+                                0, 1, &sceneDataDescriptorSet, 0, nullptr);
+
+        glm::mat4 view = this->_engine->camera().view();
+        glm::mat4 projection = glm::perspective(glm::radians(45.0f), extent.width / (float) extent.height, 0.1f, 100.0f);
+        projection[1][1] *= -1;
+
+        uint32_t idx = 0;
+        for (Object *object: this->_engine->scene()->objects()) {
+            RenderData renderData = getRenderData(object);
+
+            VkDescriptorSet descriptorSet = renderData.descriptorSet->getDescriptorSet(frameIdx);
+
+            MeshConstants constants = {
+                    .model = projection * view * object->getModelMatrix()
+            };
+            vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshConstants),
+                               &constants);
+
+            VkBuffer vertexBuffer = object->mesh()->vertices->getHandle();
+            vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer, &offset);
+            vkCmdBindIndexBuffer(commandBuffer, object->mesh()->indices->getHandle(), 0, VK_INDEX_TYPE_UINT32);
+
+            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout,
+                                    1, 1, &descriptorSet, 0, nullptr);
+
+            vkCmdDrawIndexed(commandBuffer, object->mesh()->count, 1, 0, 0, idx++);
+        }
     }
 
     vkCmdEndRenderPass(commandBuffer);
@@ -149,6 +194,14 @@ void SceneRenderpass::initRenderpass() {
                         .clear()
                         .withFormat(this->_renderingDevice->getPhysicalDevice()->getColorFormat())
                         .withSamples(this->_renderingDevice->getPhysicalDevice()->getMsaaSamples())
+                        .withFinalLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+            })
+            .addAttachment([this](AttachmentBuilder &builder) {
+                builder
+                        .load()
+                        .withFormat(this->_renderingDevice->getPhysicalDevice()->getColorFormat())
+                        .withSamples(this->_renderingDevice->getPhysicalDevice()->getMsaaSamples())
+                        .withInitialLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
                         .withFinalLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
             })
             .addAttachment([this](AttachmentBuilder &builder) {
@@ -168,27 +221,50 @@ void SceneRenderpass::initRenderpass() {
             })
             .addSubpass([](SubpassBuilder &builder) {
                 builder.withColorAttachment(0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-                builder.withDepthAttachment(1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
-                builder.withResolveAttachment(2, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
             })
-            .addSubpassDependency(VK_SUBPASS_EXTERNAL, 0, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                                  VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0,
+            .addSubpass([](SubpassBuilder &builder) {
+                builder.withColorAttachment(1, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+                builder.withDepthAttachment(2, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+                builder.withResolveAttachment(3, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+            })
+            .addSubpassDependency(VK_SUBPASS_EXTERNAL, 0,
+                                  VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                                  VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                                  0,
+                                  VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT)
+            .addSubpassDependency(0, 1,
+                                  VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                                  VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                                  VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
                                   VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT)
             .build();
 
-    this->_pipeline = PipelineBuilder(this->_renderingDevice, this->_renderpass,
-                                      this->_renderingLayoutObject->getPipelineLayout())
+    this->_skyboxPipeline = PipelineBuilder(this->_renderingDevice, this->_renderpass,
+                                           this->_renderingLayoutObject->getPipelineLayout())
             .addVertexShader(DEFAULT_VERTEX_SHADER)
             .addFragmentShader(DEFAULT_FRAGMENT_SHADER)
             .addBinding(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
             .addAttribute(0, 0, offsetof(Vertex, pos), VK_FORMAT_R32G32B32_SFLOAT)
             .addAttribute(0, 1, offsetof(Vertex, color), VK_FORMAT_R32G32B32_SFLOAT)
             .addAttribute(0, 2, offsetof(Vertex, texCoord), VK_FORMAT_R32G32_SFLOAT)
+            .forSubpass(0)
+            .build();
+
+    this->_scenePipeline = PipelineBuilder(this->_renderingDevice, this->_renderpass,
+                                           this->_renderingLayoutObject->getPipelineLayout())
+            .addVertexShader(DEFAULT_VERTEX_SHADER)
+            .addFragmentShader(DEFAULT_FRAGMENT_SHADER)
+            .addBinding(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
+            .addAttribute(0, 0, offsetof(Vertex, pos), VK_FORMAT_R32G32B32_SFLOAT)
+            .addAttribute(0, 1, offsetof(Vertex, color), VK_FORMAT_R32G32B32_SFLOAT)
+            .addAttribute(0, 2, offsetof(Vertex, texCoord), VK_FORMAT_R32G32_SFLOAT)
+            .forSubpass(1)
             .build();
 }
 
 void SceneRenderpass::destroyRenderpass() {
-    vkDestroyPipeline(this->_renderingDevice->getHandle(), this->_pipeline, nullptr);
+    vkDestroyPipeline(this->_renderingDevice->getHandle(), this->_skyboxPipeline, nullptr);
+    vkDestroyPipeline(this->_renderingDevice->getHandle(), this->_scenePipeline, nullptr);
 
     RenderpassBase::destroyRenderpass();
 }
@@ -217,6 +293,7 @@ void SceneRenderpass::createFramebuffers() {
                                                                                   VK_IMAGE_ASPECT_DEPTH_BIT);
 
     this->_framebuffers = FramebuffersBuilder(this->_renderingDevice, this->_swapchain, this->_renderpass)
+            .addAttachment(this->_colorImageView->getHandle())
             .addAttachment(this->_colorImageView->getHandle())
             .addAttachment(this->_depthImageView->getHandle())
             .build();

@@ -87,6 +87,12 @@ PipelineBuilder &PipelineBuilder::addAttribute(uint32_t bindingIdx, uint32_t loc
     return *this;
 }
 
+PipelineBuilder &PipelineBuilder::forSubpass(uint32_t subpass) {
+    this->_subpassIdx = subpass;
+
+    return *this;
+}
+
 VkPipeline PipelineBuilder::build() {
     if (this->_vertexShader == VK_NULL_HANDLE || this->_fragmentShader == VK_NULL_HANDLE) {
         throw std::runtime_error("Vertex and fragment shaders are required");
@@ -239,7 +245,7 @@ VkPipeline PipelineBuilder::build() {
             .pDynamicState = &dynamicState,
             .layout = this->_pipelineLayout,
             .renderPass = this->_renderpass,
-            .subpass = 0,
+            .subpass = this->_subpassIdx,
             .basePipelineHandle = VK_NULL_HANDLE,
             .basePipelineIndex = 0
     };

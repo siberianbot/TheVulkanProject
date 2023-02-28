@@ -25,13 +25,16 @@ private:
     RenderingLayoutObject *_renderingLayoutObject;
     VkSampler _textureSampler;
     std::map<Object *, RenderData> _renderData;
+    ImageViewObject *_skyboxTextureView;
+    DescriptorSetObject *_skyboxDescriptorSet;
 
     ImageObject *_colorImage = nullptr;
     ImageViewObject *_colorImageView = nullptr;
     ImageObject *_depthImage = nullptr;
     ImageViewObject *_depthImageView = nullptr;
 
-    VkPipeline _pipeline = VK_NULL_HANDLE;
+    VkPipeline _skyboxPipeline = VK_NULL_HANDLE;
+    VkPipeline _scenePipeline = VK_NULL_HANDLE;
 
     RenderData getRenderData(Object *object);
 

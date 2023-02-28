@@ -43,7 +43,6 @@ src = [
     'src/Rendering/Renderpasses/FinalRenderpass.cpp',
     'src/Rendering/Renderpasses/ImguiRenderpass.cpp',
     'src/Rendering/Renderpasses/SceneRenderpass.cpp',
-    'src/Rendering/Renderpasses/SkyboxRenderpass.cpp',
 
     # Resources
     'src/Resources/Mesh.cpp',

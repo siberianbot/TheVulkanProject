@@ -15,6 +15,7 @@ private:
     VkShaderModule _fragmentShader = VK_NULL_HANDLE;
     std::vector<VkVertexInputBindingDescription> _bindings;
     std::vector<VkVertexInputAttributeDescription> _attributes;
+    uint32_t _subpassIdx = 0;
 
     VkShaderModule createShaderModule(const std::string &path);
 
@@ -28,6 +29,8 @@ public:
     PipelineBuilder &addBinding(uint32_t bindingIdx, uint32_t stride, VkVertexInputRate inputRate);
     PipelineBuilder &addAttribute(uint32_t bindingIdx, uint32_t locationIdx,
                                   uint32_t offset, VkFormat format);
+
+    PipelineBuilder &forSubpass(uint32_t subpass);
 
     VkPipeline build();
 };
