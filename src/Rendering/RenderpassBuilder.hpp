@@ -1,36 +1,36 @@
 #ifndef RENDERING_RENDERPASSBUILDER_HPP
 #define RENDERING_RENDERPASSBUILDER_HPP
 
+#include <functional>
 #include <optional>
 #include <vector>
 
 #include <vulkan/vulkan.hpp>
 
 class RenderingDevice;
+class AttachmentBuilder;
+class SubpassBuilder;
+
+using AddAttachmentFunc = std::function<void(AttachmentBuilder&)>;
+using AddSubpassFunc = std::function<void(SubpassBuilder&)>;
 
 class RenderpassBuilder {
 private:
-    struct Attachment {
-        VkImageLayout layout;
-        VkImageLayout initialLayout;
-        VkImageLayout finalLayout;
-    };
-
     RenderingDevice *_renderingDevice;
 
-    bool _noDepthAttachment = false;
-    std::optional<VkAttachmentLoadOp> _loadOp;
-    std::optional<Attachment> _colorAttachment;
-    std::optional<Attachment> _depthAttachment;
-    std::optional<Attachment> _resolveAttachment;
+    std::vector<VkAttachmentDescription> _attachments;
+    std::vector<VkSubpassDescription> _subpasses;
+    std::vector<VkSubpassDependency> _dependencies;
 
 public:
     explicit RenderpassBuilder(RenderingDevice *renderingDevice);
+    ~RenderpassBuilder();
 
-    RenderpassBuilder &noDepthAttachment();
-    RenderpassBuilder &clear();
-    RenderpassBuilder &load();
-    RenderpassBuilder &addResolveAttachment();
+    RenderpassBuilder &addAttachment(AddAttachmentFunc func);
+    RenderpassBuilder &addSubpass(AddSubpassFunc func);
+    RenderpassBuilder &addSubpassDependency(uint32_t srcSubpass, uint32_t dstSubpass,
+                                            VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask,
+                                            VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask);
 
     VkRenderPass build();
 };

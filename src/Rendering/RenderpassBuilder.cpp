@@ -3,179 +3,87 @@
 #include "Common.hpp"
 #include "PhysicalDevice.hpp"
 #include "RenderingDevice.hpp"
+#include "src/Rendering/Builders/AttachmentBuilder.hpp"
+#include "src/Rendering/Builders/SubpassBuilder.hpp"
 
 RenderpassBuilder::RenderpassBuilder(RenderingDevice *renderingDevice)
         : _renderingDevice(renderingDevice) {
     //
 }
 
-RenderpassBuilder &RenderpassBuilder::noDepthAttachment() {
-    this->_noDepthAttachment = true;
+RenderpassBuilder::~RenderpassBuilder() {
+    for (VkSubpassDescription subpass: this->_subpasses) {
+        if (subpass.pInputAttachments != nullptr) {
+            delete[] subpass.pInputAttachments;
+        }
 
-    return *this;
-}
+        if (subpass.pColorAttachments != nullptr) {
+            delete[] subpass.pColorAttachments;
+        }
 
-RenderpassBuilder &RenderpassBuilder::clear() {
-    this->_loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        if (subpass.pResolveAttachments != nullptr) {
+            delete[] subpass.pResolveAttachments;
+        }
 
-    this->_colorAttachment = Attachment{
-            .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-            .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-            .finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
-    };
-
-    if (!this->_noDepthAttachment) {
-        this->_depthAttachment = Attachment{
-                .layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-                .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-                .finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
-        };
+        if (subpass.pDepthStencilAttachment != nullptr) {
+            delete subpass.pDepthStencilAttachment;
+        }
     }
+}
+
+RenderpassBuilder &RenderpassBuilder::addAttachment(AddAttachmentFunc func) {
+    AttachmentBuilder builder(this->_renderingDevice->getPhysicalDevice());
+
+    func(builder);
+
+    this->_attachments.push_back(builder.build());
 
     return *this;
 }
 
-RenderpassBuilder &RenderpassBuilder::load() {
-    this->_loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+RenderpassBuilder &RenderpassBuilder::addSubpass(AddSubpassFunc func) {
+    SubpassBuilder builder;
 
-    this->_colorAttachment = Attachment{
-            .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-            .initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-            .finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
-    };
+    func(builder);
 
-    if (!this->_noDepthAttachment) {
-        this->_depthAttachment = Attachment{
-                .layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-                .initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-                .finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
-        };
-    }
+    this->_subpasses.push_back(builder.build());
 
     return *this;
 }
 
-RenderpassBuilder &RenderpassBuilder::addResolveAttachment() {
-    this->_resolveAttachment = Attachment{
-            .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-            .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-            .finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
-    };
+RenderpassBuilder &RenderpassBuilder::addSubpassDependency(uint32_t srcSubpass, uint32_t dstSubpass,
+                                                           VkPipelineStageFlags srcStageMask,
+                                                           VkPipelineStageFlags dstStageMask,
+                                                           VkAccessFlags srcAccessMask,
+                                                           VkAccessFlags dstAccessMask) {
+    this->_dependencies.push_back(VkSubpassDependency{
+            .srcSubpass = srcSubpass,
+            .dstSubpass = dstSubpass,
+            .srcStageMask = srcStageMask,
+            .dstStageMask = dstStageMask,
+            .srcAccessMask = srcAccessMask,
+            .dstAccessMask = dstAccessMask,
+            .dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT
+    });
 
     return *this;
 }
 
 VkRenderPass RenderpassBuilder::build() {
-    if (!this->_loadOp.has_value()) {
-        throw std::runtime_error("Load operator is required");
-    }
-
-    if (!this->_colorAttachment.has_value()) {
-        throw std::runtime_error("Color attachment is required");
-    }
-
-    std::vector<VkAttachmentDescription> attachments = {
-            VkAttachmentDescription{
-                    .flags = 0,
-                    .format = this->_renderingDevice->getPhysicalDevice()->getColorFormat(),
-                    .samples = this->_renderingDevice->getPhysicalDevice()->getMsaaSamples(),
-                    .loadOp = this->_loadOp.value(),
-                    .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-                    .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-                    .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-                    .initialLayout = this->_colorAttachment.value().initialLayout,
-                    .finalLayout = this->_colorAttachment.value().finalLayout
-            }
-    };
-
-    const VkAttachmentReference colorReference = {
-            .attachment = COLOR_ATTACHMENT_IDX,
-            .layout = this->_colorAttachment->layout
-    };
-
-    std::optional<VkAttachmentReference> depthReference;
-    if (this->_depthAttachment.has_value()) {
-        attachments.push_back(VkAttachmentDescription{
-                .flags = 0,
-                .format = this->_renderingDevice->getPhysicalDevice()->getDepthFormat(),
-                .samples = this->_renderingDevice->getPhysicalDevice()->getMsaaSamples(),
-                .loadOp = this->_loadOp.value(),
-                .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-                .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-                .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-                .initialLayout = this->_depthAttachment.value().initialLayout,
-                .finalLayout = this->_depthAttachment.value().finalLayout
-        });
-
-        depthReference = VkAttachmentReference{
-                .attachment = DEPTH_ATTACHMENT_IDX,
-                .layout = this->_depthAttachment->layout
-        };
-    }
-
-    std::optional<VkAttachmentReference> resolveReference;
-    if (this->_resolveAttachment.has_value()) {
-        attachments.push_back(VkAttachmentDescription{
-                .flags = 0,
-                .format = this->_renderingDevice->getPhysicalDevice()->getColorFormat(),
-                .samples = VK_SAMPLE_COUNT_1_BIT,
-                .loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-                .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-                .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-                .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-                .initialLayout = this->_resolveAttachment.value().initialLayout,
-                .finalLayout = this->_resolveAttachment.value().finalLayout
-        });
-
-        resolveReference = VkAttachmentReference{
-                .attachment = RESOLVE_ATTACHMENT_IDX,
-                .layout = this->_resolveAttachment->layout
-        };
-    }
-
-    const std::array<VkSubpassDependency, 1> dependencies = {
-            VkSubpassDependency{
-                    .srcSubpass = VK_SUBPASS_EXTERNAL,
-                    .dstSubpass = 0,
-                    .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                    .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                    .srcAccessMask = 0,
-                    .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-                    .dependencyFlags = 0
-            }
-    };
-
-    const VkSubpassDescription subpass = {
-            .flags = 0,
-            .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
-            .inputAttachmentCount = 0,
-            .pInputAttachments = nullptr,
-            .colorAttachmentCount = 1,
-            .pColorAttachments = &colorReference,
-            .pResolveAttachments = resolveReference.has_value()
-                                   ? &resolveReference.value()
-                                   : nullptr,
-            .pDepthStencilAttachment = depthReference.has_value()
-                                       ? &depthReference.value()
-                                       : nullptr,
-            .preserveAttachmentCount = 0,
-            .pPreserveAttachments = nullptr
-    };
-
-    const VkRenderPassCreateInfo renderPassCreateInfo = {
+    VkRenderPassCreateInfo createInfo = {
             .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
             .pNext = nullptr,
             .flags = 0,
-            .attachmentCount = static_cast<uint32_t>(attachments.size()),
-            .pAttachments = attachments.data(),
-            .subpassCount = 1,
-            .pSubpasses = &subpass,
-            .dependencyCount = static_cast<uint32_t>(dependencies.size()),
-            .pDependencies = dependencies.data()
+            .attachmentCount = static_cast<uint32_t>(this->_attachments.size()),
+            .pAttachments = this->_attachments.data(),
+            .subpassCount = static_cast<uint32_t>(this->_subpasses.size()),
+            .pSubpasses = this->_subpasses.data(),
+            .dependencyCount = static_cast<uint32_t>(this->_dependencies.size()),
+            .pDependencies = this->_dependencies.data()
     };
 
     VkRenderPass renderpass;
-    vkEnsure(vkCreateRenderPass(this->_renderingDevice->getHandle(), &renderPassCreateInfo, nullptr, &renderpass));
+    vkEnsure(vkCreateRenderPass(this->_renderingDevice->getHandle(), &createInfo, nullptr, &renderpass));
 
     return renderpass;
 }

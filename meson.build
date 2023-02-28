@@ -26,6 +26,8 @@ src = [
     'src/Rendering/FramebuffersBuilder.cpp',
     'src/Rendering/PipelineBuilder.cpp',
     'src/Rendering/RenderpassBuilder.cpp',
+    'src/Rendering/Builders/AttachmentBuilder.cpp',
+    'src/Rendering/Builders/SubpassBuilder.cpp',
 
     'src/Rendering/RenderingObjectsFactory.cpp',
     'src/Rendering/Objects/BufferObject.cpp',
