@@ -11,6 +11,7 @@
 #include "src/Rendering/Builders/RenderpassBuilder.hpp"
 #include "src/Rendering/Builders/AttachmentBuilder.hpp"
 #include "src/Rendering/Builders/SubpassBuilder.hpp"
+#include "src/Rendering/Objects/ImageViewObject.hpp"
 
 ImguiRenderpass::ImguiRenderpass(RenderingDevice *renderingDevice, Swapchain *swapchain, VkInstance instance,
                                  PhysicalDevice *physicalDevice, CommandExecutor *commandExecutor)
@@ -100,6 +101,7 @@ void ImguiRenderpass::destroyRenderpass() {
 
 void ImguiRenderpass::createFramebuffers() {
     this->_framebuffers = FramebuffersBuilder(this->_renderingDevice, this->_swapchain, this->_renderpass)
+            .addAttachment(this->_swapchain->getColorImageView()->getHandle())
             .build();
 
     ImGui_ImplVulkan_SetMinImageCount(this->_swapchain->getMinImageCount());

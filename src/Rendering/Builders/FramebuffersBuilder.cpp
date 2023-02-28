@@ -13,14 +13,14 @@ FramebuffersBuilder::FramebuffersBuilder(RenderingDevice *renderingDevice,
     //
 }
 
-FramebuffersBuilder &FramebuffersBuilder::withDepthTargets() {
-    this->_withDepthTargets = true;
+FramebuffersBuilder &FramebuffersBuilder::addAttachment(VkImageView imageView) {
+    this->_attachments.push_back(imageView);
 
     return *this;
 }
 
-FramebuffersBuilder &FramebuffersBuilder::withResolveTargets() {
-    this->_withResolveTargets = true;
+FramebuffersBuilder &FramebuffersBuilder::addSwapchainAttachment() {
+    this->_withSwapchainAttachment = true;
 
     return *this;
 }
@@ -30,15 +30,10 @@ std::vector<VkFramebuffer> FramebuffersBuilder::build() {
     std::vector<VkFramebuffer> framebuffers(count);
 
     for (uint32_t idx = 0; idx < count; idx++) {
-        std::vector<VkImageView> attachments = {
-                this->_swapchain->getColorImageView()->getHandle()
-        };
+        std::vector<VkImageView> attachments(this->_attachments.size());
+        std::copy(this->_attachments.begin(), this->_attachments.end(), attachments.begin());
 
-        if (this->_withDepthTargets) {
-            attachments.push_back(this->_swapchain->getDepthImageView()->getHandle());
-        }
-
-        if (this->_withResolveTargets) {
+        if (this->_withSwapchainAttachment) {
             attachments.push_back(this->_swapchain->getSwapchainImageView(idx)->getHandle());
         }
 

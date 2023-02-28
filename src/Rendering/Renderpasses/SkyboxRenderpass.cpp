@@ -144,5 +144,6 @@ void SkyboxRenderpass::destroyRenderpass() {
 
 void SkyboxRenderpass::createFramebuffers() {
     this->_framebuffers = FramebuffersBuilder(this->_renderingDevice, this->_swapchain, this->_renderpass)
+            .addAttachment(this->_swapchain->getColorImageView()->getHandle())
             .build();
 }

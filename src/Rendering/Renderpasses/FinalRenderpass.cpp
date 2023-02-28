@@ -1,9 +1,11 @@
 #include "FinalRenderpass.hpp"
 
+#include "src/Rendering/Swapchain.hpp"
 #include "src/Rendering/Builders/RenderpassBuilder.hpp"
 #include "src/Rendering/Builders/FramebuffersBuilder.hpp"
 #include "src/Rendering/Builders/AttachmentBuilder.hpp"
 #include "src/Rendering/Builders/SubpassBuilder.hpp"
+#include "src/Rendering/Objects/ImageViewObject.hpp"
 
 FinalRenderpass::FinalRenderpass(RenderingDevice *renderingDevice, Swapchain *swapchain)
         : RenderpassBase(renderingDevice, swapchain) {
@@ -45,7 +47,8 @@ void FinalRenderpass::initRenderpass() {
 
 void FinalRenderpass::createFramebuffers() {
     this->_framebuffers = FramebuffersBuilder(this->_renderingDevice, this->_swapchain, this->_renderpass)
-            .withDepthTargets()
-            .withResolveTargets()
+            .addAttachment(this->_swapchain->getColorImageView()->getHandle())
+            .addAttachment(this->_swapchain->getDepthImageView()->getHandle())
+            .addSwapchainAttachment()
             .build();
 }

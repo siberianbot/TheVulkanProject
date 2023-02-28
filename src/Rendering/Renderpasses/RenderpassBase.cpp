@@ -3,6 +3,7 @@
 #include "src/Rendering/Builders/FramebuffersBuilder.hpp"
 #include "src/Rendering/RenderingDevice.hpp"
 #include "src/Rendering/Swapchain.hpp"
+#include "src/Rendering/Objects/ImageViewObject.hpp"
 
 RenderpassBase::RenderpassBase(RenderingDevice *renderingDevice, Swapchain *swapchain)
         : _renderingDevice(renderingDevice),
@@ -16,7 +17,8 @@ void RenderpassBase::destroyRenderpass() {
 
 void RenderpassBase::createFramebuffers() {
     this->_framebuffers = FramebuffersBuilder(this->_renderingDevice, this->_swapchain, this->_renderpass)
-            .withDepthTargets()
+            .addAttachment(this->_swapchain->getColorImageView()->getHandle())
+            .addAttachment(this->_swapchain->getDepthImageView()->getHandle())
             .build();
 }
 

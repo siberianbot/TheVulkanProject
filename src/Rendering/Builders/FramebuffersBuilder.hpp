@@ -1,6 +1,8 @@
 #ifndef RENDERING_BUILDERS_FRAMEBUFFERSBUILDER_HPP
 #define RENDERING_BUILDERS_FRAMEBUFFERSBUILDER_HPP
 
+#include <vector>
+
 #include <vulkan/vulkan.hpp>
 
 class RenderingDevice;
@@ -12,16 +14,18 @@ private:
     Swapchain *_swapchain;
     VkRenderPass _renderpass;
 
-    bool _withDepthTargets = false;
-    bool _withResolveTargets = false;
+    std::vector<VkImageView> _attachments;
+    bool _withSwapchainAttachment = false;
 
 public:
     FramebuffersBuilder(RenderingDevice *renderingDevice,
                         Swapchain *swapchain,
                         VkRenderPass renderpass);
 
-    FramebuffersBuilder &withDepthTargets();
-    FramebuffersBuilder &withResolveTargets();
+    FramebuffersBuilder &addAttachment(VkImageView imageView);
+
+    // TODO: find a better way to add swapchain images
+    [[deprecated]] FramebuffersBuilder &addSwapchainAttachment();
 
     std::vector<VkFramebuffer> build();
 };
