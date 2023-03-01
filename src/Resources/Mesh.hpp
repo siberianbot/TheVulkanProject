@@ -3,13 +3,8 @@
 
 #include <vector>
 #include <string>
-#include <glm/glm.hpp>
 
-struct Vertex {
-    glm::vec3 pos;
-    glm::vec3 color;
-    glm::vec2 texCoord;
-};
+#include "Vertex.hpp"
 
 class Mesh {
 private:
