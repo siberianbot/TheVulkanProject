@@ -16,5 +16,4 @@ public:
     TextureRenderingResource *texture() { return this->_texture; }
 };
 
-
 #endif // SCENE_SKYBOX_HPP

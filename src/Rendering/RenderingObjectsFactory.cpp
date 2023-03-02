@@ -25,16 +25,17 @@ BufferObject *RenderingObjectsFactory::createBufferObject(VkDeviceSize size, VkB
     return new BufferObject(this->_renderingDevice, size, buffer, memory);
 }
 
-ImageObject *RenderingObjectsFactory::createImageObject(uint32_t width, uint32_t height, VkFormat format,
+ImageObject *RenderingObjectsFactory::createImageObject(uint32_t width, uint32_t height, uint32_t layers,
+                                                        VkImageCreateFlags flags, VkFormat format,
                                                         VkImageUsageFlags usage, VkSampleCountFlagBits samples,
                                                         VkMemoryPropertyFlags memoryProperty) {
-    VkImage image = this->_renderingDevice->createImage(width, height, format, usage, samples);
+    VkImage image = this->_renderingDevice->createImage(width, height, layers, flags, format, usage, samples);
     VkMemoryRequirements requirements = this->_renderingDevice->getImageMemoryRequirements(image);
     VkDeviceMemory memory = this->_renderingDevice->allocateMemory(requirements, memoryProperty);
 
     this->_renderingDevice->bindImageMemory(image, memory);
 
-    return new ImageObject(this->_renderingDevice, image, format, memory);
+    return new ImageObject(this->_renderingDevice, image, layers, flags, format, memory);
 }
 
 FenceObject *RenderingObjectsFactory::createFenceObject(bool signaled) {
@@ -119,13 +120,16 @@ DescriptorSetObject *RenderingObjectsFactory::createDescriptorSetObject(VkDescri
 
 ImageViewObject *RenderingObjectsFactory::createImageViewObject(VkImage image, VkFormat format,
                                                                 VkImageAspectFlags aspectMask) {
-    VkImageView imageView = this->_renderingDevice->createImageView(image, format, aspectMask);
+    VkImageView imageView = this->_renderingDevice->createImageView(image, 1, VK_IMAGE_VIEW_TYPE_2D, format,
+                                                                    aspectMask);
 
     return new ImageViewObject(this->_renderingDevice, nullptr, imageView);
 }
 
-ImageViewObject *RenderingObjectsFactory::createImageViewObject(ImageObject *image, VkImageAspectFlags aspectMask) {
-    VkImageView imageView = this->_renderingDevice->createImageView(image->getHandle(), image->getFormat(), aspectMask);
+ImageViewObject *RenderingObjectsFactory::createImageViewObject(ImageObject *image, VkImageViewType imageViewType,
+                                                                VkImageAspectFlags aspectMask) {
+    VkImageView imageView = this->_renderingDevice->createImageView(image->getHandle(), image->getLayersCount(),
+                                                                    imageViewType, image->getFormat(), aspectMask);
 
     return new ImageViewObject(this->_renderingDevice, image, imageView);
 }

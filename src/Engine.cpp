@@ -11,7 +11,6 @@
 #include "src/Debug/DebugUI.hpp"
 #include "src/Scene/Meshes.hpp"
 #include "src/Scene/Skybox.hpp"
-#include "src/Scene/SkyboxMesh.hpp"
 
 #include <glm/vec3.hpp>
 
@@ -88,14 +87,32 @@ void Engine::init() {
     });
 
     Texture cubeTexture = Texture::fromFile("data/textures/cube.png");
+    Texture cubeSpecularTexture = Texture::fromFile("data/textures/cube_specular.png");
     this->_cubeMeshResource = this->renderer.getRenderingResourcesManager()->loadMesh(CUBE_MESH.size(),
                                                                                       CUBE_MESH.data());
-    this->_cubeTextureResource = this->renderer.getRenderingResourcesManager()->loadTexture(&cubeTexture);
+    this->_cubeTextureResource = this->renderer.getRenderingResourcesManager()->loadTextureArray(
+            {
+                    &cubeTexture,
+                    &cubeSpecularTexture
+            });
 
-    Texture skyboxTexture = Texture::fromFile("data/textures/skybox.png");
-    this->_skyboxMeshResource = this->renderer.getRenderingResourcesManager()->loadMesh(DEFAULT_SKYBOX_MESH.size(),
-                                                                                        DEFAULT_SKYBOX_MESH.data());
-    this->_skyboxTextureResource = this->renderer.getRenderingResourcesManager()->loadTexture(&skyboxTexture);
+    Texture skyboxRightTexture = Texture::fromFile("data/textures/skybox_right.jpg");
+    Texture skyboxLeftTexture = Texture::fromFile("data/textures/skybox_left.jpg");
+    Texture skyboxUpTexture = Texture::fromFile("data/textures/skybox_up.jpg");
+    Texture skyboxDownTexture = Texture::fromFile("data/textures/skybox_down.jpg");
+    Texture skyboxFrontTexture = Texture::fromFile("data/textures/skybox_front.jpg");
+    Texture skyboxBackTexture = Texture::fromFile("data/textures/skybox_back.jpg");
+    this->_skyboxMeshResource = this->renderer.getRenderingResourcesManager()->loadMesh(SKYBOX_MESH.size(),
+                                                                                        SKYBOX_MESH.data());
+    this->_skyboxTextureResource = this->renderer.getRenderingResourcesManager()->loadTextureCube(
+            {
+                    &skyboxFrontTexture,
+                    &skyboxBackTexture,
+                    &skyboxUpTexture,
+                    &skyboxDownTexture,
+                    &skyboxRightTexture,
+                    &skyboxLeftTexture,
+            });
 
     this->_scene = new Scene(new Skybox(&this->_skyboxMeshResource, &this->_skyboxTextureResource));
 

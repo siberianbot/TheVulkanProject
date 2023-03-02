@@ -1,5 +1,7 @@
 #include "Texture.hpp"
 
+#include <stdexcept>
+
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb/stb_image.h>
 
@@ -14,6 +16,10 @@ Texture Texture::fromFile(const std::string &path) {
     int channels;
 
     texture._pixels = stbi_load(path.c_str(), &texture._width, &texture._height, &channels, STBI_rgb_alpha);
+
+    if (texture._pixels == nullptr) {
+        throw std::runtime_error("Failed to read image");
+    }
 
     return texture;
 }

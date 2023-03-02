@@ -41,34 +41,24 @@ BufferObject *RenderingResourcesManager::loadBuffer(uint64_t size, const void *d
     return result;
 }
 
-MeshRenderingResource RenderingResourcesManager::loadMesh(Mesh *mesh) {
-    return {
-            .vertices = loadBuffer(sizeof(Vertex) * mesh->vertices().size(), mesh->vertices().data(),
-                                   VK_BUFFER_USAGE_VERTEX_BUFFER_BIT),
-            .indices = loadBuffer(sizeof(uint32_t) * mesh->indices().size(), mesh->indices().data(),
-                                  VK_BUFFER_USAGE_INDEX_BUFFER_BIT),
-            .count = static_cast<uint32_t>(mesh->indices().size())
-    };
-}
+ImageObject *RenderingResourcesManager::loadImage(uint32_t width, uint32_t height, VkImageCreateFlags flags,
+                                                  const std::vector<Texture *> &textures) {
+    uint32_t count = textures.size();
 
-MeshRenderingResource RenderingResourcesManager::loadMesh(uint32_t count, const Vertex *data) {
-    return {
-            .vertices = loadBuffer(sizeof(Vertex) * count, reinterpret_cast<const void *>(data),
-                                   VK_BUFFER_USAGE_VERTEX_BUFFER_BIT),
-            .indices = nullptr,
-            .count = count
-    };
-}
+    std::vector<BufferObject *> stagingBuffers(count);
 
-TextureRenderingResource RenderingResourcesManager::loadTexture(Texture *texture) {
-    BufferObject *staging = this->_renderingObjectsFactory->createBufferObject(texture->size(),
-                                                                               VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                                                                               VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                                                                               VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    for (uint32_t idx = 0; idx < count; idx++) {
+        Texture *texture = textures[idx];
 
-    memcpy(staging->map(), texture->data(), texture->size());
+        stagingBuffers[idx] = this->_renderingObjectsFactory->createBufferObject(texture->size(),
+                                                                                 VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                                                                                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                                                                 VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
-    ImageObject *image = this->_renderingObjectsFactory->createImageObject(texture->width(), texture->height(),
+        memcpy(stagingBuffers[idx]->map(), texture->data(), texture->size());
+    }
+
+    ImageObject *image = this->_renderingObjectsFactory->createImageObject(width, height, count, flags,
                                                                            VK_FORMAT_R8G8B8A8_SRGB,
                                                                            VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
                                                                            VK_IMAGE_USAGE_TRANSFER_DST_BIT |
@@ -94,27 +84,29 @@ TextureRenderingResource RenderingResourcesManager::loadTexture(Texture *texture
                                 .baseMipLevel = 0,
                                 .levelCount = 1,
                                 .baseArrayLayer = 0,
-                                .layerCount = 1
+                                .layerCount = count
                         }
                 };
                 vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
                                      0, 0, nullptr, 0, nullptr, 1, &memoryBarrier);
 
-                VkBufferImageCopy bufferImageCopy = {
-                        .bufferOffset = 0,
-                        .bufferRowLength = 0,
-                        .bufferImageHeight = 0,
-                        .imageSubresource = {
-                                .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-                                .mipLevel = 0,
-                                .baseArrayLayer = 0,
-                                .layerCount = 1
-                        },
-                        .imageOffset = {0, 0, 0},
-                        .imageExtent = {texture->width(), texture->height(), 1}
-                };
-                vkCmdCopyBufferToImage(cmdBuffer, staging->getHandle(), image->getHandle(),
-                                       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &bufferImageCopy);
+                for (uint32_t idx = 0; idx < count; idx++) {
+                    VkBufferImageCopy bufferImageCopy = {
+                            .bufferOffset = 0,
+                            .bufferRowLength = 0,
+                            .bufferImageHeight = 0,
+                            .imageSubresource = {
+                                    .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                                    .mipLevel = 0,
+                                    .baseArrayLayer = idx,
+                                    .layerCount = 1 // ?
+                            },
+                            .imageOffset = {0, 0, 0},
+                            .imageExtent = {width, height, 1}
+                    };
+                    vkCmdCopyBufferToImage(cmdBuffer, stagingBuffers[idx]->getHandle(), image->getHandle(),
+                                           VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &bufferImageCopy);
+                }
 
                 memoryBarrier = {
                         .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
@@ -131,7 +123,7 @@ TextureRenderingResource RenderingResourcesManager::loadTexture(Texture *texture
                                 .baseMipLevel = 0,
                                 .levelCount = 1,
                                 .baseArrayLayer = 0,
-                                .layerCount = 1
+                                .layerCount = count
                         }
                 };
                 vkCmdPipelineBarrier(cmdBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
@@ -140,10 +132,53 @@ TextureRenderingResource RenderingResourcesManager::loadTexture(Texture *texture
             })
             .submit(true);
 
-    delete staging;
+    for (uint32_t idx = 0; idx < count; idx++) {
+        delete stagingBuffers[idx];
+    }
+
+    return image;
+}
+
+MeshRenderingResource RenderingResourcesManager::loadMesh(Mesh *mesh) {
+    return {
+            .vertices = loadBuffer(sizeof(Vertex) * mesh->vertices().size(), mesh->vertices().data(),
+                                   VK_BUFFER_USAGE_VERTEX_BUFFER_BIT),
+            .indices = loadBuffer(sizeof(uint32_t) * mesh->indices().size(), mesh->indices().data(),
+                                  VK_BUFFER_USAGE_INDEX_BUFFER_BIT),
+            .count = static_cast<uint32_t>(mesh->indices().size())
+    };
+}
+
+MeshRenderingResource RenderingResourcesManager::loadMesh(uint32_t count, const Vertex *data) {
+    return {
+            .vertices = loadBuffer(sizeof(Vertex) * count, reinterpret_cast<const void *>(data),
+                                   VK_BUFFER_USAGE_VERTEX_BUFFER_BIT),
+            .indices = nullptr,
+            .count = count
+    };
+}
+
+TextureRenderingResource RenderingResourcesManager::loadTexture(Texture *texture) {
+    return {
+            .texture = loadImage(texture->width(), texture->height(), 0, {texture})
+    };
+}
+
+TextureRenderingResource RenderingResourcesManager::loadTextureArray(const std::vector<Texture *> &textures) {
+    return {
+            .texture = loadImage(textures[0]->width(), textures[0]->height(),
+                                 0, textures)
+    };
+}
+
+TextureRenderingResource RenderingResourcesManager::loadTextureCube(const std::vector<Texture *> &textures) {
+    if (textures.size() != 6) {
+        throw std::runtime_error("Cube texture should contain 6 textures");
+    }
 
     return {
-            .texture = image
+            .texture = loadImage(textures[0]->width(), textures[0]->height(),
+                                 VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT, textures)
     };
 }
 

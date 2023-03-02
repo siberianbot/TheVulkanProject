@@ -22,8 +22,9 @@ public:
     BufferObject *createBufferObject(VkDeviceSize size, VkBufferUsageFlags usage,
                                      VkMemoryPropertyFlags memoryProperty);
 
-    ImageObject *createImageObject(uint32_t width, uint32_t height, VkFormat format, VkImageUsageFlags usage,
-                                   VkSampleCountFlagBits samples, VkMemoryPropertyFlags memoryProperty);
+    ImageObject *createImageObject(uint32_t width, uint32_t height, uint32_t layers, VkImageCreateFlags flags,
+                                   VkFormat format, VkImageUsageFlags usage, VkSampleCountFlagBits samples,
+                                   VkMemoryPropertyFlags memoryProperty);
 
     FenceObject *createFenceObject(bool signaled);
 
@@ -36,7 +37,8 @@ public:
 
     ImageViewObject *createImageViewObject(VkImage image, VkFormat format, VkImageAspectFlags aspectMask);
 
-    ImageViewObject *createImageViewObject(ImageObject *image, VkImageAspectFlags aspectMask);
+    ImageViewObject *createImageViewObject(ImageObject *image, VkImageViewType imageViewType,
+                                           VkImageAspectFlags aspectMask);
 };
 
 #endif // RENDERING_RENDERINGOBJECTSFACTORY_HPP

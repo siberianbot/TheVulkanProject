@@ -84,12 +84,12 @@ void RenderingDevice::destroyBuffer(VkBuffer buffer) {
     vkDestroyBuffer(this->_device, buffer, nullptr);
 }
 
-VkImage RenderingDevice::createImage(uint32_t width, uint32_t height, VkFormat format, VkImageUsageFlags usage,
-                                     VkSampleCountFlagBits samples) {
+VkImage RenderingDevice::createImage(uint32_t width, uint32_t height, uint32_t layers, VkImageCreateFlags flags,
+                                     VkFormat format, VkImageUsageFlags usage, VkSampleCountFlagBits samples) {
     VkImageCreateInfo createInfo = {
             .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
             .pNext = nullptr,
-            .flags = 0,
+            .flags = flags,
             .imageType = VK_IMAGE_TYPE_2D,
             .format = format,
             .extent = {
@@ -98,7 +98,7 @@ VkImage RenderingDevice::createImage(uint32_t width, uint32_t height, VkFormat f
                     .depth = 1
             },
             .mipLevels = 1,
-            .arrayLayers = 1,
+            .arrayLayers = layers,
             .samples = samples,
             .tiling = VK_IMAGE_TILING_OPTIMAL,
             .usage = usage,
@@ -129,13 +129,14 @@ void RenderingDevice::destroyImage(VkImage image) {
     vkDestroyImage(this->_device, image, nullptr);
 }
 
-VkImageView RenderingDevice::createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectMask) {
+VkImageView RenderingDevice::createImageView(VkImage image, uint32_t layers, VkImageViewType imageViewType,
+                                             VkFormat format, VkImageAspectFlags aspectMask) {
     VkImageViewCreateInfo imageViewCreateInfo = {
             .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
             .pNext = nullptr,
             .flags = 0,
             .image = image,
-            .viewType = VK_IMAGE_VIEW_TYPE_2D,
+            .viewType = imageViewType,
             .format = format,
             .components = {},
             .subresourceRange = {
@@ -143,7 +144,7 @@ VkImageView RenderingDevice::createImageView(VkImage image, VkFormat format, VkI
                     .baseMipLevel = 0,
                     .levelCount = 1,
                     .baseArrayLayer = 0,
-                    .layerCount = 1
+                    .layerCount = layers
             }
     };
 

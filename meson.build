@@ -60,7 +60,8 @@ src = [
 # shaders compilation
 shaders = [
     'data/shaders/default.frag',
-    'data/shaders/default.vert'
+    'data/shaders/default.vert',
+    'data/shaders/skybox.frag'
 ]
 
 foreach shader : shaders

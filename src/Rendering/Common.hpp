@@ -24,6 +24,7 @@ static constexpr const uint32_t MAX_MESH_DATA_DESCRIPTOR_SETS = 1024 * MAX_INFLI
 
 static constexpr const char *DEFAULT_VERTEX_SHADER = "data/shaders/default.vert.spv";
 static constexpr const char *DEFAULT_FRAGMENT_SHADER = "data/shaders/default.frag.spv";
+static constexpr const char *SKYBOX_FRAGMENT_SHADER = "data/shaders/skybox.frag.spv";
 
 static constexpr void vkEnsure(VkResult vkExpression) {
     if (vkExpression != VK_SUCCESS) {

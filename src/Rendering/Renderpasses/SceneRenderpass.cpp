@@ -28,6 +28,7 @@ SceneRenderpass::RenderData SceneRenderpass::getRenderData(Object *object) {
     }
 
     ImageViewObject *textureView = this->_renderingObjectsFactory->createImageViewObject(object->texture()->texture,
+                                                                                         VK_IMAGE_VIEW_TYPE_2D_ARRAY,
                                                                                          VK_IMAGE_ASPECT_COLOR_BIT);
 
     RenderData renderData = {
@@ -48,6 +49,7 @@ SceneRenderpass::SceneRenderpass(RenderingDevice *renderingDevice, Swapchain *sw
           _engine(engine) {
     this->_skyboxTextureView = renderingObjectsFactory->createImageViewObject(
             this->_engine->scene()->skybox()->texture()->texture,
+            VK_IMAGE_VIEW_TYPE_CUBE,
             VK_IMAGE_ASPECT_COLOR_BIT);
 
     this->_textureSampler = this->_renderingDevice->createSampler();
@@ -236,9 +238,9 @@ void SceneRenderpass::initRenderpass() {
             .build();
 
     this->_skyboxPipeline = PipelineBuilder(this->_renderingDevice, this->_renderpass,
-                                           this->_renderingLayoutObject->getPipelineLayout())
+                                            this->_renderingLayoutObject->getPipelineLayout())
             .addVertexShader(DEFAULT_VERTEX_SHADER)
-            .addFragmentShader(DEFAULT_FRAGMENT_SHADER)
+            .addFragmentShader(SKYBOX_FRAGMENT_SHADER)
             .addBinding(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
             .addAttribute(0, 0, offsetof(Vertex, pos), VK_FORMAT_R32G32B32_SFLOAT)
             .addAttribute(0, 1, offsetof(Vertex, color), VK_FORMAT_R32G32B32_SFLOAT)
@@ -269,23 +271,23 @@ void SceneRenderpass::createFramebuffers() {
     VkExtent2D extent = this->_swapchain->getSwapchainExtent();
     VkSampleCountFlagBits samples = this->_renderingDevice->getPhysicalDevice()->getMsaaSamples();
 
-    this->_colorImage = this->_renderingObjectsFactory->createImageObject(extent.width,
-                                                                          extent.height,
+    this->_colorImage = this->_renderingObjectsFactory->createImageObject(extent.width, extent.height, 1, 0,
                                                                           this->_renderingDevice->getPhysicalDevice()->getColorFormat(),
                                                                           VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT |
                                                                           VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
                                                                           samples,
                                                                           VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
     this->_colorImageView = this->_renderingObjectsFactory->createImageViewObject(this->_colorImage,
+                                                                                  VK_IMAGE_VIEW_TYPE_2D,
                                                                                   VK_IMAGE_ASPECT_COLOR_BIT);
 
-    this->_depthImage = this->_renderingObjectsFactory->createImageObject(extent.width,
-                                                                          extent.height,
+    this->_depthImage = this->_renderingObjectsFactory->createImageObject(extent.width, extent.height, 1, 0,
                                                                           this->_renderingDevice->getPhysicalDevice()->getDepthFormat(),
                                                                           VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
                                                                           samples,
                                                                           VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
     this->_depthImageView = this->_renderingObjectsFactory->createImageViewObject(this->_depthImage,
+                                                                                  VK_IMAGE_VIEW_TYPE_2D,
                                                                                   VK_IMAGE_ASPECT_DEPTH_BIT);
 
     this->_framebuffers = FramebuffersBuilder(this->_renderingDevice, this->_swapchain, this->_renderpass)
