@@ -125,7 +125,7 @@ void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D ren
         VkDescriptorSet descriptorSet = this->_skyboxDescriptorSet->getDescriptorSet(frameIdx);
 
         MeshConstants constants = {
-                .model = projection * this->_engine->camera().getViewMatrix(true) * glm::mat4(1)
+                .matrix = projection * this->_engine->camera().getViewMatrix(true) * glm::mat4(1)
         };
         vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshConstants),
                            &constants);
@@ -157,7 +157,7 @@ void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D ren
             VkDescriptorSet descriptorSet = renderData.descriptorSet->getDescriptorSet(frameIdx);
 
             MeshConstants constants = {
-                    .model = projection * this->_engine->camera().getViewMatrix(false) * glm::mat4(1)
+                    .matrix = projection * this->_engine->camera().getViewMatrix(false) * glm::mat4(1)
             };
             vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshConstants),
                                &constants);

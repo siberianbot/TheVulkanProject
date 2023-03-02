@@ -11,14 +11,12 @@ class RenderingObjectsFactory;
 class BufferObject;
 class DescriptorSetObject;
 
-// TODO: not used anymore
 struct SceneData {
-    glm::mat4 view;
-    glm::mat4 projection;
+    // for future use
 };
 
 struct MeshConstants {
-    glm::mat4 model;
+    glm::mat4 matrix;
 };
 
 class RenderingLayoutObject {
