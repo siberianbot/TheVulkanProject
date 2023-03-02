@@ -5,7 +5,6 @@
 
 #include "Constants.hpp"
 #include "src/Resources/Mesh.hpp"
-#include "Math.hpp"
 #include "src/Resources/Texture.hpp"
 #include "src/Scene/Object.hpp"
 #include "src/Scene/Scene.hpp"
@@ -17,9 +16,10 @@
 
 Engine::Engine()
         : renderer(this),
-          _camera(glm::vec3(2, 2, -2), glm::radians(135.0f), glm::radians(50.0f)),
           _debugUI(new DebugUI(this)) {
-    //
+    this->_camera.position() = glm::vec3(2, 2, -2);
+    this->_camera.yaw() = glm::radians(135.0f);
+    this->_camera.pitch() = glm::radians(50.0f);
 }
 
 void Engine::init() {
@@ -52,16 +52,16 @@ void Engine::init() {
     });
 
     this->input.addPressHandler(GLFW_KEY_W, [this](float delta) {
-        this->_camera.pos() += 5 * delta * forward(this->_camera.yaw(), this->_camera.pitch());
+        this->_camera.position() += 5 * delta * this->_camera.getForwardVector();
     });
     this->input.addPressHandler(GLFW_KEY_S, [this](float delta) {
-        this->_camera.pos() -= 5 * delta * forward(this->_camera.yaw(), this->_camera.pitch());
+        this->_camera.position() -= 5 * delta * this->_camera.getForwardVector();
     });
     this->input.addPressHandler(GLFW_KEY_A, [this](float delta) {
-        this->_camera.pos() -= 5 * delta * side(this->_camera.yaw());
+        this->_camera.position() -= 5 * delta * this->_camera.getSideVector();
     });
     this->input.addPressHandler(GLFW_KEY_D, [this](float delta) {
-        this->_camera.pos() += 5 * delta * side(this->_camera.yaw());
+        this->_camera.position() += 5 * delta * this->_camera.getSideVector();
     });
 
     this->mouseInput.addHandler([this](double dx, double dy) {

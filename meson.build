@@ -13,7 +13,6 @@ src = [
     'src/Main.cpp',
     'src/Engine.cpp',
     'src/Input.cpp',
-    'src/Camera.cpp',
 
     # Rendering
     'src/Rendering/Renderer.cpp',
@@ -49,6 +48,7 @@ src = [
     'src/Resources/Texture.cpp',
 
     # Scene
+    'src/Scene/Camera.cpp',
     'src/Scene/Object.cpp',
     'src/Scene/Scene.cpp',
     'src/Scene/Skybox.cpp',

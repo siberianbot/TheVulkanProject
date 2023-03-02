@@ -4,7 +4,7 @@
 #include <vector>
 
 #include "Input.hpp"
-#include "Camera.hpp"
+#include "src/Scene/Camera.hpp"
 #include "src/Rendering/Renderer.hpp"
 #include "src/Rendering/RenderingResourcesManager.hpp"
 

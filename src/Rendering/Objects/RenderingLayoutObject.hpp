@@ -11,6 +11,7 @@ class RenderingObjectsFactory;
 class BufferObject;
 class DescriptorSetObject;
 
+// TODO: not used anymore
 struct SceneData {
     glm::mat4 view;
     glm::mat4 projection;
