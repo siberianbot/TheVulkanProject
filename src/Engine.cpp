@@ -9,7 +9,7 @@
 #include "src/Resources/Texture.hpp"
 #include "src/Scene/Object.hpp"
 #include "src/Scene/Scene.hpp"
-#include "DebugUI.hpp"
+#include "src/Debug/DebugUI.hpp"
 #include "src/Scene/Skybox.hpp"
 #include "src/Scene/SkyboxMesh.hpp"
 
@@ -128,7 +128,7 @@ void Engine::run() {
 
         glfwPollEvents();
 
-        this->_debugUI->update();
+        this->_debugUI->render();
         this->input.process(this->_delta);
         this->renderer.render();
 
@@ -204,4 +204,8 @@ void Engine::cursorCallback(GLFWwindow *window, double xpos, double ypos) {
     glfwSetCursorPos(window, xcenter, ycenter);
 
     engine->mouseInput.process(xcenter - xpos, ycenter - ypos);
+}
+
+void Engine::requestClose() {
+    glfwSetWindowShouldClose(this->_window, GLFW_TRUE);
 }

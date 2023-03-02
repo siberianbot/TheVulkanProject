@@ -53,8 +53,8 @@ src = [
     'src/Scene/Scene.cpp',
     'src/Scene/Skybox.cpp',
 
-    # Debug only
-    'src/DebugUI.cpp',
+    # Debug
+    'src/Debug/DebugUI.cpp',
 ]
 
 # shaders compilation

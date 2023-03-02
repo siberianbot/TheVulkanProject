@@ -64,6 +64,8 @@ public:
     float delta() { return this->_delta; }
     MeshRenderingResource *meshResource() { return &this->_roomMeshResource; }
     TextureRenderingResource *textureResource() { return &this->_roomTextureResource; }
+
+    void requestClose();
 };
 
 #endif // ENGINE_HPP
