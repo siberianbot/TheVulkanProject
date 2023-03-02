@@ -164,12 +164,19 @@ void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D ren
 
             VkBuffer vertexBuffer = object->mesh()->vertices->getHandle();
             vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer, &offset);
-            vkCmdBindIndexBuffer(commandBuffer, object->mesh()->indices->getHandle(), 0, VK_INDEX_TYPE_UINT32);
+
+            if (object->mesh()->indices != nullptr) {
+                vkCmdBindIndexBuffer(commandBuffer, object->mesh()->indices->getHandle(), 0, VK_INDEX_TYPE_UINT32);
+            }
 
             vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout,
                                     1, 1, &descriptorSet, 0, nullptr);
 
-            vkCmdDrawIndexed(commandBuffer, object->mesh()->count, 1, 0, 0, idx++);
+            if (object->mesh()->indices != nullptr) {
+                vkCmdDrawIndexed(commandBuffer, object->mesh()->count, 1, 0, 0, idx++);
+            } else {
+                vkCmdDraw(commandBuffer, object->mesh()->vertices->getSize(), 1, 0, 0);
+            }
         }
     }
 

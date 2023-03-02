@@ -9,6 +9,7 @@
 #include "src/Scene/Object.hpp"
 #include "src/Scene/Scene.hpp"
 #include "src/Debug/DebugUI.hpp"
+#include "src/Scene/Meshes.hpp"
 #include "src/Scene/Skybox.hpp"
 #include "src/Scene/SkyboxMesh.hpp"
 
@@ -86,17 +87,17 @@ void Engine::init() {
         }
     });
 
+    Texture cubeTexture = Texture::fromFile("data/textures/cube.png");
+    this->_cubeMeshResource = this->renderer.getRenderingResourcesManager()->loadMesh(CUBE_MESH.size(),
+                                                                                      CUBE_MESH.data());
+    this->_cubeTextureResource = this->renderer.getRenderingResourcesManager()->loadTexture(&cubeTexture);
+
     Texture skyboxTexture = Texture::fromFile("data/textures/skybox.png");
     this->_skyboxMeshResource = this->renderer.getRenderingResourcesManager()->loadMesh(DEFAULT_SKYBOX_MESH.size(),
                                                                                         DEFAULT_SKYBOX_MESH.data());
     this->_skyboxTextureResource = this->renderer.getRenderingResourcesManager()->loadTexture(&skyboxTexture);
 
     this->_scene = new Scene(new Skybox(&this->_skyboxMeshResource, &this->_skyboxTextureResource));
-
-    Mesh vikingRoomMesh = Mesh::fromFile("data/models/viking_room.obj");
-    Texture vikingRoomTexture = Texture::fromFile("data/textures/viking_room.png");
-    this->_roomMeshResource = this->renderer.getRenderingResourcesManager()->loadMesh(&vikingRoomMesh);
-    this->_roomTextureResource = this->renderer.getRenderingResourcesManager()->loadTexture(&vikingRoomTexture);
 
     this->renderer.initRenderpasses();
 }
@@ -106,8 +107,8 @@ void Engine::cleanup() {
 
     delete this->_scene;
 
-    this->renderer.getRenderingResourcesManager()->freeMesh(this->_roomMeshResource);
-    this->renderer.getRenderingResourcesManager()->freeTexture(this->_roomTextureResource);
+    this->renderer.getRenderingResourcesManager()->freeMesh(this->_cubeMeshResource);
+    this->renderer.getRenderingResourcesManager()->freeTexture(this->_cubeTextureResource);
     this->renderer.getRenderingResourcesManager()->freeMesh(this->_skyboxMeshResource);
     this->renderer.getRenderingResourcesManager()->freeTexture(this->_skyboxTextureResource);
 
