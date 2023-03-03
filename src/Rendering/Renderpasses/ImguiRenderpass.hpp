@@ -5,17 +5,19 @@
 
 class PhysicalDevice;
 class CommandExecutor;
+class Swapchain;
 
 class ImguiRenderpass : public RenderpassBase {
 private:
     VkInstance _instance;
     PhysicalDevice *_physicalDevice;
     CommandExecutor *_commandExecutor;
+    Swapchain *_swapchain;
     VkDescriptorPool _descriptorPool;
 
 public:
-    ImguiRenderpass(RenderingDevice *renderingDevice, Swapchain *swapchain,
-                    VkInstance instance, PhysicalDevice *physicalDevice, CommandExecutor *commandExecutor);
+    ImguiRenderpass(RenderingDevice *renderingDevice, Swapchain *swapchain, VkInstance instance,
+                    PhysicalDevice *physicalDevice, CommandExecutor *commandExecutor);
     ~ImguiRenderpass() override = default;
 
     void recordCommands(VkCommandBuffer commandBuffer, VkRect2D renderArea,
@@ -25,6 +27,8 @@ public:
     void destroyRenderpass() override;
 
     void createFramebuffers() override;
+
+    ImageViewObject *getResultImageView(uint32_t imageIdx) override;
 };
 
 #endif // RENDERING_RENDERPASSES_IMGUIRENDERPASS_HPP

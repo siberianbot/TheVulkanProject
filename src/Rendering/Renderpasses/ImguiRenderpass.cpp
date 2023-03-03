@@ -7,7 +7,7 @@
 #include "src/Rendering/RenderingDevice.hpp"
 #include "src/Rendering/Swapchain.hpp"
 #include "src/Rendering/CommandExecutor.hpp"
-#include "src/Rendering/Builders/FramebuffersBuilder.hpp"
+#include "src/Rendering/Builders/FramebufferBuilder.hpp"
 #include "src/Rendering/Builders/RenderpassBuilder.hpp"
 #include "src/Rendering/Builders/AttachmentBuilder.hpp"
 #include "src/Rendering/Builders/SubpassBuilder.hpp"
@@ -15,10 +15,11 @@
 
 ImguiRenderpass::ImguiRenderpass(RenderingDevice *renderingDevice, Swapchain *swapchain, VkInstance instance,
                                  PhysicalDevice *physicalDevice, CommandExecutor *commandExecutor)
-        : RenderpassBase(renderingDevice, swapchain),
+        : RenderpassBase(renderingDevice),
           _instance(instance),
           _physicalDevice(physicalDevice),
-          _commandExecutor(commandExecutor) {
+          _commandExecutor(commandExecutor),
+          _swapchain(swapchain) {
     this->_descriptorPool = this->_renderingDevice->createDescriptorPool(
             {
                     {VK_DESCRIPTOR_TYPE_SAMPLER,                1000},
@@ -82,7 +83,7 @@ void ImguiRenderpass::initRenderpass() {
             .Subpass = 0,
             .MinImageCount = this->_swapchain->getMinImageCount(),
             .ImageCount = this->_swapchain->getImageCount(),
-            .MSAASamples = VK_SAMPLE_COUNT_1_BIT, // this->_physicalDevice->getMsaaSamples(),
+            .MSAASamples = VK_SAMPLE_COUNT_1_BIT,
             .Allocator = nullptr,
             .CheckVkResultFn = vkEnsure,
     };
@@ -105,7 +106,22 @@ void ImguiRenderpass::destroyRenderpass() {
 }
 
 void ImguiRenderpass::createFramebuffers() {
-    RenderpassBase::createFramebuffers();
+    FramebufferBuilder builder = FramebufferBuilder(this->_renderingDevice, this->_renderpass)
+            .withExtent(this->_swapchain->getSwapchainExtent())
+            .addAttachment(nullptr);
+
+    uint32_t count = this->_swapchain->getImageCount();
+    this->_framebuffers.resize(count);
+    
+    for (uint32_t idx = 0; idx < count; idx++) {
+        this->_framebuffers[idx] = builder
+                .replaceAttachment(0, this->_swapchain->getSwapchainImageView(idx)->getHandle())
+                .build();
+    }
 
     ImGui_ImplVulkan_SetMinImageCount(this->_swapchain->getMinImageCount());
+}
+
+ImageViewObject *ImguiRenderpass::getResultImageView(uint32_t imageIdx) {
+    return nullptr; // TODO
 }

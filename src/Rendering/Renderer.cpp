@@ -12,8 +12,6 @@
 #include "Swapchain.hpp"
 #include "src/Rendering/Objects/FenceObject.hpp"
 #include "src/Rendering/Objects/SemaphoreObject.hpp"
-#include "src/Rendering/Renderpasses/ClearRenderpass.hpp"
-#include "src/Rendering/Renderpasses/FinalRenderpass.hpp"
 #include "src/Rendering/Renderpasses/ImguiRenderpass.hpp"
 #include "src/Rendering/Renderpasses/SceneRenderpass.hpp"
 
@@ -86,12 +84,10 @@ void Renderer::init() {
 }
 
 void Renderer::initRenderpasses() {
-    this->_renderpasses.push_back(new ClearRenderpass(this->_renderingDevice, this->_swapchain));
     this->_renderpasses.push_back(new SceneRenderpass(this->_renderingDevice, this->_swapchain,
                                                       this->_renderingObjectsFactory, this->_engine));
     this->_renderpasses.push_back(new ImguiRenderpass(this->_renderingDevice, this->_swapchain,
                                                       this->_instance, this->_physicalDevice, this->_commandExecutor));
-    this->_renderpasses.push_back(new FinalRenderpass(this->_renderingDevice, this->_swapchain));
 
     for (RenderpassBase *renderpass: this->_renderpasses) {
         renderpass->initRenderpass();

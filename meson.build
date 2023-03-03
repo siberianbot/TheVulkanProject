@@ -23,7 +23,7 @@ src = [
     'src/Rendering/RenderingResourcesManager.cpp',
 
     'src/Rendering/Builders/AttachmentBuilder.cpp',
-    'src/Rendering/Builders/FramebuffersBuilder.cpp',
+    'src/Rendering/Builders/FramebufferBuilder.cpp',
     'src/Rendering/Builders/PipelineBuilder.cpp',
     'src/Rendering/Builders/RenderpassBuilder.cpp',
     'src/Rendering/Builders/SubpassBuilder.cpp',
@@ -38,8 +38,6 @@ src = [
     'src/Rendering/Objects/SemaphoreObject.cpp',
 
     'src/Rendering/Renderpasses/RenderpassBase.cpp',
-    'src/Rendering/Renderpasses/ClearRenderpass.cpp',
-    'src/Rendering/Renderpasses/FinalRenderpass.cpp',
     'src/Rendering/Renderpasses/ImguiRenderpass.cpp',
     'src/Rendering/Renderpasses/SceneRenderpass.cpp',
 

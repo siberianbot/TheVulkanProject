@@ -6,18 +6,17 @@
 #include <vulkan/vulkan.hpp>
 
 class RenderingDevice;
-class Swapchain;
+class ImageViewObject;
 
 class RenderpassBase {
 protected:
     RenderingDevice *_renderingDevice;
-    Swapchain *_swapchain;
 
     VkRenderPass _renderpass = VK_NULL_HANDLE;
     std::vector<VkFramebuffer> _framebuffers;
 
 public:
-    explicit RenderpassBase(RenderingDevice *renderingDevice, Swapchain *swapchain);
+    explicit RenderpassBase(RenderingDevice *renderingDevice);
     virtual ~RenderpassBase() = default;
 
     virtual void recordCommands(VkCommandBuffer commandBuffer, VkRect2D renderArea,
@@ -26,8 +25,10 @@ public:
     virtual void initRenderpass() = 0;
     virtual void destroyRenderpass();
 
-    virtual void createFramebuffers();
+    virtual void createFramebuffers() = 0;
     virtual void destroyFramebuffers();
+
+    virtual ImageViewObject *getResultImageView(uint32_t imageIdx) = 0;
 };
 
 #endif // RENDERING_RENDERPASSES_RENDERPASSBASE_HPP

@@ -7,6 +7,7 @@
 
 class Engine;
 class Object;
+class Swapchain;
 class RenderingObjectsFactory;
 class DescriptorSetObject;
 class ImageObject;
@@ -23,6 +24,7 @@ private:
     RenderingObjectsFactory *_renderingObjectsFactory;
     Engine *_engine;
     RenderingLayoutObject *_renderingLayoutObject;
+    Swapchain *_swapchain;
     VkSampler _textureSampler;
     std::map<Object *, RenderData> _renderData;
     ImageViewObject *_skyboxTextureView;
@@ -51,6 +53,8 @@ public:
 
     void createFramebuffers() override;
     void destroyFramebuffers() override;
+
+    ImageViewObject *getResultImageView(uint32_t imageIdx) override;
 };
 
 #endif // RENDERING_RENDERPASSES_SCENERENDERPASS_HPP

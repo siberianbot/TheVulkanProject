@@ -10,7 +10,7 @@
 #include "src/Rendering/RenderingObjectsFactory.hpp"
 #include "src/Rendering/Swapchain.hpp"
 #include "src/Rendering/Builders/RenderpassBuilder.hpp"
-#include "src/Rendering/Builders/FramebuffersBuilder.hpp"
+#include "src/Rendering/Builders/FramebufferBuilder.hpp"
 #include "src/Rendering/Builders/PipelineBuilder.hpp"
 #include "src/Rendering/Builders/AttachmentBuilder.hpp"
 #include "src/Rendering/Builders/SubpassBuilder.hpp"
@@ -44,9 +44,10 @@ SceneRenderpass::RenderData SceneRenderpass::getRenderData(Object *object) {
 
 SceneRenderpass::SceneRenderpass(RenderingDevice *renderingDevice, Swapchain *swapchain,
                                  RenderingObjectsFactory *renderingObjectsFactory, Engine *engine)
-        : RenderpassBase(renderingDevice, swapchain),
+        : RenderpassBase(renderingDevice),
           _renderingObjectsFactory(renderingObjectsFactory),
-          _engine(engine) {
+          _engine(engine),
+          _swapchain(swapchain) {
     this->_skyboxTextureView = renderingObjectsFactory->createImageViewObject(
             this->_engine->scene()->skybox()->texture()->texture,
             VK_IMAGE_VIEW_TYPE_CUBE,
@@ -290,11 +291,21 @@ void SceneRenderpass::createFramebuffers() {
                                                                                   VK_IMAGE_VIEW_TYPE_2D,
                                                                                   VK_IMAGE_ASPECT_DEPTH_BIT);
 
-    this->_framebuffers = FramebuffersBuilder(this->_renderingDevice, this->_swapchain, this->_renderpass)
+    FramebufferBuilder builder = FramebufferBuilder(this->_renderingDevice, this->_renderpass)
+            .withExtent(extent)
             .addAttachment(this->_colorImageView->getHandle())
             .addAttachment(this->_colorImageView->getHandle())
             .addAttachment(this->_depthImageView->getHandle())
-            .build();
+            .addAttachment(nullptr);
+
+    uint32_t count = this->_swapchain->getImageCount();
+    this->_framebuffers.resize(count);
+
+    for (uint32_t idx = 0; idx < count; idx++) {
+        this->_framebuffers[idx] = builder
+                .replaceAttachment(3, this->_swapchain->getSwapchainImageView(idx)->getHandle())
+                .build();
+    }
 }
 
 void SceneRenderpass::destroyFramebuffers() {
@@ -304,4 +315,8 @@ void SceneRenderpass::destroyFramebuffers() {
     delete this->_colorImage;
     delete this->_depthImageView;
     delete this->_depthImage;
+}
+
+ImageViewObject *SceneRenderpass::getResultImageView(uint32_t imageIdx) {
+    return nullptr; // TODO
 }
