@@ -392,16 +392,16 @@ void RenderingDevice::destroyPipelineLayout(VkPipelineLayout pipelineLayout) {
     vkDestroyPipelineLayout(this->_device, pipelineLayout, nullptr);
 }
 
-std::array<VkDescriptorSet, MAX_INFLIGHT_FRAMES> RenderingDevice::allocateDescriptorSets(
-        VkDescriptorPool descriptorPool, VkDescriptorSetLayout descriptorSetLayout) {
-    std::vector<VkDescriptorSetLayout> layouts(MAX_INFLIGHT_FRAMES, descriptorSetLayout);
-    std::array<VkDescriptorSet, MAX_INFLIGHT_FRAMES> descriptorSets = {};
+std::vector<VkDescriptorSet> RenderingDevice::allocateDescriptorSets(uint32_t count, VkDescriptorPool descriptorPool,
+                                                                     VkDescriptorSetLayout descriptorSetLayout) {
+    std::vector<VkDescriptorSetLayout> layouts(count, descriptorSetLayout);
+    std::vector<VkDescriptorSet> descriptorSets(count);
 
     VkDescriptorSetAllocateInfo allocateInfo = {
             .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
             .pNext = nullptr,
             .descriptorPool = descriptorPool,
-            .descriptorSetCount = static_cast<uint32_t>(descriptorSets.size()),
+            .descriptorSetCount = count,
             .pSetLayouts = layouts.data()
     };
 
@@ -410,10 +410,8 @@ std::array<VkDescriptorSet, MAX_INFLIGHT_FRAMES> RenderingDevice::allocateDescri
     return descriptorSets;
 }
 
-void RenderingDevice::freeDescriptorSets(VkDescriptorPool descriptorPool,
-                                         const std::array<VkDescriptorSet, MAX_INFLIGHT_FRAMES> &descriptorSets) {
-    vkEnsure(vkFreeDescriptorSets(this->_device, descriptorPool, static_cast<uint32_t>(descriptorSets.size()),
-                                  descriptorSets.data()));
+void RenderingDevice::freeDescriptorSets(VkDescriptorPool descriptorPool, uint32_t count, const VkDescriptorSet *ptr) {
+    vkEnsure(vkFreeDescriptorSets(this->_device, descriptorPool, count, ptr));
 }
 
 void RenderingDevice::updateDescriptorSets(const std::vector<VkWriteDescriptorSet> &writes) {

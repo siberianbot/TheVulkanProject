@@ -6,6 +6,9 @@
 class PhysicalDevice;
 class CommandExecutor;
 class Swapchain;
+class RenderingObjectsFactory;
+class ImageObject;
+class ImageViewObject;
 
 class ImguiRenderpass : public RenderpassBase {
 private:
@@ -13,10 +16,15 @@ private:
     PhysicalDevice *_physicalDevice;
     CommandExecutor *_commandExecutor;
     Swapchain *_swapchain;
+    RenderingObjectsFactory *_renderingObjectsFactory;
     VkDescriptorPool _descriptorPool;
 
+    ImageObject *_resultImage;
+    ImageViewObject *_resultImageView;
+
 public:
-    ImguiRenderpass(RenderingDevice *renderingDevice, Swapchain *swapchain, VkInstance instance,
+    ImguiRenderpass(RenderingDevice *renderingDevice, Swapchain *swapchain,
+                    RenderingObjectsFactory *renderingObjectsFactory, VkInstance instance,
                     PhysicalDevice *physicalDevice, CommandExecutor *commandExecutor);
     ~ImguiRenderpass() override = default;
 
@@ -27,8 +35,9 @@ public:
     void destroyRenderpass() override;
 
     void createFramebuffers() override;
+    void destroyFramebuffers() override;
 
-    ImageViewObject *getResultImageView(uint32_t imageIdx) override;
+    ImageViewObject *getResultImageView(uint32_t imageIdx) override { return this->_resultImageView; }
 };
 
 #endif // RENDERING_RENDERPASSES_IMGUIRENDERPASS_HPP

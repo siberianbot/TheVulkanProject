@@ -11,5 +11,6 @@ DescriptorSetObject::DescriptorSetObject(RenderingDevice *renderingDevice, VkDes
 }
 
 DescriptorSetObject::~DescriptorSetObject() {
-    this->_renderingDevice->freeDescriptorSets(this->_descriptorPool, this->_descriptorSets);
+    this->_renderingDevice->freeDescriptorSets(this->_descriptorPool, this->_descriptorSets.size(),
+                                               this->_descriptorSets.data());
 }

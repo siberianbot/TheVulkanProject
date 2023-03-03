@@ -84,10 +84,11 @@ void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D ren
     VkDescriptorSet sceneDataDescriptorSet = this->_renderingLayoutObject->getSceneDataDescriptorSetObject()
             ->getDescriptorSet(frameIdx);
 
-    const std::array<VkClearValue, 3> clearValues = {
+    const std::array<VkClearValue, 4> clearValues = {
             VkClearValue{.color = {{0, 0, 0, 1}}},
             VkClearValue{.color = {{0, 0, 0, 1}}},
-            VkClearValue{.depthStencil = {1, 0}}
+            VkClearValue{.depthStencil = {1, 0}},
+            VkClearValue{.color = {{0, 0, 0, 1}}}
     };
 
     const VkRenderPassBeginInfo renderPassBeginInfo = {
@@ -210,12 +211,9 @@ void SceneRenderpass::initRenderpass() {
                         .withSamples(this->_renderingDevice->getPhysicalDevice()->getMsaaSamples())
                         .withFinalLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
             })
-            .addAttachment([this](AttachmentBuilder &builder) {
+            .addAttachment([](AttachmentBuilder &builder) {
                 builder
-                        .load()
-                        .withFormat(this->_renderingDevice->getPhysicalDevice()->getColorFormat())
-                        .withSamples(VK_SAMPLE_COUNT_1_BIT)
-                        .withInitialLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
+                        .clear()
                         .withFinalLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
             })
             .addSubpass([](SubpassBuilder &builder) {
@@ -272,6 +270,17 @@ void SceneRenderpass::createFramebuffers() {
     VkExtent2D extent = this->_swapchain->getSwapchainExtent();
     VkSampleCountFlagBits samples = this->_renderingDevice->getPhysicalDevice()->getMsaaSamples();
 
+    this->_resultImage = this->_renderingObjectsFactory->createImageObject(extent.width, extent.height, 1, 0,
+                                                                           this->_renderingDevice->getPhysicalDevice()->getColorFormat(),
+                                                                           VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT |
+                                                                           VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT |
+                                                                           VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+                                                                           VK_SAMPLE_COUNT_1_BIT,
+                                                                           VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    this->_resultImageView = this->_renderingObjectsFactory->createImageViewObject(this->_resultImage,
+                                                                                   VK_IMAGE_VIEW_TYPE_2D,
+                                                                                   VK_IMAGE_ASPECT_COLOR_BIT);
+
     this->_colorImage = this->_renderingObjectsFactory->createImageObject(extent.width, extent.height, 1, 0,
                                                                           this->_renderingDevice->getPhysicalDevice()->getColorFormat(),
                                                                           VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT |
@@ -296,15 +305,13 @@ void SceneRenderpass::createFramebuffers() {
             .addAttachment(this->_colorImageView->getHandle())
             .addAttachment(this->_colorImageView->getHandle())
             .addAttachment(this->_depthImageView->getHandle())
-            .addAttachment(nullptr);
+            .addAttachment(this->_resultImageView->getHandle());
 
     uint32_t count = this->_swapchain->getImageCount();
     this->_framebuffers.resize(count);
 
     for (uint32_t idx = 0; idx < count; idx++) {
-        this->_framebuffers[idx] = builder
-                .replaceAttachment(3, this->_swapchain->getSwapchainImageView(idx)->getHandle())
-                .build();
+        this->_framebuffers[idx] = builder.build();
     }
 }
 
@@ -315,8 +322,7 @@ void SceneRenderpass::destroyFramebuffers() {
     delete this->_colorImage;
     delete this->_depthImageView;
     delete this->_depthImage;
-}
 
-ImageViewObject *SceneRenderpass::getResultImageView(uint32_t imageIdx) {
-    return nullptr; // TODO
+    delete this->_resultImageView;
+    delete this->_resultImage;
 }

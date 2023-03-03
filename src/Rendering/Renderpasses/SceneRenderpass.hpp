@@ -35,6 +35,9 @@ private:
     ImageObject *_depthImage = nullptr;
     ImageViewObject *_depthImageView = nullptr;
 
+    ImageObject *_resultImage;
+    ImageViewObject *_resultImageView;
+
     VkPipeline _skyboxPipeline = VK_NULL_HANDLE;
     VkPipeline _scenePipeline = VK_NULL_HANDLE;
 
@@ -54,7 +57,7 @@ public:
     void createFramebuffers() override;
     void destroyFramebuffers() override;
 
-    ImageViewObject *getResultImageView(uint32_t imageIdx) override;
+    ImageViewObject *getResultImageView(uint32_t imageIdx) override { return this->_resultImageView; }
 };
 
 #endif // RENDERING_RENDERPASSES_SCENERENDERPASS_HPP

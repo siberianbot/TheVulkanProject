@@ -17,6 +17,9 @@ private:
     std::vector<VkVertexInputAttributeDescription> _attributes;
     uint32_t _subpassIdx = 0;
 
+    // TODO
+    bool _noMultisampling = false;
+
     VkShaderModule createShaderModule(const std::string &path);
 
 public:
@@ -29,6 +32,8 @@ public:
     PipelineBuilder &addBinding(uint32_t bindingIdx, uint32_t stride, VkVertexInputRate inputRate);
     PipelineBuilder &addAttribute(uint32_t bindingIdx, uint32_t locationIdx,
                                   uint32_t offset, VkFormat format);
+
+    PipelineBuilder &noMultisampling() { this->_noMultisampling = true; }
 
     PipelineBuilder &forSubpass(uint32_t subpass);
 

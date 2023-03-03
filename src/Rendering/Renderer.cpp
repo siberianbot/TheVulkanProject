@@ -14,6 +14,7 @@
 #include "src/Rendering/Objects/SemaphoreObject.hpp"
 #include "src/Rendering/Renderpasses/ImguiRenderpass.hpp"
 #include "src/Rendering/Renderpasses/SceneRenderpass.hpp"
+#include "src/Rendering/Renderpasses/SwapchainPresentRenderpass.hpp"
 
 Renderer::SyncObjectsGroup::~SyncObjectsGroup() {
     delete this->fence;
@@ -84,10 +85,19 @@ void Renderer::init() {
 }
 
 void Renderer::initRenderpasses() {
-    this->_renderpasses.push_back(new SceneRenderpass(this->_renderingDevice, this->_swapchain,
-                                                      this->_renderingObjectsFactory, this->_engine));
-    this->_renderpasses.push_back(new ImguiRenderpass(this->_renderingDevice, this->_swapchain,
-                                                      this->_instance, this->_physicalDevice, this->_commandExecutor));
+    RenderpassBase *sceneRenderpass = new SceneRenderpass(this->_renderingDevice, this->_swapchain,
+                                                          this->_renderingObjectsFactory, this->_engine);
+    RenderpassBase *imguiRenderpass = new ImguiRenderpass(this->_renderingDevice, this->_swapchain,
+                                                          this->_renderingObjectsFactory, this->_instance,
+                                                          this->_physicalDevice, this->_commandExecutor);
+    SwapchainPresentRenderpass *presentRenderpass = new SwapchainPresentRenderpass(this->_renderingDevice,
+                                                                                   this->_swapchain);
+    presentRenderpass->addInputRenderpass(sceneRenderpass);
+    presentRenderpass->addInputRenderpass(imguiRenderpass);
+
+    this->_renderpasses.push_back(sceneRenderpass);
+    this->_renderpasses.push_back(imguiRenderpass);
+    this->_renderpasses.push_back(presentRenderpass);
 
     for (RenderpassBase *renderpass: this->_renderpasses) {
         renderpass->initRenderpass();

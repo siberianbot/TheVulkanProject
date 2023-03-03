@@ -7,19 +7,23 @@
 #include "src/Rendering/RenderingDevice.hpp"
 #include "src/Rendering/Swapchain.hpp"
 #include "src/Rendering/CommandExecutor.hpp"
+#include "src/Rendering/RenderingObjectsFactory.hpp"
 #include "src/Rendering/Builders/FramebufferBuilder.hpp"
 #include "src/Rendering/Builders/RenderpassBuilder.hpp"
 #include "src/Rendering/Builders/AttachmentBuilder.hpp"
 #include "src/Rendering/Builders/SubpassBuilder.hpp"
+#include "src/Rendering/Objects/ImageObject.hpp"
 #include "src/Rendering/Objects/ImageViewObject.hpp"
 
-ImguiRenderpass::ImguiRenderpass(RenderingDevice *renderingDevice, Swapchain *swapchain, VkInstance instance,
+ImguiRenderpass::ImguiRenderpass(RenderingDevice *renderingDevice, Swapchain *swapchain,
+                                 RenderingObjectsFactory *renderingObjectsFactory, VkInstance instance,
                                  PhysicalDevice *physicalDevice, CommandExecutor *commandExecutor)
         : RenderpassBase(renderingDevice),
           _instance(instance),
           _physicalDevice(physicalDevice),
           _commandExecutor(commandExecutor),
-          _swapchain(swapchain) {
+          _swapchain(swapchain),
+          _renderingObjectsFactory(renderingObjectsFactory) {
     this->_descriptorPool = this->_renderingDevice->createDescriptorPool(
             {
                     {VK_DESCRIPTOR_TYPE_SAMPLER,                1000},
@@ -41,14 +45,18 @@ void ImguiRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D ren
     ImGui::Render();
     ImDrawData *drawData = ImGui::GetDrawData();
 
+    const std::array<VkClearValue, 1> clearValues = {
+            VkClearValue{.color = {{0, 0, 0, 0}}}
+    };
+
     const VkRenderPassBeginInfo renderPassBeginInfo = {
             .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
             .pNext = nullptr,
             .renderPass = this->_renderpass,
             .framebuffer = this->_framebuffers[imageIdx],
             .renderArea = renderArea,
-            .clearValueCount = 0,
-            .pClearValues = nullptr
+            .clearValueCount = static_cast<uint32_t>(clearValues.size()),
+            .pClearValues = clearValues.data()
     };
 
     vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
@@ -60,12 +68,11 @@ void ImguiRenderpass::initRenderpass() {
     this->_renderpass = RenderpassBuilder(this->_renderingDevice)
             .addAttachment([](AttachmentBuilder &builder) {
                 builder
-                        .load()
-                        .withInitialLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
+                        .clear()
                         .withFinalLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
             })
             .addSubpass([](SubpassBuilder &builder) {
-                builder.withColorAttachment(0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+                builder.withColorAttachment(0, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
             })
             .addSubpassDependency(VK_SUBPASS_EXTERNAL, 0, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
                                   VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0,
@@ -106,22 +113,36 @@ void ImguiRenderpass::destroyRenderpass() {
 }
 
 void ImguiRenderpass::createFramebuffers() {
+    VkExtent2D extent = this->_swapchain->getSwapchainExtent();
+
+    this->_resultImage = this->_renderingObjectsFactory->createImageObject(extent.width, extent.height, 1, 0,
+                                                                           this->_physicalDevice->getColorFormat(),
+                                                                           VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT |
+                                                                           VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT |
+                                                                           VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+                                                                           VK_SAMPLE_COUNT_1_BIT,
+                                                                           VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    this->_resultImageView = this->_renderingObjectsFactory->createImageViewObject(this->_resultImage,
+                                                                                   VK_IMAGE_VIEW_TYPE_2D,
+                                                                                   VK_IMAGE_ASPECT_COLOR_BIT);
+
     FramebufferBuilder builder = FramebufferBuilder(this->_renderingDevice, this->_renderpass)
-            .withExtent(this->_swapchain->getSwapchainExtent())
-            .addAttachment(nullptr);
+            .withExtent(extent)
+            .addAttachment(this->_resultImageView->getHandle());
 
     uint32_t count = this->_swapchain->getImageCount();
     this->_framebuffers.resize(count);
-    
+
     for (uint32_t idx = 0; idx < count; idx++) {
-        this->_framebuffers[idx] = builder
-                .replaceAttachment(0, this->_swapchain->getSwapchainImageView(idx)->getHandle())
-                .build();
+        this->_framebuffers[idx] = builder.build();
     }
 
     ImGui_ImplVulkan_SetMinImageCount(this->_swapchain->getMinImageCount());
 }
 
-ImageViewObject *ImguiRenderpass::getResultImageView(uint32_t imageIdx) {
-    return nullptr; // TODO
+void ImguiRenderpass::destroyFramebuffers() {
+    RenderpassBase::destroyFramebuffers();
+
+    delete this->_resultImageView;
+    delete this->_resultImage;
 }

@@ -112,8 +112,11 @@ RenderingLayoutObject *RenderingObjectsFactory::createRenderingLayoutObject() {
 
 DescriptorSetObject *RenderingObjectsFactory::createDescriptorSetObject(VkDescriptorPool descriptorPool,
                                                                         VkDescriptorSetLayout descriptorSetLayout) {
-    std::array<VkDescriptorSet, MAX_INFLIGHT_FRAMES> descriptorSets = this->_renderingDevice->allocateDescriptorSets(
-            descriptorPool, descriptorSetLayout);
+    std::vector<VkDescriptorSet> vector = this->_renderingDevice->allocateDescriptorSets(MAX_INFLIGHT_FRAMES,
+                                                                                         descriptorPool,
+                                                                                         descriptorSetLayout);
+    std::array<VkDescriptorSet, MAX_INFLIGHT_FRAMES> descriptorSets;
+    std::copy(vector.begin(), vector.end(), descriptorSets.begin());
 
     return new DescriptorSetObject(this->_renderingDevice, descriptorPool, descriptorSets);
 }

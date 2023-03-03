@@ -142,7 +142,8 @@ VkPipeline PipelineBuilder::build() {
             .depthClampEnable = VK_FALSE,
             .rasterizerDiscardEnable = VK_FALSE,
             .polygonMode = VK_POLYGON_MODE_FILL,
-            .cullMode = VK_CULL_MODE_BACK_BIT,
+            // TODO
+            .cullMode = VK_CULL_MODE_NONE, // VK_CULL_MODE_BACK_BIT,
             .frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
             .depthBiasEnable = VK_FALSE,
             .depthBiasConstantFactor = 0,
@@ -155,7 +156,10 @@ VkPipeline PipelineBuilder::build() {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
             .pNext = nullptr,
             .flags = 0,
-            .rasterizationSamples = this->_renderingDevice->getPhysicalDevice()->getMsaaSamples(),
+            // TODO
+            .rasterizationSamples = _noMultisampling
+                                    ? VK_SAMPLE_COUNT_1_BIT
+                                    : this->_renderingDevice->getPhysicalDevice()->getMsaaSamples(),
             .sampleShadingEnable = VK_FALSE,
             .minSampleShading = 0,
             .pSampleMask = nullptr,

@@ -40,6 +40,7 @@ src = [
     'src/Rendering/Renderpasses/RenderpassBase.cpp',
     'src/Rendering/Renderpasses/ImguiRenderpass.cpp',
     'src/Rendering/Renderpasses/SceneRenderpass.cpp',
+    'src/Rendering/Renderpasses/SwapchainPresentRenderpass.cpp',
 
     # Resources
     'src/Resources/Mesh.cpp',
@@ -57,6 +58,8 @@ src = [
 
 # shaders compilation
 shaders = [
+    'data/shaders/composition.frag',
+    'data/shaders/composition.vert',
     'data/shaders/default.frag',
     'data/shaders/default.vert',
     'data/shaders/skybox.frag'
