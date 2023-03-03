@@ -12,7 +12,7 @@ RenderpassBase::RenderpassBase(RenderingDevice *renderingDevice, Swapchain *swap
 }
 
 void RenderpassBase::destroyRenderpass() {
-    vkDestroyRenderPass(this->_renderingDevice->getHandle(), this->_renderpass, nullptr);
+    this->_renderingDevice->destroyRenderpass(this->_renderpass);
 }
 
 void RenderpassBase::createFramebuffers() {

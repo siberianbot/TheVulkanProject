@@ -70,20 +70,5 @@ RenderpassBuilder &RenderpassBuilder::addSubpassDependency(uint32_t srcSubpass, 
 }
 
 VkRenderPass RenderpassBuilder::build() {
-    VkRenderPassCreateInfo createInfo = {
-            .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
-            .pNext = nullptr,
-            .flags = 0,
-            .attachmentCount = static_cast<uint32_t>(this->_attachments.size()),
-            .pAttachments = this->_attachments.data(),
-            .subpassCount = static_cast<uint32_t>(this->_subpasses.size()),
-            .pSubpasses = this->_subpasses.data(),
-            .dependencyCount = static_cast<uint32_t>(this->_dependencies.size()),
-            .pDependencies = this->_dependencies.data()
-    };
-
-    VkRenderPass renderpass;
-    vkEnsure(vkCreateRenderPass(this->_renderingDevice->getHandle(), &createInfo, nullptr, &renderpass));
-
-    return renderpass;
+    return this->_renderingDevice->createRenderpass(this->_attachments, this->_subpasses, this->_dependencies);
 }

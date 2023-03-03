@@ -217,7 +217,7 @@ void RenderingDevice::destroySwapchain(VkSwapchainKHR swapchain) {
 }
 
 VkFramebuffer RenderingDevice::createFramebuffer(VkRenderPass renderpass, VkExtent2D extent,
-                                                 std::vector<VkImageView> attachments) {
+                                                 const std::vector<VkImageView> &attachments) {
     const VkFramebufferCreateInfo createInfo = {
             .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
             .pNext = nullptr,
@@ -329,7 +329,7 @@ void RenderingDevice::destroySampler(VkSampler sampler) {
     vkDestroySampler(this->_device, sampler, nullptr);
 }
 
-VkDescriptorPool RenderingDevice::createDescriptorPool(const std::vector<VkDescriptorPoolSize> sizes,
+VkDescriptorPool RenderingDevice::createDescriptorPool(const std::vector<VkDescriptorPoolSize> &sizes,
                                                        uint32_t maxSets) {
     VkDescriptorPoolCreateInfo createInfo = {
             .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
@@ -351,7 +351,7 @@ void RenderingDevice::destroyDescriptorPool(VkDescriptorPool descriptorPool) {
 }
 
 VkDescriptorSetLayout RenderingDevice::createDescriptorSetLayout(
-        const std::vector<VkDescriptorSetLayoutBinding> bindings) {
+        const std::vector<VkDescriptorSetLayoutBinding> &bindings) {
     VkDescriptorSetLayoutCreateInfo createInfo = {
             .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
             .pNext = nullptr,
@@ -370,8 +370,8 @@ void RenderingDevice::destroyDescriptorSetLayout(VkDescriptorSetLayout descripto
     vkDestroyDescriptorSetLayout(this->_device, descriptorSetLayout, nullptr);
 }
 
-VkPipelineLayout RenderingDevice::createPipelineLayout(const std::vector<VkDescriptorSetLayout> descriptorSetLayouts,
-                                                       const std::vector<VkPushConstantRange> pushConstants) {
+VkPipelineLayout RenderingDevice::createPipelineLayout(const std::vector<VkDescriptorSetLayout> &descriptorSetLayouts,
+                                                       const std::vector<VkPushConstantRange> &pushConstants) {
     VkPipelineLayoutCreateInfo createInfo = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
             .pNext = nullptr,
@@ -416,6 +416,98 @@ void RenderingDevice::freeDescriptorSets(VkDescriptorPool descriptorPool,
                                   descriptorSets.data()));
 }
 
-void RenderingDevice::updateDescriptorSets(std::vector<VkWriteDescriptorSet> writes) {
+void RenderingDevice::updateDescriptorSets(const std::vector<VkWriteDescriptorSet> &writes) {
     vkUpdateDescriptorSets(this->_device, static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
+}
+
+VkRenderPass RenderingDevice::createRenderpass(const std::vector<VkAttachmentDescription> &attachments,
+                                               const std::vector<VkSubpassDescription> &subpasses,
+                                               const std::vector<VkSubpassDependency> &dependencies) {
+    VkRenderPassCreateInfo createInfo = {
+            .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0,
+            .attachmentCount = static_cast<uint32_t>(attachments.size()),
+            .pAttachments = attachments.data(),
+            .subpassCount = static_cast<uint32_t>(subpasses.size()),
+            .pSubpasses = subpasses.data(),
+            .dependencyCount = static_cast<uint32_t>(dependencies.size()),
+            .pDependencies = dependencies.data()
+    };
+
+    VkRenderPass renderpass;
+    vkEnsure(vkCreateRenderPass(this->_device, &createInfo, nullptr, &renderpass));
+
+    return renderpass;
+}
+
+void RenderingDevice::destroyRenderpass(VkRenderPass renderpass) {
+    vkDestroyRenderPass(this->_device, renderpass, nullptr);
+}
+
+VkShaderModule RenderingDevice::createShaderModule(const std::vector<char> &content) {
+    VkShaderModuleCreateInfo createInfo = {
+            .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0,
+            .codeSize = content.size(),
+            .pCode = reinterpret_cast<const uint32_t *>(content.data())
+    };
+
+    VkShaderModule shaderModule;
+    vkEnsure(vkCreateShaderModule(this->_device, &createInfo, nullptr, &shaderModule));
+
+    return shaderModule;
+}
+
+void RenderingDevice::destroyShaderModule(VkShaderModule shaderModule) {
+    vkDestroyShaderModule(this->_device, shaderModule, nullptr);
+}
+
+VkPipeline RenderingDevice::createPipeline(const VkGraphicsPipelineCreateInfo *pipelineInfo) {
+    VkPipeline pipeline;
+    vkEnsure(vkCreateGraphicsPipelines(this->_device, VK_NULL_HANDLE, 1, pipelineInfo, nullptr, &pipeline));
+
+    return pipeline;
+}
+
+void RenderingDevice::destroyPipeline(VkPipeline pipeline) {
+    vkDestroyPipeline(this->_device, pipeline, nullptr);
+}
+
+VkCommandPool RenderingDevice::createCommandPool(uint32_t queueFamilyIdx) {
+    VkCommandPoolCreateInfo createInfo = {
+            .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+            .queueFamilyIndex = queueFamilyIdx
+    };
+
+    VkCommandPool commandPool;
+    vkEnsure(vkCreateCommandPool(this->_device, &createInfo, nullptr, &commandPool));
+
+    return commandPool;
+}
+
+void RenderingDevice::destroyCommandPool(VkCommandPool commandPool) {
+    vkDestroyCommandPool(this->_device, commandPool, nullptr);
+}
+
+std::vector<VkCommandBuffer> RenderingDevice::allocateCommandBuffers(VkCommandPool commandPool, uint32_t count) {
+    VkCommandBufferAllocateInfo allocateInfo = {
+            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+            .pNext = nullptr,
+            .commandPool = commandPool,
+            .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+            .commandBufferCount = count
+    };
+
+    std::vector<VkCommandBuffer> buffers(count);
+    vkEnsure(vkAllocateCommandBuffers(this->_device, &allocateInfo, buffers.data()));
+
+    return buffers;
+}
+
+void RenderingDevice::freeCommandBuffers(VkCommandPool commandPool, uint32_t count, const VkCommandBuffer *ptr) {
+    vkFreeCommandBuffers(this->_device, commandPool, count, ptr);
 }

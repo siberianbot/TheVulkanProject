@@ -19,19 +19,7 @@ VkShaderModule PipelineBuilder::createShaderModule(const std::string &path) {
     file.read(buffer.data(), size);
     file.close();
 
-    VkShaderModuleCreateInfo shaderModuleCreateInfo = {
-            .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-            .pNext = nullptr,
-            .flags = 0,
-            .codeSize = buffer.size(),
-            .pCode = reinterpret_cast<const uint32_t *>(buffer.data())
-    };
-
-    VkShaderModule shaderModule;
-    vkEnsure(vkCreateShaderModule(this->_renderingDevice->getHandle(), &shaderModuleCreateInfo, nullptr,
-                                  &shaderModule));
-
-    return shaderModule;
+    return this->_renderingDevice->createShaderModule(buffer);
 }
 
 PipelineBuilder::PipelineBuilder(RenderingDevice *renderingDevice,
@@ -44,11 +32,11 @@ PipelineBuilder::PipelineBuilder(RenderingDevice *renderingDevice,
 
 PipelineBuilder::~PipelineBuilder() {
     if (this->_vertexShader != VK_NULL_HANDLE) {
-        vkDestroyShaderModule(this->_renderingDevice->getHandle(), this->_vertexShader, nullptr);
+        this->_renderingDevice->destroyShaderModule(this->_vertexShader);
     }
 
     if (this->_fragmentShader != VK_NULL_HANDLE) {
-        vkDestroyShaderModule(this->_renderingDevice->getHandle(), this->_fragmentShader, nullptr);
+        this->_renderingDevice->destroyShaderModule(this->_fragmentShader);
     }
 }
 
@@ -250,9 +238,5 @@ VkPipeline PipelineBuilder::build() {
             .basePipelineIndex = 0
     };
 
-    VkPipeline pipeline;
-    vkEnsure(vkCreateGraphicsPipelines(this->_renderingDevice->getHandle(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr,
-                                       &pipeline));
-
-    return pipeline;
+    return this->_renderingDevice->createPipeline(&pipelineInfo);
 }

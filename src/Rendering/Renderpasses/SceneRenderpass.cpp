@@ -261,8 +261,8 @@ void SceneRenderpass::initRenderpass() {
 }
 
 void SceneRenderpass::destroyRenderpass() {
-    vkDestroyPipeline(this->_renderingDevice->getHandle(), this->_skyboxPipeline, nullptr);
-    vkDestroyPipeline(this->_renderingDevice->getHandle(), this->_scenePipeline, nullptr);
+    this->_renderingDevice->destroyPipeline(this->_skyboxPipeline);
+    this->_renderingDevice->destroyPipeline(this->_scenePipeline);
 
     RenderpassBase::destroyRenderpass();
 }

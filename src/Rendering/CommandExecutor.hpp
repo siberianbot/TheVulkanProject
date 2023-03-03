@@ -15,10 +15,9 @@ class SemaphoreObject;
 class CommandExecution {
 private:
     Command _command;
-    VkDevice _device;
+    RenderingDevice *_renderingDevice;
     VkCommandPool _commandPool;
     VkCommandBuffer _commandBuffer;
-    VkQueue _queue;
     bool _oneTimeBuffer;
 
     FenceObject *_fence = nullptr;
@@ -28,10 +27,9 @@ private:
 
 public:
     CommandExecution(Command command,
-                     VkDevice device,
+                     RenderingDevice *renderingDevice,
                      VkCommandPool commandPool,
                      VkCommandBuffer commandBuffer,
-                     VkQueue queue,
                      bool oneTimeBuffer);
     ~CommandExecution();
 

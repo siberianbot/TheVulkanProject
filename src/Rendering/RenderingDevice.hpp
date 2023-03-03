@@ -21,7 +21,7 @@ public:
                     VkQueue graphicsQueue, VkQueue presentQueue);
     ~RenderingDevice();
 
-    [[deprecated]] [[nodiscard]] VkDevice getHandle() const { return this->_device; }
+    [[nodiscard]] VkDevice getHandle() const { return this->_device; }
 
     [[nodiscard]] PhysicalDevice *getPhysicalDevice() const { return this->_physicalDevice; }
 
@@ -56,7 +56,8 @@ public:
                                                          VkSemaphore signalSemaphore);
     void destroySwapchain(VkSwapchainKHR swapchain);
 
-    VkFramebuffer createFramebuffer(VkRenderPass renderpass, VkExtent2D extent, std::vector<VkImageView> attachments);
+    VkFramebuffer createFramebuffer(VkRenderPass renderpass, VkExtent2D extent,
+                                    const std::vector<VkImageView> &attachments);
     void destroyFramebuffer(VkFramebuffer framebuffer);
 
     VkFence createFence(bool signaled);
@@ -70,22 +71,38 @@ public:
     VkSampler createSampler();
     void destroySampler(VkSampler sampler);
 
-    VkDescriptorPool createDescriptorPool(const std::vector<VkDescriptorPoolSize> sizes, uint32_t maxSets);
+    VkDescriptorPool createDescriptorPool(const std::vector<VkDescriptorPoolSize> &sizes, uint32_t maxSets);
     void destroyDescriptorPool(VkDescriptorPool descriptorPool);
 
-    VkDescriptorSetLayout createDescriptorSetLayout(const std::vector<VkDescriptorSetLayoutBinding> bindings);
+    VkDescriptorSetLayout createDescriptorSetLayout(const std::vector<VkDescriptorSetLayoutBinding> &bindings);
     void destroyDescriptorSetLayout(VkDescriptorSetLayout descriptorSetLayout);
 
-    VkPipelineLayout createPipelineLayout(const std::vector<VkDescriptorSetLayout> descriptorSetLayouts,
-                                          const std::vector<VkPushConstantRange> pushConstants);
+    VkPipelineLayout createPipelineLayout(const std::vector<VkDescriptorSetLayout> &descriptorSetLayouts,
+                                          const std::vector<VkPushConstantRange> &pushConstants);
     void destroyPipelineLayout(VkPipelineLayout pipelineLayout);
 
     std::array<VkDescriptorSet, MAX_INFLIGHT_FRAMES> allocateDescriptorSets(VkDescriptorPool descriptorPool,
                                                                             VkDescriptorSetLayout descriptorSetLayout);
     void freeDescriptorSets(VkDescriptorPool descriptorPool,
                             const std::array<VkDescriptorSet, MAX_INFLIGHT_FRAMES> &descriptorSets);
+    void updateDescriptorSets(const std::vector<VkWriteDescriptorSet> &writes);
 
-    void updateDescriptorSets(std::vector<VkWriteDescriptorSet> writes);
+    VkRenderPass createRenderpass(const std::vector<VkAttachmentDescription> &attachments,
+                                  const std::vector<VkSubpassDescription> &subpasses,
+                                  const std::vector<VkSubpassDependency> &dependencies);
+    void destroyRenderpass(VkRenderPass renderpass);
+
+    VkShaderModule createShaderModule(const std::vector<char> &content);
+    void destroyShaderModule(VkShaderModule shaderModule);
+
+    VkPipeline createPipeline(const VkGraphicsPipelineCreateInfo *pipelineInfo);
+    void destroyPipeline(VkPipeline pipeline);
+
+    VkCommandPool createCommandPool(uint32_t queueFamilyIdx);
+    void destroyCommandPool(VkCommandPool commandPool);
+
+    std::vector<VkCommandBuffer> allocateCommandBuffers(VkCommandPool commandPool, uint32_t count);
+    void freeCommandBuffers(VkCommandPool commandPool, uint32_t count, const VkCommandBuffer *ptr);
 };
 
 #endif // RENDERING_RENDERINGDEVICE_HPP
