@@ -30,7 +30,7 @@ glm::mat4 Camera::getProjectionMatrix(uint32_t width, uint32_t height) {
 glm::mat4 Camera::getViewMatrix(bool ignorePosition) {
     glm::vec3 forward = this->getForwardVector();
     glm::vec3 up = glm::vec3(0, 1, 0);
-    
+
     if (ignorePosition) {
         return glm::lookAt(glm::vec3(0), forward, up);
     } else {

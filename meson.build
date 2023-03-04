@@ -2,6 +2,8 @@ project('TheVulkanProject', 'cpp',
   version : '0.1',
   default_options : ['warning_level=3', 'cpp_std=c++20'])
 
+add_project_arguments('-DGLM_FORCE_LEFT_HANDED', language: 'cpp')
+
 # turn on VSync (see PhysicalDevice::getPreferredPresentMode)
 # add_project_arguments('-DVSYNC', language: 'cpp')
 

@@ -154,6 +154,8 @@ void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D ren
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout,
                                 0, 1, &sceneDataDescriptorSet, 0, nullptr);
 
+        glm::mat4 view = this->_engine->camera().getViewMatrix(false);
+
         uint32_t idx = 0;
         for (Object *object: this->_engine->scene()->objects()) {
             RenderData renderData = getRenderData(object);
@@ -161,7 +163,7 @@ void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D ren
             VkDescriptorSet descriptorSet = renderData.descriptorSet->getDescriptorSet(frameIdx);
 
             MeshConstants constants = {
-                    .matrix = projection * this->_engine->camera().getViewMatrix(false) * glm::mat4(1)
+                    .matrix = projection * view * object->getModelMatrix()
             };
             vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshConstants),
                                &constants);

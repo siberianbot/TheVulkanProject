@@ -17,9 +17,9 @@
 Engine::Engine()
         : renderer(this),
           _debugUI(new DebugUI(this)) {
-    this->_camera.position() = glm::vec3(2, 2, -2);
-    this->_camera.yaw() = glm::radians(135.0f);
-    this->_camera.pitch() = glm::radians(50.0f);
+    this->_camera.position() = glm::vec3(2, 2, 2);
+    this->_camera.yaw() = glm::radians(-135.0f);
+    this->_camera.pitch() = glm::radians(45.0f);
 }
 
 void Engine::init() {
@@ -58,15 +58,15 @@ void Engine::init() {
         this->_camera.position() -= 5 * delta * this->_camera.getForwardVector();
     });
     this->input.addPressHandler(GLFW_KEY_A, [this](float delta) {
-        this->_camera.position() -= 5 * delta * this->_camera.getSideVector();
+        this->_camera.position() += 5 * delta * this->_camera.getSideVector();
     });
     this->input.addPressHandler(GLFW_KEY_D, [this](float delta) {
-        this->_camera.position() += 5 * delta * this->_camera.getSideVector();
+        this->_camera.position() -= 5 * delta * this->_camera.getSideVector();
     });
 
     this->mouseInput.addHandler([this](double dx, double dy) {
         const float sensitivity = 0.0005f;
-        this->_camera.yaw() -= sensitivity * (float) dx;
+        this->_camera.yaw() += sensitivity * (float) dx;
         this->_camera.pitch() += sensitivity * (float) dy;
 
         static float pi = glm::radians(180.0f);
@@ -117,6 +117,9 @@ void Engine::init() {
     this->_scene = new Scene(new Skybox(&this->_skyboxMeshResource, &this->_skyboxTextureResource));
 
     this->renderer.initRenderpasses();
+
+    this->_scene->addObject(new Object(glm::vec3(0), glm::vec3(0), glm::vec3(1, 1, 0.5f), &this->_cubeMeshResource,
+                                       &this->_cubeTextureResource));
 }
 
 void Engine::cleanup() {
