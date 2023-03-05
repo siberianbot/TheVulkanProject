@@ -58,15 +58,15 @@ void Engine::init() {
         this->_camera.position() -= 5 * delta * this->_camera.getForwardVector();
     });
     this->input.addPressHandler(GLFW_KEY_A, [this](float delta) {
-        this->_camera.position() += 5 * delta * this->_camera.getSideVector();
+        this->_camera.position() -= 5 * delta * this->_camera.getSideVector();
     });
     this->input.addPressHandler(GLFW_KEY_D, [this](float delta) {
-        this->_camera.position() -= 5 * delta * this->_camera.getSideVector();
+        this->_camera.position() += 5 * delta * this->_camera.getSideVector();
     });
 
     this->mouseInput.addHandler([this](double dx, double dy) {
         const float sensitivity = 0.0005f;
-        this->_camera.yaw() += sensitivity * (float) dx;
+        this->_camera.yaw() -= sensitivity * (float) dx;
         this->_camera.pitch() += sensitivity * (float) dy;
 
         static float pi = glm::radians(180.0f);
@@ -85,6 +85,13 @@ void Engine::init() {
             this->_camera.pitch() = pi - eps;
         }
     });
+
+    Texture defaultTexture = Texture::fromFile("data/textures/default.png");
+    this->_defaultTextureResource = this->renderer.getRenderingResourcesManager()->loadTextureArray(
+            {
+                    &defaultTexture,
+                    &defaultTexture
+            });
 
     Texture cubeTexture = Texture::fromFile("data/textures/cube.png");
     Texture cubeSpecularTexture = Texture::fromFile("data/textures/cube_specular.png");
@@ -114,12 +121,31 @@ void Engine::init() {
                     &skyboxLeftTexture,
             });
 
+    Mesh suzanneMesh = Mesh::fromFile("data/models/suzanne.obj");
+    this->_suzanneMeshResource = this->renderer.getRenderingResourcesManager()->loadMesh(&suzanneMesh);
+
+    Mesh vikingRoomMesh = Mesh::fromFile("data/models/viking_room.obj");
+    this->_vikingRoomMeshResource = this->renderer.getRenderingResourcesManager()->loadMesh(&vikingRoomMesh);
+
+    Texture vikingRoomTexture = Texture::fromFile("data/textures/viking_room.png");
+    this->_vikingRoomTextureResource = this->renderer.getRenderingResourcesManager()->loadTextureArray(
+            {
+                    &vikingRoomTexture,
+                    &vikingRoomTexture,
+            });
+
     this->_scene = new Scene(new Skybox(&this->_skyboxMeshResource, &this->_skyboxTextureResource));
 
     this->renderer.initRenderpasses();
 
-    this->_scene->addObject(new Object(glm::vec3(0), glm::vec3(0), glm::vec3(1, 1, 0.5f), &this->_cubeMeshResource,
+    this->_scene->addObject(new Object(glm::vec3(0, 0, 2), glm::vec3(0), glm::vec3(1), &this->_vikingRoomMeshResource,
+                                       &this->_vikingRoomTextureResource));
+
+    this->_scene->addObject(new Object(glm::vec3(0), glm::vec3(0), glm::vec3(0.5f), &this->_cubeMeshResource,
                                        &this->_cubeTextureResource));
+
+    this->_scene->addObject(new Object(glm::vec3(0, 0, -2), glm::vec3(0), glm::vec3(0.5f), &this->_suzanneMeshResource,
+                                       &this->_defaultTextureResource));
 }
 
 void Engine::cleanup() {
@@ -127,10 +153,14 @@ void Engine::cleanup() {
 
     delete this->_scene;
 
+    this->renderer.getRenderingResourcesManager()->freeMesh(this->_vikingRoomMeshResource);
+    this->renderer.getRenderingResourcesManager()->freeTexture(this->_vikingRoomTextureResource);
+    this->renderer.getRenderingResourcesManager()->freeMesh(this->_suzanneMeshResource);
     this->renderer.getRenderingResourcesManager()->freeMesh(this->_cubeMeshResource);
     this->renderer.getRenderingResourcesManager()->freeTexture(this->_cubeTextureResource);
     this->renderer.getRenderingResourcesManager()->freeMesh(this->_skyboxMeshResource);
     this->renderer.getRenderingResourcesManager()->freeTexture(this->_skyboxTextureResource);
+    this->renderer.getRenderingResourcesManager()->freeTexture(this->_defaultTextureResource);
 
     this->renderer.cleanup();
 

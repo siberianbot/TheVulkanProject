@@ -1,6 +1,9 @@
 #ifndef RENDERING_BUILDERS_PIPELINEBUILDER_HPP
 #define RENDERING_BUILDERS_PIPELINEBUILDER_HPP
 
+#include <optional>
+#include <vector>
+
 #include <vulkan/vulkan.hpp>
 
 class RenderingDevice;
@@ -15,10 +18,9 @@ private:
     VkShaderModule _fragmentShader = VK_NULL_HANDLE;
     std::vector<VkVertexInputBindingDescription> _bindings;
     std::vector<VkVertexInputAttributeDescription> _attributes;
+    std::optional<VkCullModeFlags> _cullMode;
+    std::optional<VkSampleCountFlagBits> _rasterizationSamples;
     uint32_t _subpassIdx = 0;
-
-    // TODO
-    bool _noMultisampling = false;
 
     VkShaderModule createShaderModule(const std::string &path);
 
@@ -33,7 +35,8 @@ public:
     PipelineBuilder &addAttribute(uint32_t bindingIdx, uint32_t locationIdx,
                                   uint32_t offset, VkFormat format);
 
-    PipelineBuilder &noMultisampling() { this->_noMultisampling = true; }
+    PipelineBuilder &withCullMode(VkCullModeFlags cullMode);
+    PipelineBuilder &withRasterizationSamples(VkSampleCountFlagBits samples);
 
     PipelineBuilder &forSubpass(uint32_t subpass);
 

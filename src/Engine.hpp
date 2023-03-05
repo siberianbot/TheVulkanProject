@@ -27,8 +27,12 @@ private:
 
     MeshRenderingResource _skyboxMeshResource;
     TextureRenderingResource _skyboxTextureResource;
+    TextureRenderingResource _defaultTextureResource;
     MeshRenderingResource _cubeMeshResource;
     TextureRenderingResource _cubeTextureResource;
+    MeshRenderingResource _suzanneMeshResource;
+    MeshRenderingResource _vikingRoomMeshResource;
+    TextureRenderingResource _vikingRoomTextureResource;
 
     int _windowWidth = 1280;
     int _windowHeight = 720;
@@ -62,8 +66,9 @@ public:
     uint32_t windowWidth() { return this->_windowWidth; }
     uint32_t windowHeight() { return this->_windowHeight; }
     float delta() { return this->_delta; }
-    MeshRenderingResource *meshResource() { return &this->_cubeMeshResource; }
-    TextureRenderingResource *textureResource() { return &this->_cubeTextureResource; }
+    MeshRenderingResource *cubeMeshResource() { return &this->_cubeMeshResource; }
+    TextureRenderingResource *cubeTextureResource() { return &this->_cubeTextureResource; }
+    TextureRenderingResource *defaultTextureResource() { return &this->_defaultTextureResource; }
 
     void requestClose();
 };

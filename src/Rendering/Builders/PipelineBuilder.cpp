@@ -4,7 +4,6 @@
 
 #include "src/Rendering/Common.hpp"
 #include "src/Rendering/RenderingDevice.hpp"
-#include "src/Rendering/PhysicalDevice.hpp"
 
 VkShaderModule PipelineBuilder::createShaderModule(const std::string &path) {
     std::ifstream file(path, std::ios::ate | std::ios::binary);
@@ -71,6 +70,18 @@ PipelineBuilder &PipelineBuilder::addAttribute(uint32_t bindingIdx, uint32_t loc
             .format = format,
             .offset = offset
     });
+
+    return *this;
+}
+
+PipelineBuilder &PipelineBuilder::withCullMode(VkCullModeFlags cullMode) {
+    this->_cullMode = cullMode;
+
+    return *this;
+}
+
+PipelineBuilder &PipelineBuilder::withRasterizationSamples(VkSampleCountFlagBits samples) {
+    this->_rasterizationSamples = samples;
 
     return *this;
 }
@@ -142,8 +153,7 @@ VkPipeline PipelineBuilder::build() {
             .depthClampEnable = VK_FALSE,
             .rasterizerDiscardEnable = VK_FALSE,
             .polygonMode = VK_POLYGON_MODE_FILL,
-            // TODO
-            .cullMode = VK_CULL_MODE_NONE, // VK_CULL_MODE_BACK_BIT,
+            .cullMode = this->_cullMode.value_or(VK_CULL_MODE_BACK_BIT),
             .frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
             .depthBiasEnable = VK_FALSE,
             .depthBiasConstantFactor = 0,
@@ -156,10 +166,7 @@ VkPipeline PipelineBuilder::build() {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
             .pNext = nullptr,
             .flags = 0,
-            // TODO
-            .rasterizationSamples = _noMultisampling
-                                    ? VK_SAMPLE_COUNT_1_BIT
-                                    : this->_renderingDevice->getPhysicalDevice()->getMsaaSamples(),
+            .rasterizationSamples = this->_rasterizationSamples.value_or(VK_SAMPLE_COUNT_1_BIT),
             .sampleShadingEnable = VK_FALSE,
             .minSampleShading = 0,
             .pSampleMask = nullptr,

@@ -42,7 +42,7 @@ void DebugUI::renderObjectsWindow() {
     if (ImGui::Begin("Objects")) {
         if (ImGui::Button("add")) {
             Object *object = new Object(glm::vec3(0), glm::vec3(0), glm::vec3(1),
-                                        this->_engine->meshResource(), this->_engine->textureResource());
+                                        this->_engine->cubeMeshResource(), this->_engine->cubeTextureResource());
 
             this->_engine->scene()->addObject(object);
             this->_selectedObject = std::nullopt;

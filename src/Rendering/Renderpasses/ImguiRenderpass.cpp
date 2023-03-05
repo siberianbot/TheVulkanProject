@@ -72,7 +72,7 @@ void ImguiRenderpass::initRenderpass() {
                         .withFinalLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
             })
             .addSubpass([](SubpassBuilder &builder) {
-                builder.withColorAttachment(0, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+                builder.withColorAttachment(0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
             })
             .addSubpassDependency(VK_SUBPASS_EXTERNAL, 0, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
                                   VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0,

@@ -27,7 +27,11 @@ SceneRenderpass::RenderData SceneRenderpass::getRenderData(Object *object) {
         return it->second;
     }
 
-    ImageViewObject *textureView = this->_renderingObjectsFactory->createImageViewObject(object->texture()->texture,
+    ImageObject *targetImage = object->texture() == nullptr
+                               ? this->_engine->defaultTextureResource()->texture
+                               : object->texture()->texture;
+
+    ImageViewObject *textureView = this->_renderingObjectsFactory->createImageViewObject(targetImage,
                                                                                          VK_IMAGE_VIEW_TYPE_2D_ARRAY,
                                                                                          VK_IMAGE_ASPECT_COLOR_BIT);
 
@@ -238,6 +242,8 @@ void SceneRenderpass::initRenderpass() {
                                   VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT)
             .build();
 
+    VkSampleCountFlagBits samples = this->_renderingDevice->getPhysicalDevice()->getMsaaSamples();
+
     this->_skyboxPipeline = PipelineBuilder(this->_renderingDevice, this->_renderpass,
                                             this->_renderingLayoutObject->getPipelineLayout())
             .addVertexShader(DEFAULT_VERTEX_SHADER)
@@ -246,6 +252,7 @@ void SceneRenderpass::initRenderpass() {
             .addAttribute(0, 0, offsetof(Vertex, pos), VK_FORMAT_R32G32B32_SFLOAT)
             .addAttribute(0, 1, offsetof(Vertex, color), VK_FORMAT_R32G32B32_SFLOAT)
             .addAttribute(0, 2, offsetof(Vertex, uv), VK_FORMAT_R32G32_SFLOAT)
+            .withRasterizationSamples(samples)
             .forSubpass(0)
             .build();
 
@@ -257,6 +264,7 @@ void SceneRenderpass::initRenderpass() {
             .addAttribute(0, 0, offsetof(Vertex, pos), VK_FORMAT_R32G32B32_SFLOAT)
             .addAttribute(0, 1, offsetof(Vertex, color), VK_FORMAT_R32G32B32_SFLOAT)
             .addAttribute(0, 2, offsetof(Vertex, uv), VK_FORMAT_R32G32_SFLOAT)
+            .withRasterizationSamples(samples)
             .forSubpass(1)
             .build();
 }

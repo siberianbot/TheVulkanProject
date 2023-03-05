@@ -84,7 +84,7 @@ void SwapchainPresentRenderpass::initRenderpass() {
                 builder.withColorAttachment(0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 
                 for (uint32_t passIdx = 0; passIdx < this->_inputRenderpasses.size(); passIdx++) {
-                    builder.withInputAttachment(passIdx + 1, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+                    builder.withInputAttachment(passIdx + 1, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
                 }
             })
             .addSubpassDependency(VK_SUBPASS_EXTERNAL, 0,
@@ -126,7 +126,7 @@ void SwapchainPresentRenderpass::initRenderpass() {
     this->_pipeline = PipelineBuilder(this->_renderingDevice, this->_renderpass, this->_pipelineLayout)
             .addVertexShader("data/shaders/composition.vert.spv")
             .addFragmentShader("data/shaders/composition.frag.spv")
-            .noMultisampling()
+            .withCullMode(VK_CULL_MODE_FRONT_BIT)
             .build();
 }
 
@@ -167,7 +167,7 @@ void SwapchainPresentRenderpass::createFramebuffers() {
             VkDescriptorImageInfo imageInfo = {
                     .sampler = VK_NULL_HANDLE,
                     .imageView = this->_inputRenderpasses[passIdx]->getResultImageView(imageIdx)->getHandle(),
-                    .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+                    .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
             };
 
             std::vector<VkWriteDescriptorSet> writes = {
