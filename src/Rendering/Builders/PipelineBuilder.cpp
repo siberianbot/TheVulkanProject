@@ -86,6 +86,12 @@ PipelineBuilder &PipelineBuilder::withRasterizationSamples(VkSampleCountFlagBits
     return *this;
 }
 
+PipelineBuilder &PipelineBuilder::withColorBlendAttachmentCount(uint32_t count) {
+    this->_colorBlendAttachmentCount = count;
+
+    return *this;
+}
+
 PipelineBuilder &PipelineBuilder::forSubpass(uint32_t subpass) {
     this->_subpassIdx = subpass;
 
@@ -203,14 +209,18 @@ VkPipeline PipelineBuilder::build() {
                               VK_COLOR_COMPONENT_A_BIT
     };
 
+    std::vector<VkPipelineColorBlendAttachmentState> colorBlendAttachments(
+            this->_colorBlendAttachmentCount.value_or(1),
+            colorBlendAttachment);
+
     const VkPipelineColorBlendStateCreateInfo colorBlending = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
             .pNext = nullptr,
             .flags = 0,
             .logicOpEnable = VK_FALSE,
             .logicOp = VK_LOGIC_OP_COPY,
-            .attachmentCount = 1,
-            .pAttachments = &colorBlendAttachment,
+            .attachmentCount = static_cast<uint32_t>(colorBlendAttachments.size()),
+            .pAttachments = colorBlendAttachments.data(),
             .blendConstants = {0, 0, 0, 0}
     };
 

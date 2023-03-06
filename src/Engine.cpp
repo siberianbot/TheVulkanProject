@@ -128,10 +128,11 @@ void Engine::init() {
     this->_vikingRoomMeshResource = this->renderer.getRenderingResourcesManager()->loadMesh(&vikingRoomMesh);
 
     Texture vikingRoomTexture = Texture::fromFile("data/textures/viking_room.png");
+    Texture vikingRoomSpecularTexture = Texture::fromFile("data/textures/viking_room_specular.png");
     this->_vikingRoomTextureResource = this->renderer.getRenderingResourcesManager()->loadTextureArray(
             {
                     &vikingRoomTexture,
-                    &vikingRoomTexture,
+                    &vikingRoomSpecularTexture,
             });
 
     this->_scene = new Scene(new Skybox(&this->_skyboxMeshResource, &this->_skyboxTextureResource));

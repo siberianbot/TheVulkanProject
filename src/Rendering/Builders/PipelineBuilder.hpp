@@ -20,6 +20,7 @@ private:
     std::vector<VkVertexInputAttributeDescription> _attributes;
     std::optional<VkCullModeFlags> _cullMode;
     std::optional<VkSampleCountFlagBits> _rasterizationSamples;
+    std::optional<uint32_t> _colorBlendAttachmentCount;
     uint32_t _subpassIdx = 0;
 
     VkShaderModule createShaderModule(const std::string &path);
@@ -37,6 +38,7 @@ public:
 
     PipelineBuilder &withCullMode(VkCullModeFlags cullMode);
     PipelineBuilder &withRasterizationSamples(VkSampleCountFlagBits samples);
+    PipelineBuilder &withColorBlendAttachmentCount(uint32_t count);
 
     PipelineBuilder &forSubpass(uint32_t subpass);
 

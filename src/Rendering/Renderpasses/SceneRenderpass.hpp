@@ -30,16 +30,33 @@ private:
     ImageViewObject *_skyboxTextureView;
     DescriptorSetObject *_skyboxDescriptorSet;
 
-    ImageObject *_colorImage = nullptr;
-    ImageViewObject *_colorImageView = nullptr;
-    ImageObject *_depthImage = nullptr;
-    ImageViewObject *_depthImageView = nullptr;
+    ImageObject *_skyboxImage;
+    ImageViewObject *_skyboxImageView;
+
+    ImageObject *_albedoImage;
+    ImageViewObject *_albedoImageView;
+
+    ImageObject *_positionImage;
+    ImageViewObject *_positionImageView;
+
+    ImageObject *_normalImage;
+    ImageViewObject *_normalImageView;
+
+    ImageObject *_specularImage;
+    ImageViewObject *_specularImageView;
+
+    ImageObject *_depthImage;
+    ImageViewObject *_depthImageView;
+
+    ImageObject *_compositionImage;
+    ImageViewObject *_compositionImageView;
 
     ImageObject *_resultImage;
     ImageViewObject *_resultImageView;
 
     VkPipeline _skyboxPipeline = VK_NULL_HANDLE;
     VkPipeline _scenePipeline = VK_NULL_HANDLE;
+    VkPipeline _compositionPipeline;
 
     RenderData getRenderData(Object *object);
 

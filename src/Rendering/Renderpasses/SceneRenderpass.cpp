@@ -88,11 +88,15 @@ void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D ren
     VkDescriptorSet sceneDataDescriptorSet = this->_renderingLayoutObject->getSceneDataDescriptorSetObject()
             ->getDescriptorSet(frameIdx);
 
-    const std::array<VkClearValue, 4> clearValues = {
-            VkClearValue{.color = {{0, 0, 0, 1}}},
-            VkClearValue{.color = {{0, 0, 0, 1}}},
-            VkClearValue{.depthStencil = {1, 0}},
-            VkClearValue{.color = {{0, 0, 0, 1}}}
+    const std::array<VkClearValue, 8> clearValues = {
+            VkClearValue{.color = {{0, 0, 0, 0}}}, // 0
+            VkClearValue{.color = {{0, 0, 0, 0}}}, // 1
+            VkClearValue{.color = {{0, 0, 0, 0}}}, // 2
+            VkClearValue{.color = {{0, 0, 0, 0}}}, // 3
+            VkClearValue{.color = {{0, 0, 0, 0}}}, // 4
+            VkClearValue{.depthStencil = {1, 0}},  // 5
+            VkClearValue{.color = {{0, 0, 0, 0}}}, // 6
+            VkClearValue{.color = {{0, 0, 0, 0}}}  // 7
     };
 
     const VkRenderPassBeginInfo renderPassBeginInfo = {
@@ -190,45 +194,102 @@ void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D ren
         }
     }
 
+    vkCmdNextSubpass(commandBuffer, VK_SUBPASS_CONTENTS_INLINE);
+
+    {
+        // TODO
+    }
+
     vkCmdEndRenderPass(commandBuffer);
 }
 
 void SceneRenderpass::initRenderpass() {
+    VkFormat format = this->_renderingDevice->getPhysicalDevice()->getColorFormat();
+    VkSampleCountFlagBits samples = this->_renderingDevice->getPhysicalDevice()->getMsaaSamples();
     this->_renderpass = RenderpassBuilder(this->_renderingDevice)
-            .addAttachment([this](AttachmentBuilder &builder) {
+            .addAttachment([&](AttachmentBuilder &builder) {
+                // 0: skybox
                 builder
                         .clear()
-                        .withFormat(this->_renderingDevice->getPhysicalDevice()->getColorFormat())
-                        .withSamples(this->_renderingDevice->getPhysicalDevice()->getMsaaSamples())
+                        .withFormat(format)
+                        .withSamples(samples)
                         .withFinalLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
             })
-            .addAttachment([this](AttachmentBuilder &builder) {
+            .addAttachment([&](AttachmentBuilder &builder) {
+                // 1: scene albedo
                 builder
-                        .load()
-                        .withFormat(this->_renderingDevice->getPhysicalDevice()->getColorFormat())
-                        .withSamples(this->_renderingDevice->getPhysicalDevice()->getMsaaSamples())
-                        .withInitialLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
+                        .clear()
+                        .withFormat(format)
+                        .withSamples(samples)
                         .withFinalLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
             })
-            .addAttachment([this](AttachmentBuilder &builder) {
+            .addAttachment([&](AttachmentBuilder &builder) {
+                // 2: scene position
+                builder
+                        .clear()
+                        .withFormat(format)
+                        .withSamples(samples)
+                        .withFinalLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+            })
+            .addAttachment([&](AttachmentBuilder &builder) {
+                // 3: scene normals
+                builder
+                        .clear()
+                        .withFormat(format)
+                        .withSamples(samples)
+                        .withFinalLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+            })
+            .addAttachment([&](AttachmentBuilder &builder) {
+                // 4: scene specular
+                builder
+                        .clear()
+                        .withFormat(format)
+                        .withSamples(samples)
+                        .withFinalLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+            })
+            .addAttachment([&](AttachmentBuilder &builder) {
+                // 5: scene depth
                 builder
                         .clear()
                         .withFormat(this->_renderingDevice->getPhysicalDevice()->getDepthFormat())
-                        .withSamples(this->_renderingDevice->getPhysicalDevice()->getMsaaSamples())
+                        .withSamples(samples)
                         .withFinalLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
             })
-            .addAttachment([](AttachmentBuilder &builder) {
+            .addAttachment([&](AttachmentBuilder &builder) {
+                // 6: composition
                 builder
                         .clear()
+                        .withFormat(format)
+                        .withSamples(samples)
+                        .withFinalLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+            })
+            .addAttachment([&](AttachmentBuilder &builder) {
+                // 7: resolve
+                builder
+                        .clear()
+                        .withFormat(format)
                         .withFinalLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
             })
             .addSubpass([](SubpassBuilder &builder) {
                 builder.withColorAttachment(0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
             })
             .addSubpass([](SubpassBuilder &builder) {
-                builder.withColorAttachment(1, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-                builder.withDepthAttachment(2, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
-                builder.withResolveAttachment(3, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+                builder
+                        .withColorAttachment(1, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
+                        .withColorAttachment(2, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
+                        .withColorAttachment(3, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
+                        .withColorAttachment(4, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
+                        .withDepthAttachment(5, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+            })
+            .addSubpass([](SubpassBuilder &builder) {
+                builder.withInputAttachment(0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
+                        .withInputAttachment(1, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
+                        .withInputAttachment(2, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
+                        .withInputAttachment(3, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
+                        .withInputAttachment(4, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
+//                        .withInputAttachment(5, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
+                        .withColorAttachment(6, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
+                        .withResolveAttachment(7, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
             })
             .addSubpassDependency(VK_SUBPASS_EXTERNAL, 0,
                                   VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
@@ -240,9 +301,12 @@ void SceneRenderpass::initRenderpass() {
                                   VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
                                   VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
                                   VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT)
+            .addSubpassDependency(1, 2,
+                                  VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                                  VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                                  VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                                  VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT)
             .build();
-
-    VkSampleCountFlagBits samples = this->_renderingDevice->getPhysicalDevice()->getMsaaSamples();
 
     this->_skyboxPipeline = PipelineBuilder(this->_renderingDevice, this->_renderpass,
                                             this->_renderingLayoutObject->getPipelineLayout())
@@ -250,8 +314,9 @@ void SceneRenderpass::initRenderpass() {
             .addFragmentShader(SKYBOX_FRAGMENT_SHADER)
             .addBinding(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
             .addAttribute(0, 0, offsetof(Vertex, pos), VK_FORMAT_R32G32B32_SFLOAT)
-            .addAttribute(0, 1, offsetof(Vertex, color), VK_FORMAT_R32G32B32_SFLOAT)
-            .addAttribute(0, 2, offsetof(Vertex, uv), VK_FORMAT_R32G32_SFLOAT)
+            .addAttribute(0, 1, offsetof(Vertex, normal), VK_FORMAT_R32G32B32_SFLOAT)
+            .addAttribute(0, 2, offsetof(Vertex, color), VK_FORMAT_R32G32B32_SFLOAT)
+            .addAttribute(0, 3, offsetof(Vertex, uv), VK_FORMAT_R32G32_SFLOAT)
             .withRasterizationSamples(samples)
             .forSubpass(0)
             .build();
@@ -262,11 +327,21 @@ void SceneRenderpass::initRenderpass() {
             .addFragmentShader(DEFAULT_FRAGMENT_SHADER)
             .addBinding(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
             .addAttribute(0, 0, offsetof(Vertex, pos), VK_FORMAT_R32G32B32_SFLOAT)
-            .addAttribute(0, 1, offsetof(Vertex, color), VK_FORMAT_R32G32B32_SFLOAT)
-            .addAttribute(0, 2, offsetof(Vertex, uv), VK_FORMAT_R32G32_SFLOAT)
+            .addAttribute(0, 1, offsetof(Vertex, normal), VK_FORMAT_R32G32B32_SFLOAT)
+            .addAttribute(0, 2, offsetof(Vertex, color), VK_FORMAT_R32G32B32_SFLOAT)
+            .addAttribute(0, 3, offsetof(Vertex, uv), VK_FORMAT_R32G32_SFLOAT)
             .withRasterizationSamples(samples)
+            .withColorBlendAttachmentCount(4)
             .forSubpass(1)
             .build();
+
+    // TODO
+//    this->_compositionPipeline = PipelineBuilder(this->_renderingDevice, this->_renderpass,
+//                                                 this->_renderingLayoutObject->getPipelineLayout())
+//            .addVertexShader("data/shaders/composition.vert")
+//            .withRasterizationSamples(samples)
+//            .forSubpass(2)
+//            .build();
 }
 
 void SceneRenderpass::destroyRenderpass() {
@@ -279,27 +354,62 @@ void SceneRenderpass::destroyRenderpass() {
 void SceneRenderpass::createFramebuffers() {
     VkExtent2D extent = this->_swapchain->getSwapchainExtent();
     VkSampleCountFlagBits samples = this->_renderingDevice->getPhysicalDevice()->getMsaaSamples();
+    VkFormat colorFormat = this->_renderingDevice->getPhysicalDevice()->getColorFormat();
 
-    this->_resultImage = this->_renderingObjectsFactory->createImageObject(extent.width, extent.height, 1, 0,
-                                                                           this->_renderingDevice->getPhysicalDevice()->getColorFormat(),
+    this->_skyboxImage = this->_renderingObjectsFactory->createImageObject(extent.width, extent.height, 1, 0,
+                                                                           colorFormat,
                                                                            VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT |
                                                                            VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT |
                                                                            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-                                                                           VK_SAMPLE_COUNT_1_BIT,
+                                                                           samples,
                                                                            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    this->_resultImageView = this->_renderingObjectsFactory->createImageViewObject(this->_resultImage,
+    this->_skyboxImageView = this->_renderingObjectsFactory->createImageViewObject(this->_skyboxImage,
                                                                                    VK_IMAGE_VIEW_TYPE_2D,
                                                                                    VK_IMAGE_ASPECT_COLOR_BIT);
 
-    this->_colorImage = this->_renderingObjectsFactory->createImageObject(extent.width, extent.height, 1, 0,
-                                                                          this->_renderingDevice->getPhysicalDevice()->getColorFormat(),
-                                                                          VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT |
-                                                                          VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-                                                                          samples,
-                                                                          VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    this->_colorImageView = this->_renderingObjectsFactory->createImageViewObject(this->_colorImage,
-                                                                                  VK_IMAGE_VIEW_TYPE_2D,
-                                                                                  VK_IMAGE_ASPECT_COLOR_BIT);
+    this->_albedoImage = this->_renderingObjectsFactory->createImageObject(extent.width, extent.height, 1, 0,
+                                                                           colorFormat,
+                                                                           VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT |
+                                                                           VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT |
+                                                                           VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+                                                                           samples,
+                                                                           VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    this->_albedoImageView = this->_renderingObjectsFactory->createImageViewObject(this->_albedoImage,
+                                                                                   VK_IMAGE_VIEW_TYPE_2D,
+                                                                                   VK_IMAGE_ASPECT_COLOR_BIT);
+
+    this->_positionImage = this->_renderingObjectsFactory->createImageObject(extent.width, extent.height, 1, 0,
+                                                                             colorFormat,
+                                                                             VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT |
+                                                                             VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT |
+                                                                             VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+                                                                             samples,
+                                                                             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    this->_positionImageView = this->_renderingObjectsFactory->createImageViewObject(this->_positionImage,
+                                                                                     VK_IMAGE_VIEW_TYPE_2D,
+                                                                                     VK_IMAGE_ASPECT_COLOR_BIT);
+
+    this->_normalImage = this->_renderingObjectsFactory->createImageObject(extent.width, extent.height, 1, 0,
+                                                                           colorFormat,
+                                                                           VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT |
+                                                                           VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT |
+                                                                           VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+                                                                           samples,
+                                                                           VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    this->_normalImageView = this->_renderingObjectsFactory->createImageViewObject(this->_normalImage,
+                                                                                   VK_IMAGE_VIEW_TYPE_2D,
+                                                                                   VK_IMAGE_ASPECT_COLOR_BIT);
+
+    this->_specularImage = this->_renderingObjectsFactory->createImageObject(extent.width, extent.height, 1, 0,
+                                                                             colorFormat,
+                                                                             VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT |
+                                                                             VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT |
+                                                                             VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+                                                                             samples,
+                                                                             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    this->_specularImageView = this->_renderingObjectsFactory->createImageViewObject(this->_specularImage,
+                                                                                     VK_IMAGE_VIEW_TYPE_2D,
+                                                                                     VK_IMAGE_ASPECT_COLOR_BIT);
 
     this->_depthImage = this->_renderingObjectsFactory->createImageObject(extent.width, extent.height, 1, 0,
                                                                           this->_renderingDevice->getPhysicalDevice()->getDepthFormat(),
@@ -310,11 +420,36 @@ void SceneRenderpass::createFramebuffers() {
                                                                                   VK_IMAGE_VIEW_TYPE_2D,
                                                                                   VK_IMAGE_ASPECT_DEPTH_BIT);
 
+    this->_compositionImage = this->_renderingObjectsFactory->createImageObject(extent.width, extent.height, 1, 0,
+                                                                                colorFormat,
+                                                                                VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT |
+                                                                                VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+                                                                                samples,
+                                                                                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    this->_compositionImageView = this->_renderingObjectsFactory->createImageViewObject(this->_compositionImage,
+                                                                                        VK_IMAGE_VIEW_TYPE_2D,
+                                                                                        VK_IMAGE_ASPECT_COLOR_BIT);
+
+    this->_resultImage = this->_renderingObjectsFactory->createImageObject(extent.width, extent.height, 1, 0,
+                                                                           colorFormat,
+                                                                           VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT |
+                                                                           VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT |
+                                                                           VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+                                                                           VK_SAMPLE_COUNT_1_BIT,
+                                                                           VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    this->_resultImageView = this->_renderingObjectsFactory->createImageViewObject(this->_resultImage,
+                                                                                   VK_IMAGE_VIEW_TYPE_2D,
+                                                                                   VK_IMAGE_ASPECT_COLOR_BIT);
+
     FramebufferBuilder builder = FramebufferBuilder(this->_renderingDevice, this->_renderpass)
             .withExtent(extent)
-            .addAttachment(this->_colorImageView->getHandle())
-            .addAttachment(this->_colorImageView->getHandle())
+            .addAttachment(this->_skyboxImageView->getHandle())
+            .addAttachment(this->_albedoImageView->getHandle())
+            .addAttachment(this->_positionImageView->getHandle())
+            .addAttachment(this->_normalImageView->getHandle())
+            .addAttachment(this->_specularImageView->getHandle())
             .addAttachment(this->_depthImageView->getHandle())
+            .addAttachment(this->_compositionImageView->getHandle())
             .addAttachment(this->_resultImageView->getHandle());
 
     uint32_t count = this->_swapchain->getImageCount();
@@ -328,10 +463,20 @@ void SceneRenderpass::createFramebuffers() {
 void SceneRenderpass::destroyFramebuffers() {
     RenderpassBase::destroyFramebuffers();
 
-    delete this->_colorImageView;
-    delete this->_colorImage;
+    delete this->_compositionImageView;
+    delete this->_compositionImage;
+    delete this->_specularImageView;
+    delete this->_specularImage;
+    delete this->_normalImageView;
+    delete this->_normalImage;
+    delete this->_positionImageView;
+    delete this->_positionImage;
+    delete this->_albedoImageView;
+    delete this->_albedoImage;
     delete this->_depthImageView;
     delete this->_depthImage;
+    delete this->_skyboxImageView;
+    delete this->_skyboxImage;
 
     delete this->_resultImageView;
     delete this->_resultImage;
