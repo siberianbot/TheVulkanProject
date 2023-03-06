@@ -66,6 +66,7 @@ shaders = [
     'data/shaders/composition.vert',
     'data/shaders/default.frag',
     'data/shaders/default.vert',
+    'data/shaders/scene_composition.frag',
     'data/shaders/skybox.frag'
 ]
 

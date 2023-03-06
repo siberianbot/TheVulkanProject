@@ -60,18 +60,23 @@ private:
     ImageObject *_resultImage;
     ImageViewObject *_resultImageView;
 
-    VkPipeline _skyboxPipeline;
-    VkPipeline _scenePipeline;
-    VkPipeline _compositionPipeline;
+    DescriptorSetObject *_compositionDescriptorSet;
 
-    VkDescriptorSetLayout _descriptorSetLayout;
-    VkPipelineLayout _skyboxPipelineLayout;
     VkDescriptorPool _descriptorPool;
+
+    VkDescriptorSetLayout _objectDescriptorSetLayout;
+    VkPipelineLayout _skyboxPipelineLayout;
+    VkPipeline _skyboxPipeline;
     VkPipelineLayout _scenePipelineLayout;
+    VkPipeline _scenePipeline;
+
+    VkDescriptorSetLayout _compositionDescriptorSetLayout;
+    VkPipelineLayout _compositionPipelineLayout;
+    VkPipeline _compositionPipeline;
 
     RenderData getRenderData(Object *object);
 
-    DescriptorSetObject *createDescriptorSetFor(ImageViewObject *imageViewObject);
+    DescriptorSetObject *createTextureDescriptorSetFor(ImageViewObject *imageViewObject);
 
     void initSkyboxPipeline();
     void destroySkyboxPipeline();
