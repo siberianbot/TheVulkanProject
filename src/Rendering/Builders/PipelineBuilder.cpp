@@ -4,6 +4,7 @@
 
 #include "src/Rendering/Common.hpp"
 #include "src/Rendering/RenderingDevice.hpp"
+#include "src/Rendering/Builders/SpecializationInfoBuilder.hpp"
 
 VkShaderModule PipelineBuilder::createShaderModule(const std::string &path) {
     std::ifstream file(path, std::ios::ate | std::ios::binary);
@@ -74,6 +75,26 @@ PipelineBuilder &PipelineBuilder::addAttribute(uint32_t bindingIdx, uint32_t loc
     return *this;
 }
 
+PipelineBuilder &PipelineBuilder::withVertexShaderSpecialization(ShaderSpecializationFunc func) {
+    SpecializationInfoBuilder builder;
+
+    func(builder);
+
+    this->_vertexShaderSpecialization = builder.build();
+
+    return *this;
+}
+
+PipelineBuilder &PipelineBuilder::withFragmentShaderSpecialization(ShaderSpecializationFunc func) {
+    SpecializationInfoBuilder builder;
+
+    func(builder);
+
+    this->_fragmentShaderSpecialization = builder.build();
+
+    return *this;
+}
+
 PipelineBuilder &PipelineBuilder::withCullMode(VkCullModeFlags cullMode) {
     this->_cullMode = cullMode;
 
@@ -111,7 +132,9 @@ VkPipeline PipelineBuilder::build() {
                     .stage = VK_SHADER_STAGE_VERTEX_BIT,
                     .module = this->_vertexShader,
                     .pName = "main",
-                    .pSpecializationInfo = nullptr
+                    .pSpecializationInfo = this->_vertexShaderSpecialization.has_value()
+                    ? &this->_vertexShaderSpecialization.value()
+                    : nullptr
             },
             VkPipelineShaderStageCreateInfo{
                     .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
@@ -120,7 +143,9 @@ VkPipeline PipelineBuilder::build() {
                     .stage = VK_SHADER_STAGE_FRAGMENT_BIT,
                     .module = this->_fragmentShader,
                     .pName = "main",
-                    .pSpecializationInfo = nullptr
+                    .pSpecializationInfo = this->_fragmentShaderSpecialization.has_value()
+                    ? &this->_fragmentShaderSpecialization.value()
+                    : nullptr
             }
     };
 

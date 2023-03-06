@@ -31,6 +31,7 @@ src = [
     'src/Rendering/Builders/PipelineBuilder.cpp',
     'src/Rendering/Builders/PipelineLayoutBuilder.cpp',
     'src/Rendering/Builders/RenderpassBuilder.cpp',
+    'src/Rendering/Builders/SpecializationInfoBuilder.cpp',
     'src/Rendering/Builders/SubpassBuilder.cpp',
 
     'src/Rendering/RenderingObjectsFactory.cpp',

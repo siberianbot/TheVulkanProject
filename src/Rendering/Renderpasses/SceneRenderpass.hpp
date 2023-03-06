@@ -14,7 +14,6 @@ class RenderingObjectsFactory;
 class DescriptorSetObject;
 class ImageObject;
 class ImageViewObject;
-class RenderingLayoutObject;
 
 class SceneRenderpass : public RenderpassBase {
 private:
