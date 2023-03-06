@@ -39,7 +39,6 @@ src = [
     'src/Rendering/Objects/FenceObject.cpp',
     'src/Rendering/Objects/ImageObject.cpp',
     'src/Rendering/Objects/ImageViewObject.cpp',
-    'src/Rendering/Objects/RenderingLayoutObject.cpp',
     'src/Rendering/Objects/SemaphoreObject.cpp',
 
     'src/Rendering/Renderpasses/RenderpassBase.cpp',

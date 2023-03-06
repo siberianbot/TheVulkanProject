@@ -1,7 +1,5 @@
 #version 450
 
-//layout (set = 0, binding = 0) uniform SceneData {} sceneData;
-
 layout (push_constant) uniform MeshConstants {
     mat4 matrix;
 } meshConstants;

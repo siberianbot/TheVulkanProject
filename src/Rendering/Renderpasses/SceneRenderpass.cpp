@@ -14,11 +14,13 @@
 #include "src/Rendering/Builders/PipelineBuilder.hpp"
 #include "src/Rendering/Builders/AttachmentBuilder.hpp"
 #include "src/Rendering/Builders/SubpassBuilder.hpp"
+#include "src/Rendering/Builders/DescriptorPoolBuilder.hpp"
+#include "src/Rendering/Builders/DescriptorSetLayoutBuilder.hpp"
+#include "src/Rendering/Builders/PipelineLayoutBuilder.hpp"
 #include "src/Rendering/Objects/BufferObject.hpp"
 #include "src/Rendering/Objects/ImageObject.hpp"
 #include "src/Rendering/Objects/ImageViewObject.hpp"
 #include "src/Rendering/Objects/DescriptorSetObject.hpp"
-#include "src/Rendering/Objects/RenderingLayoutObject.hpp"
 
 SceneRenderpass::RenderData SceneRenderpass::getRenderData(Object *object) {
     auto it = this->_renderData.find(object);
@@ -37,13 +39,121 @@ SceneRenderpass::RenderData SceneRenderpass::getRenderData(Object *object) {
 
     RenderData renderData = {
             .textureView = textureView,
-            .descriptorSet = this->_renderingLayoutObject->createMeshDataDescriptor(this->_textureSampler,
-                                                                                    textureView->getHandle())
+            .descriptorSet = this->createDescriptorSetFor(textureView)
     };
 
     this->_renderData[object] = renderData;
 
     return renderData;
+}
+
+DescriptorSetObject *SceneRenderpass::createDescriptorSetFor(ImageViewObject *imageViewObject) {
+    DescriptorSetObject *descriptorSetObject = this->_renderingObjectsFactory->createDescriptorSetObject(
+            this->_descriptorPool, this->_descriptorSetLayout, MAX_INFLIGHT_FRAMES);
+
+    VkDescriptorImageInfo imageInfo = {
+            .sampler = this->_textureSampler,
+            .imageView = imageViewObject->getHandle(),
+            .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+    };
+
+    std::vector<VkWriteDescriptorSet> writes;
+    for (uint32_t idx = 0; idx < MAX_INFLIGHT_FRAMES; idx++) {
+        writes.push_back(VkWriteDescriptorSet{
+                .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                .pNext = nullptr,
+                .dstSet = descriptorSetObject->getDescriptorSet(idx),
+                .dstBinding = 0,
+                .dstArrayElement = 0,
+                .descriptorCount = 1,
+                .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                .pImageInfo = &imageInfo,
+                .pBufferInfo = nullptr,
+                .pTexelBufferView = nullptr
+        });
+    }
+
+    this->_renderingDevice->updateDescriptorSets(writes);
+
+    return descriptorSetObject;
+}
+
+void SceneRenderpass::initSkyboxPipeline() {
+    this->_skyboxPipelineLayout = PipelineLayoutBuilder(this->_renderingDevice)
+            .withDescriptorSetLayout(this->_descriptorSetLayout)
+            .withPushConstant(VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshConstants))
+            .build();
+
+    this->_skyboxPipeline = PipelineBuilder(this->_renderingDevice, this->_renderpass, this->_skyboxPipelineLayout)
+            .addVertexShader(DEFAULT_VERTEX_SHADER)
+            .addFragmentShader(SKYBOX_FRAGMENT_SHADER)
+            .addBinding(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
+            .addAttribute(0, 0, offsetof(Vertex, pos), VK_FORMAT_R32G32B32_SFLOAT)
+            .addAttribute(0, 1, offsetof(Vertex, normal), VK_FORMAT_R32G32B32_SFLOAT)
+            .addAttribute(0, 2, offsetof(Vertex, color), VK_FORMAT_R32G32B32_SFLOAT)
+            .addAttribute(0, 3, offsetof(Vertex, uv), VK_FORMAT_R32G32_SFLOAT)
+            .withRasterizationSamples(this->_renderingDevice->getPhysicalDevice()->getMsaaSamples())
+            .forSubpass(0)
+            .build();
+
+    this->_skyboxTextureView = this->_renderingObjectsFactory->createImageViewObject(
+            this->_engine->scene()->skybox()->texture()->texture,
+            VK_IMAGE_VIEW_TYPE_CUBE,
+            VK_IMAGE_ASPECT_COLOR_BIT);
+
+    this->_skyboxDescriptorSet = this->createDescriptorSetFor(this->_skyboxTextureView);
+}
+
+void SceneRenderpass::destroySkyboxPipeline() {
+    delete this->_skyboxDescriptorSet;
+    delete this->_skyboxTextureView;
+
+    this->_renderingDevice->destroyPipeline(this->_skyboxPipeline);
+    this->_renderingDevice->destroyPipelineLayout(this->_skyboxPipelineLayout);
+}
+
+void SceneRenderpass::initScenePipeline() {
+    this->_scenePipelineLayout = PipelineLayoutBuilder(this->_renderingDevice)
+            .withDescriptorSetLayout(this->_descriptorSetLayout)
+            .withPushConstant(VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshConstants))
+            .build();
+
+    this->_scenePipeline = PipelineBuilder(this->_renderingDevice, this->_renderpass, this->_scenePipelineLayout)
+            .addVertexShader(DEFAULT_VERTEX_SHADER)
+            .addFragmentShader(DEFAULT_FRAGMENT_SHADER)
+            .addBinding(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
+            .addAttribute(0, 0, offsetof(Vertex, pos), VK_FORMAT_R32G32B32_SFLOAT)
+            .addAttribute(0, 1, offsetof(Vertex, normal), VK_FORMAT_R32G32B32_SFLOAT)
+            .addAttribute(0, 2, offsetof(Vertex, color), VK_FORMAT_R32G32B32_SFLOAT)
+            .addAttribute(0, 3, offsetof(Vertex, uv), VK_FORMAT_R32G32_SFLOAT)
+            .withRasterizationSamples(this->_renderingDevice->getPhysicalDevice()->getMsaaSamples())
+            .withColorBlendAttachmentCount(4)
+            .forSubpass(1)
+            .build();
+}
+
+void SceneRenderpass::destroyScenePipeline() {
+    for (const auto &item: this->_renderData) {
+        delete item.second.textureView;
+        delete item.second.descriptorSet;
+    }
+
+    this->_renderingDevice->destroyPipeline(this->_scenePipeline);
+    this->_renderingDevice->destroyPipelineLayout(this->_scenePipelineLayout);
+}
+
+void SceneRenderpass::initCompositionPipeline() {
+// TODO
+//    this->_compositionPipeline = PipelineBuilder(this->_renderingDevice, this->_renderpass,
+//                                                 this->_renderingLayoutObject->getPipelineLayout())
+//            .addVertexShader("data/shaders/composition.vert")
+//            .withRasterizationSamples(samples)
+//            .forSubpass(2)
+//            .build();
+}
+
+void SceneRenderpass::destroyCompositionPipeline() {
+
 }
 
 SceneRenderpass::SceneRenderpass(RenderingDevice *renderingDevice, Swapchain *swapchain,
@@ -52,41 +162,14 @@ SceneRenderpass::SceneRenderpass(RenderingDevice *renderingDevice, Swapchain *sw
           _renderingObjectsFactory(renderingObjectsFactory),
           _engine(engine),
           _swapchain(swapchain) {
-    this->_skyboxTextureView = renderingObjectsFactory->createImageViewObject(
-            this->_engine->scene()->skybox()->texture()->texture,
-            VK_IMAGE_VIEW_TYPE_CUBE,
-            VK_IMAGE_ASPECT_COLOR_BIT);
-
-    this->_textureSampler = this->_renderingDevice->createSampler();
-    this->_renderingLayoutObject = renderingObjectsFactory->createRenderingLayoutObject();
-    this->_skyboxDescriptorSet = this->_renderingLayoutObject->createMeshDataDescriptor(
-            this->_textureSampler, this->_skyboxTextureView->getHandle());
-}
-
-SceneRenderpass::~SceneRenderpass() {
-    for (auto &it: this->_renderData) {
-        delete it.second.descriptorSet;
-        delete it.second.textureView;
-    }
-
-    delete this->_skyboxDescriptorSet;
-
-    delete this->_renderingLayoutObject;
-    this->_renderingDevice->destroySampler(this->_textureSampler);
-
-    delete this->_skyboxTextureView;
+    //
 }
 
 void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D renderArea,
                                      uint32_t frameIdx, uint32_t imageIdx) {
-    VkPipelineLayout pipelineLayout = this->_renderingLayoutObject->getPipelineLayout();
-
     glm::mat4 projection = this->_engine->camera().getProjectionMatrix(renderArea.extent.width,
                                                                        renderArea.extent.height);
     projection[1][1] *= -1;
-
-    VkDescriptorSet sceneDataDescriptorSet = this->_renderingLayoutObject->getSceneDataDescriptorSetObject()
-            ->getDescriptorSet(frameIdx);
 
     const std::array<VkClearValue, 8> clearValues = {
             VkClearValue{.color = {{0, 0, 0, 0}}}, // 0
@@ -129,24 +212,19 @@ void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D ren
 
     VkDeviceSize offset = 0;
 
+    // SKYBOX
     {
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->_skyboxPipeline);
-        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout,
-                                0, 1, &sceneDataDescriptorSet, 0, nullptr);
-
-        VkDescriptorSet descriptorSet = this->_skyboxDescriptorSet->getDescriptorSet(frameIdx);
 
         MeshConstants constants = {
                 .matrix = projection * this->_engine->camera().getViewMatrix(true) * glm::mat4(1)
         };
-        vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshConstants),
-                           &constants);
+        vkCmdPushConstants(commandBuffer, this->_skyboxPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
+                           sizeof(MeshConstants), &constants);
 
-        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout,
-                                0, 1, &sceneDataDescriptorSet, 0, nullptr);
-
-        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout,
-                                1, 1, &descriptorSet, 0, nullptr);
+        VkDescriptorSet descriptorSet = this->_skyboxDescriptorSet->getDescriptorSet(frameIdx);
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->_skyboxPipelineLayout,
+                                0, 1, &descriptorSet, 0, nullptr);
 
         BufferObject *vertices = this->_engine->scene()->skybox()->mesh()->vertices;
         VkBuffer vertexBuffer = vertices->getHandle();
@@ -157,10 +235,9 @@ void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D ren
 
     vkCmdNextSubpass(commandBuffer, VK_SUBPASS_CONTENTS_INLINE);
 
+    // SCENE
     {
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->_scenePipeline);
-        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout,
-                                0, 1, &sceneDataDescriptorSet, 0, nullptr);
 
         glm::mat4 view = this->_engine->camera().getViewMatrix(false);
 
@@ -168,13 +245,11 @@ void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D ren
         for (Object *object: this->_engine->scene()->objects()) {
             RenderData renderData = getRenderData(object);
 
-            VkDescriptorSet descriptorSet = renderData.descriptorSet->getDescriptorSet(frameIdx);
-
             MeshConstants constants = {
                     .matrix = projection * view * object->getModelMatrix()
             };
-            vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshConstants),
-                               &constants);
+            vkCmdPushConstants(commandBuffer, this->_scenePipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
+                               sizeof(MeshConstants), &constants);
 
             VkBuffer vertexBuffer = object->mesh()->vertices->getHandle();
             vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer, &offset);
@@ -183,8 +258,9 @@ void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D ren
                 vkCmdBindIndexBuffer(commandBuffer, object->mesh()->indices->getHandle(), 0, VK_INDEX_TYPE_UINT32);
             }
 
-            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout,
-                                    1, 1, &descriptorSet, 0, nullptr);
+            VkDescriptorSet descriptorSet = renderData.descriptorSet->getDescriptorSet(frameIdx);
+            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->_scenePipelineLayout,
+                                    0, 1, &descriptorSet, 0, nullptr);
 
             if (object->mesh()->indices != nullptr) {
                 vkCmdDrawIndexed(commandBuffer, object->mesh()->count, 1, 0, 0, idx++);
@@ -196,6 +272,7 @@ void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D ren
 
     vkCmdNextSubpass(commandBuffer, VK_SUBPASS_CONTENTS_INLINE);
 
+    // COMPOSITION
     {
         // TODO
     }
@@ -287,7 +364,6 @@ void SceneRenderpass::initRenderpass() {
                         .withInputAttachment(2, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
                         .withInputAttachment(3, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
                         .withInputAttachment(4, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
-//                        .withInputAttachment(5, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
                         .withColorAttachment(6, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
                         .withResolveAttachment(7, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
             })
@@ -308,45 +384,30 @@ void SceneRenderpass::initRenderpass() {
                                   VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT)
             .build();
 
-    this->_skyboxPipeline = PipelineBuilder(this->_renderingDevice, this->_renderpass,
-                                            this->_renderingLayoutObject->getPipelineLayout())
-            .addVertexShader(DEFAULT_VERTEX_SHADER)
-            .addFragmentShader(SKYBOX_FRAGMENT_SHADER)
-            .addBinding(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
-            .addAttribute(0, 0, offsetof(Vertex, pos), VK_FORMAT_R32G32B32_SFLOAT)
-            .addAttribute(0, 1, offsetof(Vertex, normal), VK_FORMAT_R32G32B32_SFLOAT)
-            .addAttribute(0, 2, offsetof(Vertex, color), VK_FORMAT_R32G32B32_SFLOAT)
-            .addAttribute(0, 3, offsetof(Vertex, uv), VK_FORMAT_R32G32_SFLOAT)
-            .withRasterizationSamples(samples)
-            .forSubpass(0)
+    this->_descriptorPool = DescriptorPoolBuilder(this->_renderingDevice)
+            .forType(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
+            .forType(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
             .build();
 
-    this->_scenePipeline = PipelineBuilder(this->_renderingDevice, this->_renderpass,
-                                           this->_renderingLayoutObject->getPipelineLayout())
-            .addVertexShader(DEFAULT_VERTEX_SHADER)
-            .addFragmentShader(DEFAULT_FRAGMENT_SHADER)
-            .addBinding(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
-            .addAttribute(0, 0, offsetof(Vertex, pos), VK_FORMAT_R32G32B32_SFLOAT)
-            .addAttribute(0, 1, offsetof(Vertex, normal), VK_FORMAT_R32G32B32_SFLOAT)
-            .addAttribute(0, 2, offsetof(Vertex, color), VK_FORMAT_R32G32B32_SFLOAT)
-            .addAttribute(0, 3, offsetof(Vertex, uv), VK_FORMAT_R32G32_SFLOAT)
-            .withRasterizationSamples(samples)
-            .withColorBlendAttachmentCount(4)
-            .forSubpass(1)
+    this->_descriptorSetLayout = DescriptorSetLayoutBuilder(this->_renderingDevice)
+            .withBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
             .build();
 
-    // TODO
-//    this->_compositionPipeline = PipelineBuilder(this->_renderingDevice, this->_renderpass,
-//                                                 this->_renderingLayoutObject->getPipelineLayout())
-//            .addVertexShader("data/shaders/composition.vert")
-//            .withRasterizationSamples(samples)
-//            .forSubpass(2)
-//            .build();
+    this->_textureSampler = this->_renderingDevice->createSampler();
+
+    this->initSkyboxPipeline();
+    this->initScenePipeline();
+    this->initCompositionPipeline();
 }
 
 void SceneRenderpass::destroyRenderpass() {
-    this->_renderingDevice->destroyPipeline(this->_skyboxPipeline);
-    this->_renderingDevice->destroyPipeline(this->_scenePipeline);
+    this->destroyCompositionPipeline();
+    this->destroyScenePipeline();
+    this->destroySkyboxPipeline();
+
+    this->_renderingDevice->destroyDescriptorSetLayout(this->_descriptorSetLayout);
+    this->_renderingDevice->destroyDescriptorPool(this->_descriptorPool);
+    this->_renderingDevice->destroySampler(this->_textureSampler);
 
     RenderpassBase::destroyRenderpass();
 }

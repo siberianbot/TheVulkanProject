@@ -9,7 +9,6 @@ class DescriptorSetObject;
 class ImageObject;
 class ImageViewObject;
 class FenceObject;
-class RenderingLayoutObject;
 class SemaphoreObject;
 
 class RenderingObjectsFactory {
@@ -29,9 +28,6 @@ public:
     FenceObject *createFenceObject(bool signaled);
 
     SemaphoreObject *createSemaphoreObject();
-
-    [[deprecated]]
-    RenderingLayoutObject *createRenderingLayoutObject();
 
     DescriptorSetObject *createDescriptorSetObject(VkDescriptorPool descriptorPool,
                                                    VkDescriptorSetLayout descriptorSetLayout,

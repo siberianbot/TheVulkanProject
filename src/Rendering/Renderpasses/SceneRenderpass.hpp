@@ -3,6 +3,8 @@
 
 #include <map>
 
+#include <glm/mat4x4.hpp>
+
 #include "RenderpassBase.hpp"
 
 class Engine;
@@ -16,6 +18,10 @@ class RenderingLayoutObject;
 
 class SceneRenderpass : public RenderpassBase {
 private:
+    struct MeshConstants {
+        glm::mat4 matrix;
+    };
+
     struct RenderData {
         ImageViewObject *textureView;
         DescriptorSetObject *descriptorSet;
@@ -23,8 +29,8 @@ private:
 
     RenderingObjectsFactory *_renderingObjectsFactory;
     Engine *_engine;
-    RenderingLayoutObject *_renderingLayoutObject;
     Swapchain *_swapchain;
+
     VkSampler _textureSampler;
     std::map<Object *, RenderData> _renderData;
     ImageViewObject *_skyboxTextureView;
@@ -54,16 +60,32 @@ private:
     ImageObject *_resultImage;
     ImageViewObject *_resultImageView;
 
-    VkPipeline _skyboxPipeline = VK_NULL_HANDLE;
-    VkPipeline _scenePipeline = VK_NULL_HANDLE;
+    VkPipeline _skyboxPipeline;
+    VkPipeline _scenePipeline;
     VkPipeline _compositionPipeline;
 
+    VkDescriptorSetLayout _descriptorSetLayout;
+    VkPipelineLayout _skyboxPipelineLayout;
+    VkDescriptorPool _descriptorPool;
+    VkPipelineLayout _scenePipelineLayout;
+
     RenderData getRenderData(Object *object);
+
+    DescriptorSetObject *createDescriptorSetFor(ImageViewObject *imageViewObject);
+
+    void initSkyboxPipeline();
+    void destroySkyboxPipeline();
+
+    void initScenePipeline();
+    void destroyScenePipeline();
+
+    void initCompositionPipeline();
+    void destroyCompositionPipeline();
 
 public:
     SceneRenderpass(RenderingDevice *renderingDevice, Swapchain *swapchain,
                     RenderingObjectsFactory *renderingObjectsFactory, Engine *engine);
-    ~SceneRenderpass() override;
+    ~SceneRenderpass() override = default;
 
     void recordCommands(VkCommandBuffer commandBuffer, VkRect2D renderArea,
                         uint32_t frameIdx, uint32_t imageIdx) override;

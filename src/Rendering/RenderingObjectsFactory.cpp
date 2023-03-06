@@ -6,7 +6,6 @@
 #include "src/Rendering/Objects/FenceObject.hpp"
 #include "src/Rendering/Objects/ImageObject.hpp"
 #include "src/Rendering/Objects/ImageViewObject.hpp"
-#include "src/Rendering/Objects/RenderingLayoutObject.hpp"
 #include "src/Rendering/Objects/SemaphoreObject.hpp"
 
 RenderingObjectsFactory::RenderingObjectsFactory(RenderingDevice *renderingDevice)
@@ -48,66 +47,6 @@ SemaphoreObject *RenderingObjectsFactory::createSemaphoreObject() {
     VkSemaphore semaphore = this->_renderingDevice->createSemaphore();
 
     return new SemaphoreObject(this->_renderingDevice, semaphore);
-}
-
-RenderingLayoutObject *RenderingObjectsFactory::createRenderingLayoutObject() {
-    VkDescriptorPool sceneDataDescriptorPool = this->_renderingDevice->createDescriptorPool(
-            {
-                    VkDescriptorPoolSize{
-                            .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                            .descriptorCount = MAX_INFLIGHT_FRAMES
-                    }
-            },
-            MAX_INFLIGHT_FRAMES);
-
-    VkDescriptorSetLayout sceneDataDescriptorSetLayout = this->_renderingDevice->createDescriptorSetLayout(
-            {
-                    VkDescriptorSetLayoutBinding{
-                            .binding = 0,
-                            .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                            .descriptorCount = 1,
-                            .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
-                            .pImmutableSamplers = nullptr
-                    }
-            });
-
-    VkDescriptorPool meshDataDescriptorPool = this->_renderingDevice->createDescriptorPool(
-            {
-                    VkDescriptorPoolSize{
-                            .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                            .descriptorCount = MAX_INFLIGHT_FRAMES
-                    }
-            },
-            MAX_MESH_DATA_DESCRIPTOR_SETS);
-
-    VkDescriptorSetLayout meshDataDescriptorSetLayout = this->_renderingDevice->createDescriptorSetLayout(
-            {
-                    VkDescriptorSetLayoutBinding{
-                            .binding = 0,
-                            .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                            .descriptorCount = 1,
-                            .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
-                            .pImmutableSamplers = nullptr
-                    }
-            });
-
-    VkPipelineLayout pipelineLayout = this->_renderingDevice->createPipelineLayout(
-            {
-                    sceneDataDescriptorSetLayout,
-                    meshDataDescriptorSetLayout
-            },
-            {
-                    VkPushConstantRange{
-                            .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
-                            .offset = 0,
-                            .size = sizeof(MeshConstants)
-                    }
-            });
-
-    return new RenderingLayoutObject(this->_renderingDevice, this,
-                                     sceneDataDescriptorPool, sceneDataDescriptorSetLayout,
-                                     meshDataDescriptorPool, meshDataDescriptorSetLayout,
-                                     pipelineLayout);
 }
 
 DescriptorSetObject *RenderingObjectsFactory::createDescriptorSetObject(VkDescriptorPool descriptorPool,

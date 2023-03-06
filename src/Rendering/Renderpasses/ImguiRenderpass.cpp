@@ -8,9 +8,10 @@
 #include "src/Rendering/Swapchain.hpp"
 #include "src/Rendering/CommandExecutor.hpp"
 #include "src/Rendering/RenderingObjectsFactory.hpp"
+#include "src/Rendering/Builders/AttachmentBuilder.hpp"
+#include "src/Rendering/Builders/DescriptorPoolBuilder.hpp"
 #include "src/Rendering/Builders/FramebufferBuilder.hpp"
 #include "src/Rendering/Builders/RenderpassBuilder.hpp"
-#include "src/Rendering/Builders/AttachmentBuilder.hpp"
 #include "src/Rendering/Builders/SubpassBuilder.hpp"
 #include "src/Rendering/Objects/ImageObject.hpp"
 #include "src/Rendering/Objects/ImageViewObject.hpp"
@@ -24,20 +25,7 @@ ImguiRenderpass::ImguiRenderpass(RenderingDevice *renderingDevice, Swapchain *sw
           _commandExecutor(commandExecutor),
           _swapchain(swapchain),
           _renderingObjectsFactory(renderingObjectsFactory) {
-    this->_descriptorPool = this->_renderingDevice->createDescriptorPool(
-            {
-                    {VK_DESCRIPTOR_TYPE_SAMPLER,                1000},
-                    {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000},
-                    {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,          1000},
-                    {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,          1000},
-                    {VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER,   1000},
-                    {VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER,   1000},
-                    {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         1000},
-                    {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,         1000},
-                    {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000},
-                    {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000},
-                    {VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,       1000}
-            }, 1000);
+    //
 }
 
 void ImguiRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D renderArea, uint32_t frameIdx,
@@ -77,6 +65,20 @@ void ImguiRenderpass::initRenderpass() {
             .addSubpassDependency(VK_SUBPASS_EXTERNAL, 0, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
                                   VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0,
                                   VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT)
+            .build();
+
+    this->_descriptorPool = DescriptorPoolBuilder(this->_renderingDevice)
+            .forType(VK_DESCRIPTOR_TYPE_SAMPLER)
+            .forType(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
+            .forType(VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE)
+            .forType(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE)
+            .forType(VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER)
+            .forType(VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER)
+            .forType(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
+            .forType(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER)
+            .forType(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
+            .forType(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC)
+            .forType(VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT)
             .build();
 
     ImGui_ImplVulkan_InitInfo initInfo = {

@@ -28,6 +28,7 @@ public:
     virtual void createFramebuffers() = 0;
     virtual void destroyFramebuffers();
 
+    // TODO: imageIdx is not used elsewhere
     virtual ImageViewObject *getResultImageView(uint32_t imageIdx) = 0;
 };
 
