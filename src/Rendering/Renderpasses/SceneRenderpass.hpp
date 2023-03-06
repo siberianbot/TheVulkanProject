@@ -3,6 +3,7 @@
 
 #include <map>
 
+#include <glm/vec3.hpp>
 #include <glm/mat4x4.hpp>
 
 #include "RenderpassBase.hpp"
@@ -12,11 +13,16 @@ class Object;
 class Swapchain;
 class RenderingObjectsFactory;
 class DescriptorSetObject;
+class BufferObject;
 class ImageObject;
 class ImageViewObject;
 
 class SceneRenderpass : public RenderpassBase {
 private:
+    struct SceneData {
+        glm::vec3 cameraPosition;
+    };
+
     struct MeshConstants {
         glm::mat4 matrix;
     };
@@ -59,8 +65,6 @@ private:
     ImageObject *_resultImage;
     ImageViewObject *_resultImageView;
 
-    DescriptorSetObject *_compositionDescriptorSet;
-
     VkDescriptorPool _descriptorPool;
 
     VkDescriptorSetLayout _objectDescriptorSetLayout;
@@ -69,7 +73,12 @@ private:
     VkPipelineLayout _scenePipelineLayout;
     VkPipeline _scenePipeline;
 
-    VkDescriptorSetLayout _compositionDescriptorSetLayout;
+    VkDescriptorSetLayout _compositionGBufferDescriptorSetLayout;
+    DescriptorSetObject *_compositionGBufferDescriptorSet;
+    VkDescriptorSetLayout _compositionSceneDataDescriptorSetLayout;
+    DescriptorSetObject *_compositionSceneDataDescriptorSet;
+    BufferObject *_compositionSceneDataBuffer;
+    SceneData *_compositionSceneData;
     VkPipelineLayout _compositionPipelineLayout;
     VkPipeline _compositionPipeline;
 

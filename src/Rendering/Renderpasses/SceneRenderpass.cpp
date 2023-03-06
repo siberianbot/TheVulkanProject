@@ -144,8 +144,55 @@ void SceneRenderpass::destroyScenePipeline() {
 }
 
 void SceneRenderpass::initCompositionPipeline() {
+    this->_compositionGBufferDescriptorSetLayout = DescriptorSetLayoutBuilder(this->_renderingDevice)
+            .withBinding(0, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, VK_SHADER_STAGE_FRAGMENT_BIT)
+            .withBinding(1, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, VK_SHADER_STAGE_FRAGMENT_BIT)
+            .withBinding(2, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, VK_SHADER_STAGE_FRAGMENT_BIT)
+            .withBinding(3, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, VK_SHADER_STAGE_FRAGMENT_BIT)
+            .withBinding(4, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, VK_SHADER_STAGE_FRAGMENT_BIT)
+            .build();
+
+    this->_compositionSceneDataDescriptorSetLayout = DescriptorSetLayoutBuilder(this->_renderingDevice)
+            .withBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT)
+            .build();
+
+    this->_compositionSceneDataBuffer = this->_renderingObjectsFactory->createBufferObject(
+            sizeof(SceneData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+    this->_compositionSceneData = reinterpret_cast<SceneData *>(this->_compositionSceneDataBuffer->map());
+
+    this->_compositionSceneDataDescriptorSet = this->_renderingObjectsFactory->createDescriptorSetObject(
+            this->_descriptorPool, this->_compositionSceneDataDescriptorSetLayout, MAX_INFLIGHT_FRAMES);
+
+    for (uint32_t frameIdx = 0; frameIdx < MAX_INFLIGHT_FRAMES; frameIdx++) {
+        VkDescriptorBufferInfo bufferInfo = {
+                .buffer = this->_compositionSceneDataBuffer->getHandle(),
+                .offset = 0,
+                .range = sizeof(SceneData)
+        };
+
+        std::vector<VkWriteDescriptorSet> writes = {
+                VkWriteDescriptorSet{
+                        .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                        .pNext = nullptr,
+                        .dstSet = this->_compositionSceneDataDescriptorSet->getDescriptorSet(frameIdx),
+                        .dstBinding = 0,
+                        .dstArrayElement = 0,
+                        .descriptorCount = 1,
+                        .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                        .pImageInfo = nullptr,
+                        .pBufferInfo = &bufferInfo,
+                        .pTexelBufferView = nullptr
+                }
+        };
+
+        this->_renderingDevice->updateDescriptorSets(writes);
+    }
+
     this->_compositionPipelineLayout = PipelineLayoutBuilder(this->_renderingDevice)
-            .withDescriptorSetLayout(this->_compositionDescriptorSetLayout)
+            .withDescriptorSetLayout(this->_compositionGBufferDescriptorSetLayout)
+            .withDescriptorSetLayout(this->_compositionSceneDataDescriptorSetLayout)
             .build();
 
     this->_compositionPipeline = PipelineBuilder(this->_renderingDevice, this->_renderpass,
@@ -161,6 +208,10 @@ void SceneRenderpass::initCompositionPipeline() {
 void SceneRenderpass::destroyCompositionPipeline() {
     this->_renderingDevice->destroyPipeline(this->_compositionPipeline);
     this->_renderingDevice->destroyPipelineLayout(this->_compositionPipelineLayout);
+    this->_renderingDevice->destroyDescriptorSetLayout(this->_compositionSceneDataDescriptorSetLayout);
+    this->_renderingDevice->destroyDescriptorSetLayout(this->_compositionGBufferDescriptorSetLayout);
+    delete this->_compositionSceneDataDescriptorSet;
+    delete this->_compositionSceneDataBuffer;
 }
 
 SceneRenderpass::SceneRenderpass(RenderingDevice *renderingDevice, Swapchain *swapchain,
@@ -174,6 +225,8 @@ SceneRenderpass::SceneRenderpass(RenderingDevice *renderingDevice, Swapchain *sw
 
 void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D renderArea,
                                      uint32_t frameIdx, uint32_t imageIdx) {
+    this->_compositionSceneData->cameraPosition = this->_engine->camera().position();
+
     glm::mat4 projection = this->_engine->camera().getProjectionMatrix(renderArea.extent.width,
                                                                        renderArea.extent.height);
     projection[1][1] *= -1;
@@ -283,9 +336,13 @@ void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D ren
     {
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->_compositionPipeline);
 
-        VkDescriptorSet descriptor = this->_compositionDescriptorSet->getDescriptorSet(frameIdx);
+        VkDescriptorSet gBufferDescriptor = this->_compositionGBufferDescriptorSet->getDescriptorSet(frameIdx);
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->_compositionPipelineLayout,
-                                0, 1, &descriptor, 0, nullptr);
+                                0, 1, &gBufferDescriptor, 0, nullptr);
+
+        VkDescriptorSet sceneDataDescriptor = this->_compositionSceneDataDescriptorSet->getDescriptorSet(frameIdx);
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->_compositionPipelineLayout,
+                                1, 1, &sceneDataDescriptor, 0, nullptr);
 
         vkCmdDraw(commandBuffer, 3, 1, 0, 0);
     }
@@ -407,14 +464,6 @@ void SceneRenderpass::initRenderpass() {
             .withBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
             .build();
 
-    this->_compositionDescriptorSetLayout = DescriptorSetLayoutBuilder(this->_renderingDevice)
-            .withBinding(0, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, VK_SHADER_STAGE_FRAGMENT_BIT)
-            .withBinding(1, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, VK_SHADER_STAGE_FRAGMENT_BIT)
-            .withBinding(2, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, VK_SHADER_STAGE_FRAGMENT_BIT)
-            .withBinding(3, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, VK_SHADER_STAGE_FRAGMENT_BIT)
-            .withBinding(4, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, VK_SHADER_STAGE_FRAGMENT_BIT)
-            .build();
-
     this->_textureSampler = this->_renderingDevice->createSampler();
 
     this->initSkyboxPipeline();
@@ -427,7 +476,6 @@ void SceneRenderpass::destroyRenderpass() {
     this->destroyScenePipeline();
     this->destroySkyboxPipeline();
 
-    this->_renderingDevice->destroyDescriptorSetLayout(this->_compositionDescriptorSetLayout);
     this->_renderingDevice->destroyDescriptorSetLayout(this->_objectDescriptorSetLayout);
     this->_renderingDevice->destroyDescriptorPool(this->_descriptorPool);
     this->_renderingDevice->destroySampler(this->_textureSampler);
@@ -525,8 +573,8 @@ void SceneRenderpass::createFramebuffers() {
                                                                                    VK_IMAGE_VIEW_TYPE_2D,
                                                                                    VK_IMAGE_ASPECT_COLOR_BIT);
 
-    this->_compositionDescriptorSet = this->_renderingObjectsFactory->createDescriptorSetObject(
-            this->_descriptorPool, this->_compositionDescriptorSetLayout, MAX_INFLIGHT_FRAMES);
+    this->_compositionGBufferDescriptorSet = this->_renderingObjectsFactory->createDescriptorSetObject(
+            this->_descriptorPool, this->_compositionGBufferDescriptorSetLayout, MAX_INFLIGHT_FRAMES);
 
     std::array<VkImageView, 5> compositionImages = {
             this->_skyboxImageView->getHandle(),
@@ -548,7 +596,7 @@ void SceneRenderpass::createFramebuffers() {
                     VkWriteDescriptorSet{
                             .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                             .pNext = nullptr,
-                            .dstSet = this->_compositionDescriptorSet->getDescriptorSet(frameIdx),
+                            .dstSet = this->_compositionGBufferDescriptorSet->getDescriptorSet(frameIdx),
                             .dstBinding = imageIdx,
                             .dstArrayElement = 0,
                             .descriptorCount = 1,
@@ -585,7 +633,7 @@ void SceneRenderpass::createFramebuffers() {
 void SceneRenderpass::destroyFramebuffers() {
     RenderpassBase::destroyFramebuffers();
 
-    delete this->_compositionDescriptorSet;
+    delete this->_compositionGBufferDescriptorSet;
 
     delete this->_compositionImageView;
     delete this->_compositionImage;
