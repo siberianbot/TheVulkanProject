@@ -25,8 +25,11 @@ src = [
     'src/Rendering/RenderingResourcesManager.cpp',
 
     'src/Rendering/Builders/AttachmentBuilder.cpp',
+    'src/Rendering/Builders/DescriptorPoolBuilder.cpp',
+    'src/Rendering/Builders/DescriptorSetLayoutBuilder.cpp',
     'src/Rendering/Builders/FramebufferBuilder.cpp',
     'src/Rendering/Builders/PipelineBuilder.cpp',
+    'src/Rendering/Builders/PipelineLayoutBuilder.cpp',
     'src/Rendering/Builders/RenderpassBuilder.cpp',
     'src/Rendering/Builders/SubpassBuilder.cpp',
 

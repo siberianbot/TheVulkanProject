@@ -30,8 +30,10 @@ public:
 
     SemaphoreObject *createSemaphoreObject();
 
+    [[deprecated]]
     RenderingLayoutObject *createRenderingLayoutObject();
 
+    [[deprecated]]
     DescriptorSetObject *createDescriptorSetObject(VkDescriptorPool descriptorPool,
                                                    VkDescriptorSetLayout descriptorSetLayout);
 

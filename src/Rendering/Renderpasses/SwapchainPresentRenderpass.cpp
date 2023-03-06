@@ -4,8 +4,11 @@
 #include "src/Rendering/RenderingDevice.hpp"
 #include "src/Rendering/Swapchain.hpp"
 #include "src/Rendering/Builders/AttachmentBuilder.hpp"
+#include "src/Rendering/Builders/DescriptorPoolBuilder.hpp"
+#include "src/Rendering/Builders/DescriptorSetLayoutBuilder.hpp"
 #include "src/Rendering/Builders/FramebufferBuilder.hpp"
 #include "src/Rendering/Builders/PipelineBuilder.hpp"
+#include "src/Rendering/Builders/PipelineLayoutBuilder.hpp"
 #include "src/Rendering/Builders/RenderpassBuilder.hpp"
 #include "src/Rendering/Builders/SubpassBuilder.hpp"
 #include "src/Rendering/Objects/ImageViewObject.hpp"
@@ -66,13 +69,13 @@ void SwapchainPresentRenderpass::addInputRenderpass(RenderpassBase *renderpass) 
 
 void SwapchainPresentRenderpass::initRenderpass() {
     VkFormat colorFormat = this->_renderingDevice->getPhysicalDevice()->getColorFormat();
-    std::vector<VkDescriptorPoolSize> poolSizes(this->_inputRenderpasses.size());
-    std::vector<VkDescriptorSetLayoutBinding> bindings(this->_inputRenderpasses.size());
 
+    DescriptorPoolBuilder descriptorPoolBuilder = DescriptorPoolBuilder(this->_renderingDevice);
+    DescriptorSetLayoutBuilder descriptorSetLayoutBuilder = DescriptorSetLayoutBuilder(this->_renderingDevice);
     // TODO: destructor problem, cleanses subpass data before actual build
-    RenderpassBuilder builder = RenderpassBuilder(this->_renderingDevice);
+    RenderpassBuilder renderpassBuilder = RenderpassBuilder(this->_renderingDevice);
 
-    builder.addAttachment([&](AttachmentBuilder &builder) {
+    renderpassBuilder.addAttachment([&](AttachmentBuilder &builder) {
                 builder
                         .clear()
                         .withFormat(colorFormat)
@@ -94,7 +97,7 @@ void SwapchainPresentRenderpass::initRenderpass() {
                                   VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
 
     for (uint32_t passIdx = 0; passIdx < this->_inputRenderpasses.size(); passIdx++) {
-        builder.addAttachment([&](AttachmentBuilder &builder) {
+        renderpassBuilder.addAttachment([&](AttachmentBuilder &builder) {
             builder
                     .load()
                     .withFormat(colorFormat)
@@ -103,26 +106,19 @@ void SwapchainPresentRenderpass::initRenderpass() {
                     .withFinalLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
         });
 
-        poolSizes[passIdx] = {
-                .type = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
-                .descriptorCount = this->_swapchain->getImageCount()
-        };
-
-        bindings[passIdx] = {
-                .binding = passIdx,
-                .descriptorType = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
-                .descriptorCount = 1,
-                .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
-                .pImmutableSamplers = nullptr
-        };
+        descriptorPoolBuilder.forType(VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, this->_swapchain->getImageCount());
+        descriptorSetLayoutBuilder.withBinding(passIdx, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
+                                               VK_SHADER_STAGE_FRAGMENT_BIT);
     }
 
-    this->_renderpass = builder.build();
+    this->_renderpass = renderpassBuilder.build();
+    this->_descriptorPool = descriptorPoolBuilder.build();
+    this->_descriptorSetLayout = descriptorSetLayoutBuilder.build();
 
-    // TODO
-    this->_descriptorPool = this->_renderingDevice->createDescriptorPool(poolSizes, 10);
-    this->_descriptorSetLayout = this->_renderingDevice->createDescriptorSetLayout(bindings);
-    this->_pipelineLayout = this->_renderingDevice->createPipelineLayout({this->_descriptorSetLayout}, {});
+    this->_pipelineLayout = PipelineLayoutBuilder(this->_renderingDevice)
+            .withDescriptorSetLayout(this->_descriptorSetLayout)
+            .build();
+
     this->_pipeline = PipelineBuilder(this->_renderingDevice, this->_renderpass, this->_pipelineLayout)
             .addVertexShader("data/shaders/composition.vert.spv")
             .addFragmentShader("data/shaders/composition.frag.spv")
