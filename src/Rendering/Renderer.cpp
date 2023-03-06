@@ -82,9 +82,7 @@ void Renderer::init() {
     }
 
     this->_swapchain->create();
-}
 
-void Renderer::initRenderpasses() {
     RenderpassBase *sceneRenderpass = new SceneRenderpass(this->_renderingDevice, this->_swapchain,
                                                           this->_renderingObjectsFactory, this->_engine);
     RenderpassBase *imguiRenderpass = new ImguiRenderpass(this->_renderingDevice, this->_swapchain,
@@ -99,7 +97,9 @@ void Renderer::initRenderpasses() {
     this->_renderpasses.push_back(sceneRenderpass);
     this->_renderpasses.push_back(imguiRenderpass);
     this->_renderpasses.push_back(presentRenderpass);
+}
 
+void Renderer::initRenderpasses() {
     for (RenderpassBase *renderpass: this->_renderpasses) {
         renderpass->initRenderpass();
         renderpass->createFramebuffers();
@@ -107,16 +107,11 @@ void Renderer::initRenderpasses() {
 }
 
 void Renderer::cleanup() {
-    this->_renderingDevice->waitIdle();
-
-    for (RenderpassBase *renderpass: this->_renderpasses) {
-        renderpass->destroyFramebuffers();
-    }
+    this->cleanupRenderpasses();
 
     this->_swapchain->destroy();
 
     for (RenderpassBase *renderpass: this->_renderpasses) {
-        renderpass->destroyRenderpass();
         delete renderpass;
     }
 
@@ -132,6 +127,15 @@ void Renderer::cleanup() {
 
     vkDestroySurfaceKHR(this->_instance, this->_surface, nullptr);
     vkDestroyInstance(this->_instance, nullptr);
+}
+
+void Renderer::cleanupRenderpasses() {
+    this->_renderingDevice->waitIdle();
+
+    for (RenderpassBase *renderpass: this->_renderpasses) {
+        renderpass->destroyFramebuffers();
+        renderpass->destroyRenderpass();
+    }
 }
 
 VkInstance Renderer::createInstance() {

@@ -26,7 +26,9 @@ void DebugUI::renderMainMenu() {
         }
 
         if (ImGui::BeginMenu("Renderer")) {
-            ImGui::MenuItem("COMING SOON!", NULL, false, false);
+            if (ImGui::MenuItem("Reload renderpasses")) {
+                this->_engine->requestRendererReload();
+            }
 
             ImGui::EndMenu();
         }
@@ -197,8 +199,6 @@ void DebugUI::render() {
     ImGui_ImplVulkan_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
-
-    ImGui::ShowDemoWindow();
 
     renderMainMenu();
     renderEngineFpsWindow();

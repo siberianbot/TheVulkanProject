@@ -140,6 +140,8 @@ void SceneRenderpass::destroyScenePipeline() {
         delete item.second.descriptorSet;
     }
 
+    this->_renderData.clear();
+
     this->_renderingDevice->destroyPipeline(this->_scenePipeline);
     this->_renderingDevice->destroyPipelineLayout(this->_scenePipelineLayout);
 }

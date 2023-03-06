@@ -62,6 +62,7 @@ public:
     void init();
     void initRenderpasses();
     void cleanup();
+    void cleanupRenderpasses();
 
     void render();
     void wait();

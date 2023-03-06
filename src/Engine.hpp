@@ -44,6 +44,8 @@ private:
     Scene *_scene;
     DebugUI *_debugUI;
 
+    bool _rendererReloadRequested = false;
+
     void initGlfw();
     void initWindow();
 
@@ -73,6 +75,7 @@ public:
     TextureRenderingResource *defaultTextureResource() { return &this->_defaultTextureResource; }
 
     void requestClose();
+    void requestRendererReload();
 };
 
 #endif // ENGINE_HPP

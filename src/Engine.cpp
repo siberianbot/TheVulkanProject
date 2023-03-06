@@ -196,6 +196,12 @@ void Engine::cleanup() {
 
 void Engine::run() {
     while (!glfwWindowShouldClose(this->_window)) {
+        if (this->_rendererReloadRequested) {
+            this->renderer.cleanupRenderpasses();
+            this->renderer.initRenderpasses();
+            this->_rendererReloadRequested = false;
+        }
+
         double startTime = glfwGetTime();
 
         glfwPollEvents();
@@ -280,4 +286,8 @@ void Engine::cursorCallback(GLFWwindow *window, double xpos, double ypos) {
 
 void Engine::requestClose() {
     glfwSetWindowShouldClose(this->_window, GLFW_TRUE);
+}
+
+void Engine::requestRendererReload() {
+    this->_rendererReloadRequested = true;
 }
