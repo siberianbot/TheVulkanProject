@@ -22,7 +22,8 @@ RenderingLayoutObject::RenderingLayoutObject(RenderingDevice *renderingDevice,
 
     this->_sceneDataDescriptorSetObject = this->_renderingObjectsFactory->createDescriptorSetObject(
             this->_sceneDataDescriptorPool,
-            this->_sceneDataDescriptorSetLayout);
+            this->_sceneDataDescriptorSetLayout,
+            MAX_INFLIGHT_FRAMES);
 
     std::vector<VkWriteDescriptorSet> writes;
     for (uint32_t idx = 0; idx < MAX_INFLIGHT_FRAMES; idx++) {
@@ -76,7 +77,8 @@ DescriptorSetObject *RenderingLayoutObject::createMeshDataDescriptor(VkSampler t
                                                                      VkImageView textureImageView) {
     DescriptorSetObject *descriptorSetObject = this->_renderingObjectsFactory->createDescriptorSetObject(
             this->_meshDataDescriptorPool,
-            this->_meshDataDescriptorSetLayout);
+            this->_meshDataDescriptorSetLayout,
+            MAX_INFLIGHT_FRAMES);
 
     VkDescriptorImageInfo imageInfo = {
             .sampler = textureSampler,

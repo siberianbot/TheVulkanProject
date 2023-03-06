@@ -3,7 +3,7 @@
 #include "src/Rendering/RenderingDevice.hpp"
 
 DescriptorSetObject::DescriptorSetObject(RenderingDevice *renderingDevice, VkDescriptorPool descriptorPool,
-                                         const std::array<VkDescriptorSet, MAX_INFLIGHT_FRAMES> &descriptorSets)
+                                         const std::vector<VkDescriptorSet> &descriptorSets)
         : _renderingDevice(renderingDevice),
           _descriptorPool(descriptorPool),
           _descriptorSets(descriptorSets) {

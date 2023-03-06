@@ -12,14 +12,14 @@ private:
     RenderingDevice *_renderingDevice;
 
     VkDescriptorPool _descriptorPool;
-    std::array<VkDescriptorSet, MAX_INFLIGHT_FRAMES> _descriptorSets;
+    std::vector<VkDescriptorSet> _descriptorSets;
 
 public:
     DescriptorSetObject(RenderingDevice *renderingDevice, VkDescriptorPool descriptorPool,
-                        const std::array<VkDescriptorSet, MAX_INFLIGHT_FRAMES> &descriptorSets);
+                        const std::vector<VkDescriptorSet> &descriptorSets);
     ~DescriptorSetObject();
 
-    [[nodiscard]] VkDescriptorSet getDescriptorSet(uint32_t frameIdx) const { return this->_descriptorSets[frameIdx]; }
+    [[nodiscard]] VkDescriptorSet getDescriptorSet(uint32_t idx) const { return this->_descriptorSets[idx]; }
 };
 
 

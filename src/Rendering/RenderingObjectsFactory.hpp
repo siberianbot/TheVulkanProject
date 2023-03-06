@@ -33,9 +33,9 @@ public:
     [[deprecated]]
     RenderingLayoutObject *createRenderingLayoutObject();
 
-    [[deprecated]]
     DescriptorSetObject *createDescriptorSetObject(VkDescriptorPool descriptorPool,
-                                                   VkDescriptorSetLayout descriptorSetLayout);
+                                                   VkDescriptorSetLayout descriptorSetLayout,
+                                                   uint32_t descriptorCount);
 
     ImageViewObject *createImageViewObject(VkImage image, VkFormat format, VkImageAspectFlags aspectMask);
 

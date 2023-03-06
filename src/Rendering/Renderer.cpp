@@ -91,7 +91,8 @@ void Renderer::initRenderpasses() {
                                                           this->_renderingObjectsFactory, this->_instance,
                                                           this->_physicalDevice, this->_commandExecutor);
     SwapchainPresentRenderpass *presentRenderpass = new SwapchainPresentRenderpass(this->_renderingDevice,
-                                                                                   this->_swapchain);
+                                                                                   this->_swapchain,
+                                                                                   this->_renderingObjectsFactory);
     presentRenderpass->addInputRenderpass(sceneRenderpass);
     presentRenderpass->addInputRenderpass(imguiRenderpass);
 

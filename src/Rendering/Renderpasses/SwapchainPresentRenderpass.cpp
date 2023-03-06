@@ -2,6 +2,7 @@
 
 #include "src/Rendering/PhysicalDevice.hpp"
 #include "src/Rendering/RenderingDevice.hpp"
+#include "src/Rendering/RenderingObjectsFactory.hpp"
 #include "src/Rendering/Swapchain.hpp"
 #include "src/Rendering/Builders/AttachmentBuilder.hpp"
 #include "src/Rendering/Builders/DescriptorPoolBuilder.hpp"
@@ -11,11 +12,14 @@
 #include "src/Rendering/Builders/PipelineLayoutBuilder.hpp"
 #include "src/Rendering/Builders/RenderpassBuilder.hpp"
 #include "src/Rendering/Builders/SubpassBuilder.hpp"
+#include "src/Rendering/Objects/DescriptorSetObject.hpp"
 #include "src/Rendering/Objects/ImageViewObject.hpp"
 
-SwapchainPresentRenderpass::SwapchainPresentRenderpass(RenderingDevice *renderingDevice, Swapchain *swapchain)
+SwapchainPresentRenderpass::SwapchainPresentRenderpass(RenderingDevice *renderingDevice, Swapchain *swapchain,
+                                                       RenderingObjectsFactory *renderingObjectsFactory)
         : RenderpassBase(renderingDevice),
-          _swapchain(swapchain) {
+          _swapchain(swapchain),
+          _renderingObjectsFactory(renderingObjectsFactory) {
     //
 }
 
@@ -55,8 +59,9 @@ void SwapchainPresentRenderpass::recordCommands(VkCommandBuffer commandBuffer, V
 
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->_pipeline);
 
+    VkDescriptorSet descriptor = this->_descriptorSet->getDescriptorSet(imageIdx);
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->_pipelineLayout, 0, 1,
-                            &this->_descriptorSets[imageIdx], 0, nullptr);
+                            &descriptor, 0, nullptr);
 
     vkCmdDraw(commandBuffer, 3, 1, 0, 0);
 
@@ -153,9 +158,9 @@ void SwapchainPresentRenderpass::createFramebuffers() {
         this->_framebuffers[imageIdx] = builder.build();
     }
 
-    this->_descriptorSets.resize(imagesCount);
-    this->_descriptorSets = this->_renderingDevice->allocateDescriptorSets(imagesCount, this->_descriptorPool,
-                                                                           this->_descriptorSetLayout);
+    this->_descriptorSet = this->_renderingObjectsFactory->createDescriptorSetObject(this->_descriptorPool,
+                                                                                     this->_descriptorSetLayout,
+                                                                                     imagesCount);
 
     for (uint32_t passIdx = 0; passIdx < passesCount; passIdx++) {
 
@@ -170,7 +175,7 @@ void SwapchainPresentRenderpass::createFramebuffers() {
                     VkWriteDescriptorSet{
                             .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                             .pNext = nullptr,
-                            .dstSet = this->_descriptorSets[imageIdx],
+                            .dstSet = this->_descriptorSet->getDescriptorSet(imageIdx),
                             .dstBinding = passIdx,
                             .dstArrayElement = 0,
                             .descriptorCount = 1,
@@ -187,8 +192,7 @@ void SwapchainPresentRenderpass::createFramebuffers() {
 }
 
 void SwapchainPresentRenderpass::destroyFramebuffers() {
-    this->_renderingDevice->freeDescriptorSets(this->_descriptorPool, this->_descriptorSets.size(),
-                                               this->_descriptorSets.data());
+    delete this->_descriptorSet;
 
     RenderpassBase::destroyFramebuffers();
 }
