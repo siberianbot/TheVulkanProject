@@ -11,7 +11,8 @@ Scene::Scene(Skybox *skybox)
 }
 
 Scene::~Scene() {
-    this->clear();
+    this->clearObjects();
+    this->clearLights();
 }
 
 void Scene::addObject(Object *object) {
@@ -34,13 +35,15 @@ void Scene::removeLight(Light *light) {
     delete light;
 }
 
-void Scene::clear() {
+void Scene::clearObjects() {
     for (Object *object: this->_objects) {
         delete object;
     }
 
     this->_objects.clear();
+}
 
+void Scene::clearLights() {
     for (Light *light: this->_lights) {
         delete light;
     }

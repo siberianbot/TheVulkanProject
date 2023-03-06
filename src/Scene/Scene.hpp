@@ -28,7 +28,8 @@ public:
     void addLight(Light *light);
     void removeLight(Light *light);
 
-    void clear();
+    void clearObjects();
+    void clearLights();
 };
 
 #endif // SCENE_SCENE_HPP
