@@ -6,9 +6,20 @@ layout (input_attachment_index = 2, binding = 2) uniform subpassInputMS inputPos
 layout (input_attachment_index = 3, binding = 3) uniform subpassInputMS inputNormal;
 layout (input_attachment_index = 4, binding = 4) uniform subpassInputMS inputSpecular;
 
+layout (constant_id = 0) const int MAX_NUM_LIGHTS = 32;
+
+struct LightData {
+    vec3 position;
+    vec3 color;
+    float radius;
+};
+
 layout (set = 1, binding = 0) uniform SceneData {
     vec3 cameraPosition;
-} sceneData;
+    int numLights;
+    LightData[MAX_NUM_LIGHTS] lights;
+
+} scene;
 
 layout (location = 0) out vec3 outColor;
 
@@ -18,9 +29,6 @@ vec3 blend(vec4 back, vec4 front) {
 
 void main() {
     #define AMBIENT 0.15
-    vec3 LIGHT_POS = vec3(2, 1, 0);
-    vec3 LIGHT_COLOR = vec3(1);
-    float LIGHT_RADIUS = 10;
 
     vec4 skybox = subpassLoad(inputSkybox, 0);
     vec4 albedo = subpassLoad(inputAlbedo, 0);
@@ -30,23 +38,25 @@ void main() {
 
     vec3 fragColor = AMBIENT * albedo.rgb;
 
+    int numLights = min(scene.numLights, MAX_NUM_LIGHTS);
+    for (int idx = 0; idx < numLights; idx++)
     {
-        vec3 L = LIGHT_POS - position;
+        vec3 L = scene.lights[idx].position - position;
         float dist = length(L);
         L = normalize(L);
 
-        vec3 V = sceneData.cameraPosition - position;
+        vec3 V = scene.cameraPosition - position;
         V = normalize(V);
 
-        float atten = LIGHT_RADIUS / (pow(dist, 2.0) + 1.0);
+        float atten = scene.lights[idx].radius / (pow(dist, 2.0) + 1.0);
 
         vec3 N = normalize(normal);
         float NdotL = max(0.0, dot(N, L));
-        vec3 diff = LIGHT_COLOR * albedo.rgb * NdotL * atten;
+        vec3 diff = scene.lights[idx].color * albedo.rgb * NdotL * atten;
 
         vec3 R = reflect(-L, N);
         float NdotR = max(0.0, dot(R, V));
-        vec3 spec = LIGHT_COLOR * specular * pow(NdotR, 32.0) * atten;
+        vec3 spec = scene.lights[idx].color * specular * pow(NdotR, 32.0) * atten;
 
         fragColor += diff + spec;
     }

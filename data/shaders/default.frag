@@ -15,6 +15,6 @@ layout (location = 3) out vec4 outSpecular;
 void main() {
     outAlbedo = texture(textureSampler, vec3(inUV, 0));
     outPosition = vec4(inPosition, 1);
-    outNormal = vec4(inNormal, 1);
+    outNormal = vec4(inNormal.x, -inNormal.y, inNormal.z, 1);
     outSpecular = texture(textureSampler, vec3(inUV, 1));
 }

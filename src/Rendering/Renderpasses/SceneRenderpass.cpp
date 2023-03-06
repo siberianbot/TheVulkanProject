@@ -1,6 +1,7 @@
 #include "SceneRenderpass.hpp"
 
 #include "src/Engine.hpp"
+#include "src/Scene/Light.hpp"
 #include "src/Scene/Object.hpp"
 #include "src/Scene/Scene.hpp"
 #include "src/Scene/Skybox.hpp"
@@ -225,7 +226,27 @@ SceneRenderpass::SceneRenderpass(RenderingDevice *renderingDevice, Swapchain *sw
 
 void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D renderArea,
                                      uint32_t frameIdx, uint32_t imageIdx) {
-    this->_compositionSceneData->cameraPosition = this->_engine->camera().position();
+    // PREPARE SCENE DATA
+    {
+        glm::vec3 cameraPosition = this->_engine->camera().position();
+
+        std::vector<Light *> lights(this->_engine->scene()->lights().size());
+        std::copy_if(this->_engine->scene()->lights().begin(), this->_engine->scene()->lights().end(), lights.begin(),
+                     [&](Light *l) {
+                         return glm::distance(cameraPosition, l->position()) < 100;
+                     });
+
+        this->_compositionSceneData->numLights = std::min(MAX_NUM_LIGHTS, (int) lights.size());
+        for (int idx = 0; idx < this->_compositionSceneData->numLights; idx++) {
+            this->_compositionSceneData->lights[idx] = LightData{
+                    .position = lights[idx]->position(),
+                    .color = lights[idx]->color(),
+                    .radius = lights[idx]->radius()
+            };
+        }
+
+        this->_compositionSceneData->cameraPosition = cameraPosition;
+    }
 
     glm::mat4 projection = this->_engine->camera().getProjectionMatrix(renderArea.extent.width,
                                                                        renderArea.extent.height);
@@ -277,7 +298,8 @@ void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D ren
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->_skyboxPipeline);
 
         MeshConstants constants = {
-                .matrix = projection * this->_engine->camera().getViewMatrix(true) * glm::mat4(1)
+                .matrix = projection * this->_engine->camera().getViewMatrix(true) * glm::mat4(1),
+                .model = glm::mat4(1)
         };
         vkCmdPushConstants(commandBuffer, this->_skyboxPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
                            sizeof(MeshConstants), &constants);
@@ -305,8 +327,10 @@ void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D ren
         for (Object *object: this->_engine->scene()->objects()) {
             RenderData renderData = getRenderData(object);
 
+            glm::mat4 model = object->getModelMatrix();
             MeshConstants constants = {
-                    .matrix = projection * view * object->getModelMatrix()
+                    .matrix = projection * view * model,
+                    .model = model
             };
             vkCmdPushConstants(commandBuffer, this->_scenePipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
                                sizeof(MeshConstants), &constants);
@@ -366,7 +390,7 @@ void SceneRenderpass::initRenderpass() {
                 // 1: scene albedo
                 builder
                         .clear()
-                        .withFormat(format)
+                        .withFormat(VK_FORMAT_R8G8B8A8_UNORM)
                         .withSamples(samples)
                         .withFinalLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
             })
@@ -374,7 +398,7 @@ void SceneRenderpass::initRenderpass() {
                 // 2: scene position
                 builder
                         .clear()
-                        .withFormat(format)
+                        .withFormat(VK_FORMAT_R16G16B16A16_SFLOAT)
                         .withSamples(samples)
                         .withFinalLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
             })
@@ -382,7 +406,7 @@ void SceneRenderpass::initRenderpass() {
                 // 3: scene normals
                 builder
                         .clear()
-                        .withFormat(format)
+                        .withFormat(VK_FORMAT_R16G16B16A16_SFLOAT)
                         .withSamples(samples)
                         .withFinalLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
             })
@@ -390,7 +414,7 @@ void SceneRenderpass::initRenderpass() {
                 // 4: scene specular
                 builder
                         .clear()
-                        .withFormat(format)
+                        .withFormat(VK_FORMAT_R8G8B8A8_UNORM)
                         .withSamples(samples)
                         .withFinalLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
             })
@@ -500,7 +524,7 @@ void SceneRenderpass::createFramebuffers() {
                                                                                    VK_IMAGE_ASPECT_COLOR_BIT);
 
     this->_albedoImage = this->_renderingObjectsFactory->createImageObject(extent.width, extent.height, 1, 0,
-                                                                           colorFormat,
+                                                                           VK_FORMAT_R8G8B8A8_UNORM,
                                                                            VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT |
                                                                            VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT |
                                                                            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
@@ -511,7 +535,7 @@ void SceneRenderpass::createFramebuffers() {
                                                                                    VK_IMAGE_ASPECT_COLOR_BIT);
 
     this->_positionImage = this->_renderingObjectsFactory->createImageObject(extent.width, extent.height, 1, 0,
-                                                                             colorFormat,
+                                                                             VK_FORMAT_R16G16B16A16_SFLOAT,
                                                                              VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT |
                                                                              VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT |
                                                                              VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
@@ -522,7 +546,7 @@ void SceneRenderpass::createFramebuffers() {
                                                                                      VK_IMAGE_ASPECT_COLOR_BIT);
 
     this->_normalImage = this->_renderingObjectsFactory->createImageObject(extent.width, extent.height, 1, 0,
-                                                                           colorFormat,
+                                                                           VK_FORMAT_R16G16B16A16_SFLOAT,
                                                                            VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT |
                                                                            VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT |
                                                                            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
@@ -533,7 +557,7 @@ void SceneRenderpass::createFramebuffers() {
                                                                                    VK_IMAGE_ASPECT_COLOR_BIT);
 
     this->_specularImage = this->_renderingObjectsFactory->createImageObject(extent.width, extent.height, 1, 0,
-                                                                             colorFormat,
+                                                                             VK_FORMAT_R8G8B8A8_UNORM,
                                                                              VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT |
                                                                              VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT |
                                                                              VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,

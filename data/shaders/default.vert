@@ -2,6 +2,7 @@
 
 layout (push_constant) uniform MeshConstants {
     mat4 matrix;
+    mat4 model;
 } meshConstants;
 
 layout (location = 0) in vec3 inPosition;
@@ -15,8 +16,8 @@ layout (location = 2) out vec3 outColor;
 layout (location = 3) out vec2 outUV;
 
 void main() {
-    outPosition = inPosition;
-    outNormal = inNormal;
+    outPosition = (meshConstants.model * vec4(inPosition, 1)).xyz;
+    outNormal = (meshConstants.model * vec4(inNormal, 1)).xyz;
     outColor = inColor;
     outUV = inUV;
 

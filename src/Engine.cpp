@@ -6,6 +6,7 @@
 #include "Constants.hpp"
 #include "src/Resources/Mesh.hpp"
 #include "src/Resources/Texture.hpp"
+#include "src/Scene/Light.hpp"
 #include "src/Scene/Object.hpp"
 #include "src/Scene/Scene.hpp"
 #include "src/Debug/DebugUI.hpp"
@@ -86,6 +87,16 @@ void Engine::init() {
         }
     });
 
+    this->_planeMeshResource = this->renderer.getRenderingResourcesManager()->loadMesh(PLANE_MESH.size(),
+                                                                                       PLANE_MESH.data());
+
+    Texture concreteTexture = Texture::fromFile("data/textures/concrete.png");
+    this->_concreteTextureResource = this->renderer.getRenderingResourcesManager()->loadTextureArray(
+            {
+                    &concreteTexture,
+                    &concreteTexture
+            });
+
     Texture defaultTexture = Texture::fromFile("data/textures/default.png");
     this->_defaultTextureResource = this->renderer.getRenderingResourcesManager()->loadTextureArray(
             {
@@ -147,6 +158,13 @@ void Engine::init() {
 
     this->_scene->addObject(new Object(glm::vec3(0, 0, -2), glm::vec3(0), glm::vec3(0.5f), &this->_suzanneMeshResource,
                                        &this->_defaultTextureResource));
+
+    this->_scene->addObject(new Object(glm::vec3(7, 0, 0), glm::vec3(0, glm::radians(-90.0f), 0), glm::vec3(5, 3, 0.1),
+                                       &this->_planeMeshResource, &this->_concreteTextureResource));
+
+    this->_scene->addLight(new Light(glm::vec3(2, 1, -2), glm::vec3(0, 1, 0), 50));
+    this->_scene->addLight(new Light(glm::vec3(2, 1, 0), glm::vec3(1, 0, 0), 50));
+    this->_scene->addLight(new Light(glm::vec3(2, 1, 2), glm::vec3(0, 0, 1), 50));
 }
 
 void Engine::cleanup() {
@@ -160,8 +178,10 @@ void Engine::cleanup() {
     this->renderer.getRenderingResourcesManager()->freeMesh(this->_cubeMeshResource);
     this->renderer.getRenderingResourcesManager()->freeTexture(this->_cubeTextureResource);
     this->renderer.getRenderingResourcesManager()->freeMesh(this->_skyboxMeshResource);
+    this->renderer.getRenderingResourcesManager()->freeMesh(this->_planeMeshResource);
     this->renderer.getRenderingResourcesManager()->freeTexture(this->_skyboxTextureResource);
     this->renderer.getRenderingResourcesManager()->freeTexture(this->_defaultTextureResource);
+    this->renderer.getRenderingResourcesManager()->freeTexture(this->_concreteTextureResource);
 
     this->renderer.cleanup();
 

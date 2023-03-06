@@ -53,6 +53,7 @@ src = [
 
     # Scene
     'src/Scene/Camera.cpp',
+    'src/Scene/Light.cpp',
     'src/Scene/Object.cpp',
     'src/Scene/Scene.cpp',
     'src/Scene/Skybox.cpp',

@@ -6,10 +6,12 @@
 
 class Object;
 class Skybox;
+class Light;
 
 class Scene {
 private:
     std::vector<Object *> _objects;
+    std::vector<Light *> _lights;
     Skybox *_skybox;
 
 public:
@@ -17,10 +19,14 @@ public:
     ~Scene();
 
     [[nodiscard]] const std::vector<Object *> &objects() const { return this->_objects; }
+    [[nodiscard]] const std::vector<Light *> &lights() const { return this->_lights; }
     [[nodiscard]] Skybox *skybox() const { return this->_skybox; }
 
     void addObject(Object *object);
     void removeObject(Object *object);
+
+    void addLight(Light *light);
+    void removeLight(Light *light);
 
     void clear();
 };

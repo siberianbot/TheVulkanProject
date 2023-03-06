@@ -2,6 +2,7 @@
 
 #include <algorithm>
 
+#include "src/Scene/Light.hpp"
 #include "src/Scene/Object.hpp"
 
 Scene::Scene(Skybox *skybox)
@@ -23,10 +24,26 @@ void Scene::removeObject(Object *object) {
     delete object;
 }
 
+void Scene::addLight(Light *light) {
+    this->_lights.push_back(light);
+}
+
+void Scene::removeLight(Light *light) {
+    this->_lights.erase(std::remove(this->_lights.begin(), this->_lights.end(), light));
+
+    delete light;
+}
+
 void Scene::clear() {
     for (Object *object: this->_objects) {
         delete object;
     }
 
     this->_objects.clear();
+
+    for (Light *light: this->_lights) {
+        delete light;
+    }
+
+    this->_lights.clear();
 }

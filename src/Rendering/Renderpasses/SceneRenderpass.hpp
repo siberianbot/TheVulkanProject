@@ -9,22 +9,40 @@
 #include "RenderpassBase.hpp"
 
 class Engine;
+
 class Object;
+
 class Swapchain;
+
 class RenderingObjectsFactory;
+
 class DescriptorSetObject;
+
 class BufferObject;
+
 class ImageObject;
+
 class ImageViewObject;
+
+static constexpr const int MAX_NUM_LIGHTS = 32;
 
 class SceneRenderpass : public RenderpassBase {
 private:
+    struct LightData {
+        alignas(16) glm::vec3 position;
+        alignas(16) glm::vec3 color;
+        alignas(4) float radius;
+    };
+
     struct SceneData {
-        glm::vec3 cameraPosition;
+        alignas(16) glm::vec3 cameraPosition;
+        alignas(4) int numLights;
+        alignas(16) LightData lights[MAX_NUM_LIGHTS];
     };
 
     struct MeshConstants {
         glm::mat4 matrix;
+        glm::mat4 model;
     };
 
     struct RenderData {
@@ -87,26 +105,32 @@ private:
     DescriptorSetObject *createTextureDescriptorSetFor(ImageViewObject *imageViewObject);
 
     void initSkyboxPipeline();
+
     void destroySkyboxPipeline();
 
     void initScenePipeline();
+
     void destroyScenePipeline();
 
     void initCompositionPipeline();
+
     void destroyCompositionPipeline();
 
 public:
     SceneRenderpass(RenderingDevice *renderingDevice, Swapchain *swapchain,
                     RenderingObjectsFactory *renderingObjectsFactory, Engine *engine);
+
     ~SceneRenderpass() override = default;
 
     void recordCommands(VkCommandBuffer commandBuffer, VkRect2D renderArea,
                         uint32_t frameIdx, uint32_t imageIdx) override;
 
     void initRenderpass() override;
+
     void destroyRenderpass() override;
 
     void createFramebuffers() override;
+
     void destroyFramebuffers() override;
 
     ImageViewObject *getResultImageView(uint32_t imageIdx) override { return this->_resultImageView; }

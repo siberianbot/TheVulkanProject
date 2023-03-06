@@ -33,6 +33,8 @@ private:
     MeshRenderingResource _suzanneMeshResource;
     MeshRenderingResource _vikingRoomMeshResource;
     TextureRenderingResource _vikingRoomTextureResource;
+    MeshRenderingResource _planeMeshResource;
+    TextureRenderingResource _concreteTextureResource;
 
     int _windowWidth = 1280;
     int _windowHeight = 720;
