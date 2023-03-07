@@ -73,7 +73,7 @@ shaders = [
 ]
 
 foreach shader : shaders
-    run_command('glslangValidator', '-V', shader, '-o', shader + '.spv', check: true)
+    run_command('glslangValidator', '-gVS', '-V', shader, '-o', shader + '.spv', check: true)
 endforeach
 
 exe = executable('thevulkanproject', src,
