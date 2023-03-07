@@ -4,6 +4,7 @@
 #include <imgui_impl_glfw.h>
 
 #include "Constants.hpp"
+#include "src/Events/EventQueue.hpp"
 #include "src/Resources/Mesh.hpp"
 #include "src/Resources/Texture.hpp"
 #include "src/Scene/Light.hpp"
@@ -17,6 +18,7 @@
 
 Engine::Engine()
         : renderer(this),
+          _eventQueue(new EventQueue()),
           _debugUI(new DebugUI(this)) {
     this->_camera.position() = glm::vec3(2, 2, 2);
     this->_camera.yaw() = glm::radians(-135.0f);
@@ -37,12 +39,20 @@ void Engine::init() {
     ImGui::StyleColorsDark();
     ImGui_ImplGlfw_InitForVulkan(this->_window, true);
 
+    this->_eventQueue->addHandler([this](const Event &event) {
+        if (event.type != CLOSE_REQUESTED_EVENT) {
+            return;
+        }
+
+        glfwSetWindowShouldClose(this->_window, GLFW_TRUE);
+    });
+
     this->renderer.init();
 
     this->input.addReleaseHandler(GLFW_KEY_ESCAPE, [this](float delta) {
         switch (this->_state) {
             case NotFocused:
-                glfwSetWindowShouldClose(this->_window, GLFW_TRUE);
+                this->_eventQueue->pushEvent(Event{.type = CLOSE_REQUESTED_EVENT});
                 break;
 
             case Focused:
@@ -146,7 +156,7 @@ void Engine::init() {
                     &vikingRoomSpecularTexture,
             });
 
-    this->_scene = new Scene(new Skybox(&this->_skyboxMeshResource, &this->_skyboxTextureResource));
+    this->_scene = new Scene(this, new Skybox(&this->_skyboxMeshResource, &this->_skyboxTextureResource));
 
     this->renderer.initRenderpasses();
 
@@ -213,13 +223,9 @@ void Engine::cleanup() {
 
 void Engine::run() {
     while (!glfwWindowShouldClose(this->_window)) {
-        if (this->_rendererReloadRequested) {
-            this->renderer.cleanupRenderpasses();
-            this->renderer.initRenderpasses();
-            this->_rendererReloadRequested = false;
-        }
-
         double startTime = glfwGetTime();
+
+        this->_eventQueue->process();
 
         glfwPollEvents();
 
@@ -271,7 +277,14 @@ void Engine::framebufferResizeCallback(GLFWwindow *window, int width, int height
 
     engine->_windowWidth = width;
     engine->_windowHeight = height;
-    engine->renderer.requestResize();
+
+    engine->_eventQueue->pushEvent(Event{
+            .type = VIEWPORT_RESIZED_EVENT,
+            .viewport = {
+                    .width = static_cast<uint32_t>(width),
+                    .height = static_cast<uint32_t>(height)
+            }
+    });
 }
 
 void Engine::keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods) {
@@ -299,12 +312,4 @@ void Engine::cursorCallback(GLFWwindow *window, double xpos, double ypos) {
     glfwSetCursorPos(window, xcenter, ycenter);
 
     engine->mouseInput.process(xcenter - xpos, ycenter - ypos);
-}
-
-void Engine::requestClose() {
-    glfwSetWindowShouldClose(this->_window, GLFW_TRUE);
-}
-
-void Engine::requestRendererReload() {
-    this->_rendererReloadRequested = true;
 }

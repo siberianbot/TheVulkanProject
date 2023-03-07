@@ -9,6 +9,7 @@ class Engine;
 class RenderingObjectsFactory;
 class ImageObject;
 
+// TODO: should accept multiple light sources
 class ShadowRenderpass : public RenderpassBase {
 private:
     struct MeshConstants {

@@ -4,6 +4,7 @@
 
 #include "src/Constants.hpp"
 #include "src/Engine.hpp"
+#include "src/Events/EventQueue.hpp"
 #include "CommandExecutor.hpp"
 #include "PhysicalDevice.hpp"
 #include "RenderingDevice.hpp"
@@ -104,13 +105,22 @@ void Renderer::init() {
     this->_renderpasses.push_back(sceneRenderpass);
     this->_renderpasses.push_back(imguiRenderpass);
     this->_renderpasses.push_back(presentRenderpass);
-}
 
-void Renderer::initRenderpasses() {
-    for (RenderpassBase *renderpass: this->_renderpasses) {
-        renderpass->initRenderpass();
-        renderpass->createFramebuffers();
-    }
+    this->_engine->eventQueue()->addHandler([this](const Event &event) {
+        switch (event.type) {
+            case RENDERER_RELOADING_REQUESTED_EVENT:
+                this->cleanupRenderpasses();
+                this->initRenderpasses();
+                break;
+
+            case VIEWPORT_RESIZED_EVENT:
+                this->handleResize();
+                break;
+
+            default:
+                break;
+        }
+    });
 }
 
 void Renderer::cleanup() {
@@ -134,6 +144,13 @@ void Renderer::cleanup() {
 
     vkDestroySurfaceKHR(this->_instance, this->_surface, nullptr);
     vkDestroyInstance(this->_instance, nullptr);
+}
+
+void Renderer::initRenderpasses() {
+    for (RenderpassBase *renderpass: this->_renderpasses) {
+        renderpass->initRenderpass();
+        renderpass->createFramebuffers();
+    }
 }
 
 void Renderer::cleanupRenderpasses() {
@@ -280,8 +297,4 @@ void Renderer::render() {
 
 void Renderer::wait() {
     this->_renderingDevice->waitIdle();
-}
-
-void Renderer::requestResize() {
-    handleResize();
 }

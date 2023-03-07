@@ -3,6 +3,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "src/Engine.hpp"
+#include "src/Events/EventQueue.hpp"
 #include "src/Scene/Light.hpp"
 #include "src/Scene/Object.hpp"
 #include "src/Scene/Scene.hpp"
@@ -244,7 +245,19 @@ SceneRenderpass::SceneRenderpass(RenderingDevice *renderingDevice, Swapchain *sw
           _renderingObjectsFactory(renderingObjectsFactory),
           _engine(engine),
           _swapchain(swapchain) {
-    //
+    this->_engine->eventQueue()->addHandler([this](const Event &event) {
+        if (event.type != OBJECT_DESTROYED_EVENT) {
+            return;
+        }
+
+        auto it = this->_renderData.find(event.object);
+        if (it != this->_renderData.end()) {
+            delete it->second.descriptorSet;
+            delete it->second.textureView;
+
+            this->_renderData.erase(it);
+        }
+    });
 }
 
 void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D renderArea,

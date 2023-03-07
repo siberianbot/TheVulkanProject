@@ -16,6 +16,9 @@ src = [
     'src/Engine.cpp',
     'src/Input.cpp',
 
+    # Events
+    'src/Events/EventQueue.cpp',
+
     # Rendering
     'src/Rendering/Renderer.cpp',
     'src/Rendering/PhysicalDevice.cpp',

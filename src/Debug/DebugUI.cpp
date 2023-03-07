@@ -5,6 +5,7 @@
 #include <imgui_impl_vulkan.h>
 
 #include "src/Engine.hpp"
+#include "src/Events/EventQueue.hpp"
 #include "src/Scene/Light.hpp"
 #include "src/Scene/Object.hpp"
 #include "src/Scene/Scene.hpp"
@@ -19,7 +20,7 @@ void DebugUI::renderMainMenu() {
             ImGui::Separator();
 
             if (ImGui::MenuItem("Exit")) {
-                this->_engine->requestClose();
+                this->_engine->eventQueue()->pushEvent(Event{.type = CLOSE_REQUESTED_EVENT});
             }
 
             ImGui::EndMenu();
@@ -27,7 +28,7 @@ void DebugUI::renderMainMenu() {
 
         if (ImGui::BeginMenu("Renderer")) {
             if (ImGui::MenuItem("Reload renderpasses")) {
-                this->_engine->requestRendererReload();
+                this->_engine->eventQueue()->pushEvent(Event{.type = RENDERER_RELOADING_REQUESTED_EVENT});
             }
 
             ImGui::EndMenu();

@@ -56,18 +56,17 @@ private:
 
     void handleResize();
 
+    void cleanupRenderpasses();
+
 public:
     Renderer(Engine *engine);
 
     void init();
     void initRenderpasses();
     void cleanup();
-    void cleanupRenderpasses();
 
     void render();
     void wait();
-
-    void requestResize();
 
     [[nodiscard]] RenderingResourcesManager *getRenderingResourcesManager() const {
         return this->_renderingResourcesManager;

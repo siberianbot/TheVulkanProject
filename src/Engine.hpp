@@ -11,6 +11,7 @@
 class DebugUI;
 class Object;
 class Scene;
+class EventQueue;
 
 enum CameraControlState {
     NotFocused,
@@ -24,6 +25,8 @@ private:
     Renderer renderer;
     Input input;
     MouseInput mouseInput;
+
+    EventQueue *_eventQueue;
 
     MeshRenderingResource _skyboxMeshResource;
     TextureRenderingResource _skyboxTextureResource;
@@ -44,8 +47,6 @@ private:
     Scene *_scene;
     DebugUI *_debugUI;
 
-    bool _rendererReloadRequested = false;
-
     void initGlfw();
     void initWindow();
 
@@ -65,6 +66,7 @@ public:
     GLFWwindow *window() { return this->_window; }
     Camera &camera() { return this->_camera; }
 
+    [[nodiscard]] EventQueue *eventQueue() { return this->_eventQueue; }
     [[nodiscard]] Scene *scene() { return this->_scene; }
 
     uint32_t windowWidth() { return this->_windowWidth; }
@@ -73,9 +75,6 @@ public:
     MeshRenderingResource *cubeMeshResource() { return &this->_cubeMeshResource; }
     TextureRenderingResource *cubeTextureResource() { return &this->_cubeTextureResource; }
     TextureRenderingResource *defaultTextureResource() { return &this->_defaultTextureResource; }
-
-    void requestClose();
-    void requestRendererReload();
 };
 
 #endif // ENGINE_HPP

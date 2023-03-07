@@ -4,18 +4,20 @@
 #include <string>
 #include <vector>
 
+class Engine;
 class Object;
 class Skybox;
 class Light;
 
 class Scene {
 private:
+    Engine *_engine;
     std::vector<Object *> _objects;
     std::vector<Light *> _lights;
     Skybox *_skybox;
 
 public:
-    Scene(Skybox *skybox);
+    Scene(Engine *engine, Skybox *skybox);
     ~Scene();
 
     [[nodiscard]] const std::vector<Object *> &objects() const { return this->_objects; }
