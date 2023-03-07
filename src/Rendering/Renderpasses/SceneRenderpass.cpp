@@ -1,5 +1,7 @@
 #include "SceneRenderpass.hpp"
 
+#include <glm/gtc/matrix_transform.hpp>
+
 #include "src/Engine.hpp"
 #include "src/Scene/Light.hpp"
 #include "src/Scene/Object.hpp"
@@ -157,6 +159,7 @@ void SceneRenderpass::initCompositionPipeline() {
 
     this->_compositionSceneDataDescriptorSetLayout = DescriptorSetLayoutBuilder(this->_renderingDevice)
             .withBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT)
+            .withBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
             .build();
 
     this->_compositionSceneDataBuffer = this->_renderingObjectsFactory->createBufferObject(
@@ -175,6 +178,12 @@ void SceneRenderpass::initCompositionPipeline() {
                 .range = sizeof(SceneData)
         };
 
+        VkDescriptorImageInfo imageInfo = {
+                .sampler = this->_textureSampler,
+                .imageView = this->_shadowRenderpasses[0]->getResultImageView(0)->getHandle(),
+                .imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL
+        };
+
         std::vector<VkWriteDescriptorSet> writes = {
                 VkWriteDescriptorSet{
                         .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
@@ -186,6 +195,18 @@ void SceneRenderpass::initCompositionPipeline() {
                         .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
                         .pImageInfo = nullptr,
                         .pBufferInfo = &bufferInfo,
+                        .pTexelBufferView = nullptr
+                },
+                VkWriteDescriptorSet{
+                        .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                        .pNext = nullptr,
+                        .dstSet = this->_compositionSceneDataDescriptorSet->getDescriptorSet(frameIdx),
+                        .dstBinding = 1,
+                        .dstArrayElement = 0,
+                        .descriptorCount = 1,
+                        .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                        .pImageInfo = &imageInfo,
+                        .pBufferInfo = nullptr,
                         .pTexelBufferView = nullptr
                 }
         };
@@ -248,6 +269,12 @@ void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D ren
         }
 
         this->_compositionSceneData->cameraPosition = cameraPosition;
+
+        glm::mat4 shadowProj = glm::perspective(glm::radians(90.0f), 1.0f, 1.0f, 100.0f);
+        shadowProj[1][1] *= -1;
+        this->_compositionSceneData->shadowProjection = shadowProj * glm::lookAt(glm::vec3(10), glm::vec3(0),
+                                                                                 glm::vec3(0, 1, 0));
+        this->_compositionSceneData->shadowSource = glm::vec3(10);
     }
 
     glm::mat4 projection = this->_engine->camera().getProjectionMatrix(renderArea.extent.width,
@@ -678,4 +705,8 @@ void SceneRenderpass::destroyFramebuffers() {
 
     delete this->_resultImageView;
     delete this->_resultImage;
+}
+
+void SceneRenderpass::addShadowRenderpass(RenderpassBase *renderpass) {
+    this->_shadowRenderpasses.push_back(renderpass);
 }

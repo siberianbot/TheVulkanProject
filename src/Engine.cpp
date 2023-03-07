@@ -161,23 +161,23 @@ void Engine::init() {
 
     // down
     this->_scene->addObject(new Object(glm::vec3(0, -4, 0), glm::vec3(glm::radians(-90.0f), 0, 0), glm::vec3(7, 9, 0.1),
-                                       &this->_planeMeshResource, &this->_concreteTextureResource));
+                                       &this->_cubeMeshResource, &this->_concreteTextureResource));
 
     // front
     this->_scene->addObject(new Object(glm::vec3(7, 0, 0), glm::vec3(0, glm::radians(-90.0f), 0), glm::vec3(9, 4, 0.1),
-                                       &this->_planeMeshResource, &this->_concreteTextureResource));
+                                       &this->_cubeMeshResource, &this->_concreteTextureResource));
 
     // back
     this->_scene->addObject(new Object(glm::vec3(-7, 0, 0), glm::vec3(0, glm::radians(90.0f), 0), glm::vec3(9, 4, 0.1),
-                                       &this->_planeMeshResource, &this->_concreteTextureResource));
+                                       &this->_cubeMeshResource, &this->_concreteTextureResource));
 
     // left
     this->_scene->addObject(new Object(glm::vec3(0, 0, -9), glm::vec3(0, 0, 0), glm::vec3(7, 4, 0.1),
-                                       &this->_planeMeshResource, &this->_concreteTextureResource));
+                                       &this->_cubeMeshResource, &this->_concreteTextureResource));
 
     // right
     this->_scene->addObject(new Object(glm::vec3(0, 0, 9), glm::vec3(0, glm::radians(180.0f), 0), glm::vec3(7, 4, 0.1),
-                                       &this->_planeMeshResource, &this->_concreteTextureResource));
+                                       &this->_cubeMeshResource, &this->_concreteTextureResource));
 
     this->_scene->addLight(new Light(glm::vec3(2, 1, -2), glm::vec3(0, 1, 0), 50));
     this->_scene->addLight(new Light(glm::vec3(2, 1, 0), glm::vec3(1, 0, 0), 50));

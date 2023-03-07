@@ -14,6 +14,7 @@
 #include "src/Rendering/Objects/SemaphoreObject.hpp"
 #include "src/Rendering/Renderpasses/ImguiRenderpass.hpp"
 #include "src/Rendering/Renderpasses/SceneRenderpass.hpp"
+#include "src/Rendering/Renderpasses/ShadowRenderpass.hpp"
 #include "src/Rendering/Renderpasses/SwapchainPresentRenderpass.hpp"
 
 Renderer::SyncObjectsGroup::~SyncObjectsGroup() {
@@ -83,17 +84,23 @@ void Renderer::init() {
 
     this->_swapchain->create();
 
-    RenderpassBase *sceneRenderpass = new SceneRenderpass(this->_renderingDevice, this->_swapchain,
-                                                          this->_renderingObjectsFactory, this->_engine);
+    RenderpassBase *shadowRenderpass = new ShadowRenderpass(this->_renderingDevice, this->_engine,
+                                                            this->_renderingObjectsFactory);
+    SceneRenderpass *sceneRenderpass = new SceneRenderpass(this->_renderingDevice, this->_swapchain,
+                                                           this->_renderingObjectsFactory, this->_engine);
+    sceneRenderpass->addShadowRenderpass(shadowRenderpass);
+
     RenderpassBase *imguiRenderpass = new ImguiRenderpass(this->_renderingDevice, this->_swapchain,
                                                           this->_renderingObjectsFactory, this->_instance,
                                                           this->_physicalDevice, this->_commandExecutor);
+
     SwapchainPresentRenderpass *presentRenderpass = new SwapchainPresentRenderpass(this->_renderingDevice,
                                                                                    this->_swapchain,
                                                                                    this->_renderingObjectsFactory);
     presentRenderpass->addInputRenderpass(sceneRenderpass);
     presentRenderpass->addInputRenderpass(imguiRenderpass);
 
+    this->_renderpasses.push_back(shadowRenderpass);
     this->_renderpasses.push_back(sceneRenderpass);
     this->_renderpasses.push_back(imguiRenderpass);
     this->_renderpasses.push_back(presentRenderpass);

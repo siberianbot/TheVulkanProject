@@ -45,6 +45,7 @@ src = [
     'src/Rendering/Renderpasses/RenderpassBase.cpp',
     'src/Rendering/Renderpasses/ImguiRenderpass.cpp',
     'src/Rendering/Renderpasses/SceneRenderpass.cpp',
+    'src/Rendering/Renderpasses/ShadowRenderpass.cpp',
     'src/Rendering/Renderpasses/SwapchainPresentRenderpass.cpp',
 
     # Resources
@@ -69,6 +70,8 @@ shaders = [
     'data/shaders/default.frag',
     'data/shaders/default.vert',
     'data/shaders/scene_composition.frag',
+    'data/shaders/shadow.frag',
+    'data/shaders/shadow.vert',
     'data/shaders/skybox.frag'
 ]
 

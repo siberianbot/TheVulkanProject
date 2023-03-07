@@ -27,6 +27,7 @@ private:
     std::optional<VkCullModeFlags> _cullMode;
     std::optional<VkSampleCountFlagBits> _rasterizationSamples;
     std::optional<uint32_t> _colorBlendAttachmentCount;
+    bool _depthBiasEnabled = false;
     uint32_t _subpassIdx = 0;
 
     VkShaderModule createShaderModule(const std::string &path);
@@ -45,6 +46,7 @@ public:
     PipelineBuilder &withVertexShaderSpecialization(ShaderSpecializationFunc func);
     PipelineBuilder &withFragmentShaderSpecialization(ShaderSpecializationFunc func);
 
+    PipelineBuilder &withDepthBias();
     PipelineBuilder &withCullMode(VkCullModeFlags cullMode);
     PipelineBuilder &withRasterizationSamples(VkSampleCountFlagBits samples);
     PipelineBuilder &withColorBlendAttachmentCount(uint32_t count);

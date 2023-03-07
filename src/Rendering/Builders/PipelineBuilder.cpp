@@ -95,6 +95,12 @@ PipelineBuilder &PipelineBuilder::withFragmentShaderSpecialization(ShaderSpecial
     return *this;
 }
 
+PipelineBuilder &PipelineBuilder::withDepthBias() {
+    this->_depthBiasEnabled = true;
+
+    return *this;
+}
+
 PipelineBuilder &PipelineBuilder::withCullMode(VkCullModeFlags cullMode) {
     this->_cullMode = cullMode;
 
@@ -186,7 +192,7 @@ VkPipeline PipelineBuilder::build() {
             .polygonMode = VK_POLYGON_MODE_FILL,
             .cullMode = this->_cullMode.value_or(VK_CULL_MODE_BACK_BIT),
             .frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
-            .depthBiasEnable = VK_FALSE,
+            .depthBiasEnable = this->_depthBiasEnabled ? VK_TRUE : VK_FALSE,
             .depthBiasConstantFactor = 0,
             .depthBiasClamp = 0,
             .depthBiasSlopeFactor = 0,
@@ -211,7 +217,7 @@ VkPipeline PipelineBuilder::build() {
             .flags = 0,
             .depthTestEnable = VK_TRUE,
             .depthWriteEnable = VK_TRUE,
-            .depthCompareOp = VK_COMPARE_OP_LESS,
+            .depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL,
             .depthBoundsTestEnable = VK_FALSE,
             .stencilTestEnable = VK_FALSE,
             .front = {},
@@ -249,10 +255,14 @@ VkPipeline PipelineBuilder::build() {
             .blendConstants = {0, 0, 0, 0}
     };
 
-    const std::array<VkDynamicState, 2> dynamicStates = {
+    std::vector<VkDynamicState> dynamicStates = {
             VK_DYNAMIC_STATE_VIEWPORT,
             VK_DYNAMIC_STATE_SCISSOR
     };
+
+    if (this->_depthBiasEnabled) {
+        dynamicStates.push_back(VK_DYNAMIC_STATE_DEPTH_BIAS);
+    }
 
     VkPipelineDynamicStateCreateInfo dynamicState = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
