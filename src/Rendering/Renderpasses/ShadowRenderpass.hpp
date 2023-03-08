@@ -1,15 +1,17 @@
 #ifndef RENDERING_RENDERPASSES_SHADOWRENDERPASS_HPP
 #define RENDERING_RENDERPASSES_SHADOWRENDERPASS_HPP
 
+#include <array>
+
 #include <glm/mat4x4.hpp>
 
 #include "RenderpassBase.hpp"
+#include "src/Rendering/Common.hpp"
 
 class Engine;
 class RenderingObjectsFactory;
 class ImageObject;
 
-// TODO: should accept multiple light sources
 class ShadowRenderpass : public RenderpassBase {
 private:
     struct MeshConstants {
@@ -22,8 +24,8 @@ private:
     VkPipelineLayout _pipelineLayout;
     VkPipeline _pipeline;
 
-    ImageObject *_depthImage;
-    ImageViewObject *_depthImageView;
+    std::array<ImageObject *, MAX_NUM_LIGHTS> _depthImages;
+    std::array<ImageViewObject *, MAX_NUM_LIGHTS> _depthImageViews;
 
 public:
     ShadowRenderpass(RenderingDevice *renderingDevice, Engine *engine,
@@ -39,7 +41,7 @@ public:
     void createFramebuffers() override;
     void destroyFramebuffers() override;
 
-    ImageViewObject *getResultImageView(uint32_t imageIdx) override { return this->_depthImageView; }
+    ImageViewObject *getResultImageView(uint32_t imageIdx) override { return this->_depthImageViews[imageIdx]; }
 };
 
 #endif // RENDERING_RENDERPASSES_SHADOWRENDERPASS_HPP

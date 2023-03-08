@@ -8,11 +8,11 @@ DescriptorSetLayoutBuilder::DescriptorSetLayoutBuilder(RenderingDevice *renderin
 }
 
 DescriptorSetLayoutBuilder &DescriptorSetLayoutBuilder::withBinding(uint32_t idx, VkDescriptorType type,
-                                                                    VkShaderStageFlags stages) {
+                                                                    VkShaderStageFlags stages, uint32_t count) {
     this->_bindings.push_back(VkDescriptorSetLayoutBinding{
             .binding = idx,
             .descriptorType = type,
-            .descriptorCount = 1,
+            .descriptorCount = count,
             .stageFlags = stages,
             .pImmutableSamplers = nullptr
     });

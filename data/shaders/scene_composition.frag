@@ -11,20 +11,19 @@ layout (input_attachment_index = 4, binding = 4) uniform subpassInputMS inputSpe
 layout (constant_id = 0) const int MAX_NUM_LIGHTS = 32;
 
 struct LightData {
+    mat4 projection;
     vec3 position;
     vec3 color;
     float radius;
 };
 
 layout (set = 1, binding = 0) uniform SceneData {
-    mat4 shadowProjection;
-    vec3 shadowSource;
     vec3 cameraPosition;
     int numLights;
     LightData[MAX_NUM_LIGHTS] lights;
 } scene;
 
-layout (set = 1, binding = 1) uniform sampler2D sceneShadow;
+layout (set = 1, binding = 1) uniform sampler2D sceneShadows[MAX_NUM_LIGHTS];
 
 layout (location = 0) out vec3 outColor;
 
@@ -33,14 +32,15 @@ const mat4 biasMat = mat4(
 0.0, 0.5, 0.0, 0.0,
 0.0, 0.0, 1.0, 0.0,
 0.5, 0.5, 0.0, 1.0);
+const float bias = 0.005;
 
-float textureProj(vec4 shadowCoord)
+float textureProj(int shadowIdx, vec4 shadowCoord)
 {
     float shadow = 1.0;
     if (shadowCoord.z > -1.0 && shadowCoord.z < 1.0)
     {
-        float dist = texture(sceneShadow, shadowCoord.st).r;
-        if (shadowCoord.w > 0.0 && dist < shadowCoord.z)
+        float dist = texture(sceneShadows[shadowIdx], shadowCoord.st).r;
+        if (shadowCoord.w > 0.0 && dist < shadowCoord.z - bias)
         {
             shadow = AMBIENT;
         }
@@ -81,11 +81,11 @@ void main() {
         float NdotR = max(0.0, dot(R, V));
         vec3 spec = scene.lights[idx].color * specular * pow(NdotR, 32.0) * atten;
 
-        fragColor += diff + spec;
+        vec4 inShadowCoord = (biasMat * scene.lights[idx].projection) * vec4(position, 1);
+        float shadow = textureProj(idx, inShadowCoord / inShadowCoord.w);
+
+        fragColor += shadow * (diff + spec);
     }
 
-    vec4 inShadowCoord = (biasMat * scene.shadowProjection) * vec4(position, 1);
-    float shadow = textureProj(inShadowCoord / inShadowCoord.w);
-
-    outColor = blend(skybox, vec4(fragColor * shadow, albedo.a));
+    outColor = blend(skybox, vec4(fragColor, albedo.a));
 }

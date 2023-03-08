@@ -305,9 +305,9 @@ VkSampler RenderingDevice::createSampler() {
             .magFilter = VK_FILTER_LINEAR,
             .minFilter = VK_FILTER_LINEAR,
             .mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
-            .addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-            .addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-            .addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+            .addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
+            .addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
+            .addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
             .mipLodBias = 0,
             .anisotropyEnable = VK_TRUE,
             .maxAnisotropy = this->_physicalDevice->getMaxSamplerAnisotropy(),
@@ -315,7 +315,7 @@ VkSampler RenderingDevice::createSampler() {
             .compareOp = VK_COMPARE_OP_ALWAYS,
             .minLod = 0,
             .maxLod = 1,
-            .borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK,
+            .borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE,
             .unnormalizedCoordinates = VK_FALSE
     };
 

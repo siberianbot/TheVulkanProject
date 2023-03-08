@@ -141,7 +141,7 @@ void DebugUI::renderSceneLightsWindow() {
 
     if (ImGui::Begin("Lights")) {
         if (ImGui::Button("Add light")) {
-            Light *light = new Light(glm::vec3(0), glm::vec3(0), 0);
+            Light *light = new Light();
 
             this->_engine->scene()->addLight(light);
             this->_selectedLight = std::nullopt;
@@ -178,6 +178,8 @@ void DebugUI::renderSceneLightsWindow() {
 
             ImGui::InputScalarN("Position", ImGuiDataType_Float, reinterpret_cast<float *>(&light->position()),
                                 3, &this->_floatStep, &this->_floatFastStep, "%.3f");
+            ImGui::InputScalarN("Rotation", ImGuiDataType_Float, reinterpret_cast<float *>(&light->rotation()),
+                                2, &this->_floatStep, &this->_floatFastStep, "%.3f");
             ImGui::ColorPicker3("Color", reinterpret_cast<float *>(&light->color()));
             ImGui::InputFloat("Radius", &light->radius(), this->_floatStep, this->_floatFastStep);
 

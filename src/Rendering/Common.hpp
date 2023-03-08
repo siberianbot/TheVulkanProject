@@ -15,16 +15,11 @@ static constexpr std::array<const char *, 1> DEVICE_EXTENSIONS = {
 
 static constexpr const uint32_t MAX_INFLIGHT_FRAMES = 2;
 
-static constexpr const uint32_t MAX_ATTACHMENT_COUNT = 3; // TODO: ?
-static constexpr const uint32_t COLOR_ATTACHMENT_IDX = 0;
-static constexpr const uint32_t DEPTH_ATTACHMENT_IDX = 1;
-static constexpr const uint32_t RESOLVE_ATTACHMENT_IDX = 2;
-
-static constexpr const uint32_t MAX_MESH_DATA_DESCRIPTOR_SETS = 1024 * MAX_INFLIGHT_FRAMES;
-
 static constexpr const char *DEFAULT_VERTEX_SHADER = "data/shaders/default.vert.spv";
 static constexpr const char *DEFAULT_FRAGMENT_SHADER = "data/shaders/default.frag.spv";
 static constexpr const char *SKYBOX_FRAGMENT_SHADER = "data/shaders/skybox.frag.spv";
+
+static constexpr const int MAX_NUM_LIGHTS = 32;
 
 static constexpr void vkEnsure(VkResult vkExpression) {
     if (vkExpression != VK_SUCCESS) {

@@ -15,7 +15,8 @@ private:
 public:
     explicit DescriptorSetLayoutBuilder(RenderingDevice *renderingDevice);
 
-    DescriptorSetLayoutBuilder &withBinding(uint32_t idx, VkDescriptorType type, VkShaderStageFlags stages);
+    DescriptorSetLayoutBuilder &withBinding(uint32_t idx, VkDescriptorType type, VkShaderStageFlags stages,
+                                            uint32_t count = 1);
 
     VkDescriptorSetLayout build();
 };

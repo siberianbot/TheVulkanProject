@@ -189,9 +189,27 @@ void Engine::init() {
     this->_scene->addObject(new Object(glm::vec3(0, 0, 9), glm::vec3(0, glm::radians(180.0f), 0), glm::vec3(7, 4, 0.1),
                                        &this->_cubeMeshResource, &this->_concreteTextureResource));
 
-    this->_scene->addLight(new Light(glm::vec3(2, 1, -2), glm::vec3(0, 1, 0), 50));
-    this->_scene->addLight(new Light(glm::vec3(2, 1, 0), glm::vec3(1, 0, 0), 50));
-    this->_scene->addLight(new Light(glm::vec3(2, 1, 2), glm::vec3(0, 0, 1), 50));
+    Light *light;
+
+//    light = new Light(glm::vec3(10), glm::vec3(1), 1000);
+//    light->rotation().x = glm::radians(-135.0f);
+//    light->rotation().y = glm::radians(45.0f);
+//    this->_scene->addLight(light);
+
+    light = new Light(glm::vec3(2, 0, -2), glm::vec3(1, 0, 0), 50);
+    light->rotation().x = glm::radians(-180.0f);
+    light->rotation().y = glm::radians(90.0f);
+    this->_scene->addLight(light);
+
+    light = new Light(glm::vec3(2, 0, 0), glm::vec3(0, 1, 0), 50);
+    light->rotation().x = glm::radians(-180.0f);
+    light->rotation().y = glm::radians(90.0f);
+    this->_scene->addLight(light);
+
+    light = new Light(glm::vec3(2, 0, 2), glm::vec3(0, 0, 1), 50);
+    light->rotation().x = glm::radians(-180.0f);
+    light->rotation().y = glm::radians(90.0f);
+    this->_scene->addLight(light);
 }
 
 void Engine::cleanup() {

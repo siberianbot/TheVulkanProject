@@ -7,6 +7,7 @@
 #include <glm/mat4x4.hpp>
 
 #include "RenderpassBase.hpp"
+#include "src/Rendering/Common.hpp"
 
 class Engine;
 class Object;
@@ -17,19 +18,16 @@ class BufferObject;
 class ImageObject;
 class ImageViewObject;
 
-static constexpr const int MAX_NUM_LIGHTS = 32;
-
 class SceneRenderpass : public RenderpassBase {
 private:
     struct LightData {
+        alignas(16) glm::mat4 projection;
         alignas(16) glm::vec3 position;
         alignas(16) glm::vec3 color;
         alignas(4) float radius;
     };
 
     struct SceneData {
-        alignas(16) glm::mat4 shadowProjection;
-        alignas(16) glm::vec3 shadowSource;
         alignas(16) glm::vec3 cameraPosition;
         alignas(4) int numLights;
         alignas(16) LightData lights[MAX_NUM_LIGHTS];

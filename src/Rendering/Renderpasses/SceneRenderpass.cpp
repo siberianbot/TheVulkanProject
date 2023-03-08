@@ -1,7 +1,5 @@
 #include "SceneRenderpass.hpp"
 
-#include <glm/gtc/matrix_transform.hpp>
-
 #include "src/Engine.hpp"
 #include "src/Events/EventQueue.hpp"
 #include "src/Scene/Light.hpp"
@@ -160,7 +158,7 @@ void SceneRenderpass::initCompositionPipeline() {
 
     this->_compositionSceneDataDescriptorSetLayout = DescriptorSetLayoutBuilder(this->_renderingDevice)
             .withBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT)
-            .withBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
+            .withBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, MAX_NUM_LIGHTS)
             .build();
 
     this->_compositionSceneDataBuffer = this->_renderingObjectsFactory->createBufferObject(
@@ -179,11 +177,14 @@ void SceneRenderpass::initCompositionPipeline() {
                 .range = sizeof(SceneData)
         };
 
-        VkDescriptorImageInfo imageInfo = {
-                .sampler = this->_textureSampler,
-                .imageView = this->_shadowRenderpasses[0]->getResultImageView(0)->getHandle(),
-                .imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL
-        };
+        std::vector<VkDescriptorImageInfo> imageInfo(MAX_NUM_LIGHTS);
+        for (uint32_t idx = 0; idx < MAX_NUM_LIGHTS; idx++) {
+            imageInfo[idx] = {
+                    .sampler = this->_textureSampler,
+                    .imageView = this->_shadowRenderpasses[0]->getResultImageView(idx)->getHandle(),
+                    .imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL
+            };
+        }
 
         std::vector<VkWriteDescriptorSet> writes = {
                 VkWriteDescriptorSet{
@@ -204,9 +205,9 @@ void SceneRenderpass::initCompositionPipeline() {
                         .dstSet = this->_compositionSceneDataDescriptorSet->getDescriptorSet(frameIdx),
                         .dstBinding = 1,
                         .dstArrayElement = 0,
-                        .descriptorCount = 1,
+                        .descriptorCount = static_cast<uint32_t>(imageInfo.size()),
                         .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                        .pImageInfo = &imageInfo,
+                        .pImageInfo = imageInfo.data(),
                         .pBufferInfo = nullptr,
                         .pTexelBufferView = nullptr
                 }
@@ -274,20 +275,17 @@ void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D ren
 
         this->_compositionSceneData->numLights = std::min(MAX_NUM_LIGHTS, (int) lights.size());
         for (int idx = 0; idx < this->_compositionSceneData->numLights; idx++) {
+            Light *light = lights[idx];
+
             this->_compositionSceneData->lights[idx] = LightData{
-                    .position = lights[idx]->position(),
-                    .color = lights[idx]->color(),
-                    .radius = lights[idx]->radius()
+                    .projection = light->getProjectionMatrix() * light->getViewMatrix(),
+                    .position = light->position(),
+                    .color = light->color(),
+                    .radius = light->radius()
             };
         }
 
         this->_compositionSceneData->cameraPosition = cameraPosition;
-
-        glm::mat4 shadowProj = glm::perspective(glm::radians(90.0f), 1.0f, 1.0f, 100.0f);
-        shadowProj[1][1] *= -1;
-        this->_compositionSceneData->shadowProjection = shadowProj * glm::lookAt(glm::vec3(10), glm::vec3(0),
-                                                                                 glm::vec3(0, 1, 0));
-        this->_compositionSceneData->shadowSource = glm::vec3(10);
     }
 
     glm::mat4 projection = this->_engine->camera().getProjectionMatrix(renderArea.extent.width,
