@@ -308,6 +308,10 @@ void Engine::framebufferResizeCallback(GLFWwindow *window, int width, int height
 void Engine::keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods) {
     auto engine = reinterpret_cast<Engine *>(glfwGetWindowUserPointer(window));
 
+    if (ImGui::GetIO().WantCaptureKeyboard) {
+        return;
+    }
+
     if (action == GLFW_PRESS) {
         engine->input.press(key);
     } else if (action == GLFW_RELEASE) {

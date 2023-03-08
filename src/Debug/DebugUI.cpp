@@ -1,5 +1,8 @@
 #include "DebugUI.hpp"
 
+#include <fstream>
+#include <sstream>
+
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_vulkan.h>
@@ -10,11 +13,51 @@
 #include "src/Scene/Object.hpp"
 #include "src/Scene/Scene.hpp"
 
-void DebugUI::renderMainMenu() {
+void DebugUI::loadShader(const char *path) {
+    std::ifstream shader(path);
+
+    if (!shader.is_open()) {
+        return;
+    }
+
+    shader.seekg(0, std::ios::end);
+    size_t size = shader.tellg();
+
+    this->_shaderCode.resize(64 * 1024 + size);
+
+    shader.seekg(0, std::ios::beg);
+    shader.read(this->_shaderCode.data(), size);
+
+    shader.close();
+}
+
+void DebugUI::saveShader(const char *path) {
+    std::ofstream shader(path, std::ios::trunc);
+
+    if (!shader.is_open()) {
+        return;
+    }
+
+    size_t size = strnlen(this->_shaderCode.data(), this->_shaderCode.size());
+
+    shader.write(this->_shaderCode.data(), size);
+    shader.close();
+}
+
+void DebugUI::buildShader(const char *path) {
+    std::stringstream cmdBuilder;
+    cmdBuilder << "glslangValidator -gVS -V " << path << " -o " << path << ".spv";
+
+    std::string cmd = cmdBuilder.str();
+
+    this->_shaderBuildResult = system(cmd.c_str());
+}
+
+void DebugUI::drawMainMenu() {
     if (ImGui::BeginMainMenuBar()) {
         if (ImGui::BeginMenu("Engine")) {
-            if (ImGui::MenuItem("FPS", NULL, this->_engineFpsWindowVisible)) {
-                this->_engineFpsWindowVisible = !this->_engineFpsWindowVisible;
+            if (ImGui::MenuItem("FPS", NULL, this->_engineFpsWindowVisible & 1)) {
+                this->_engineFpsWindowVisible++;
             }
 
             ImGui::Separator();
@@ -31,16 +74,22 @@ void DebugUI::renderMainMenu() {
                 this->_engine->eventQueue()->pushEvent(Event{.type = RENDERER_RELOADING_REQUESTED_EVENT});
             }
 
+            ImGui::Separator();
+
+            if (ImGui::MenuItem("Shader editor", NULL, this->_rendererShaderEditorVisible & 1)) {
+                this->_rendererShaderEditorVisible++;
+            }
+
             ImGui::EndMenu();
         }
 
         if (ImGui::BeginMenu("Scene")) {
-            if (ImGui::MenuItem("Objects", NULL, this->_sceneObjectsWindowVisible)) {
-                this->_sceneObjectsWindowVisible = !this->_sceneObjectsWindowVisible;
+            if (ImGui::MenuItem("Objects", NULL, this->_sceneObjectsWindowVisible & 1)) {
+                this->_sceneObjectsWindowVisible++;
             }
 
-            if (ImGui::MenuItem("Lights", NULL, this->_sceneLightsWindowVisible)) {
-                this->_sceneLightsWindowVisible = !this->_sceneLightsWindowVisible;
+            if (ImGui::MenuItem("Lights", NULL, this->_sceneLightsWindowVisible & 1)) {
+                this->_sceneLightsWindowVisible++;
             }
 
             ImGui::EndMenu();
@@ -50,8 +99,8 @@ void DebugUI::renderMainMenu() {
     }
 }
 
-void DebugUI::renderEngineFpsWindow() {
-    if (!this->_engineFpsWindowVisible) {
+void DebugUI::drawEngineFpsWindow() {
+    if ((this->_engineFpsWindowVisible & 1) == 0) {
         return;
     }
 
@@ -73,8 +122,46 @@ void DebugUI::renderEngineFpsWindow() {
     }
 }
 
-void DebugUI::renderSceneObjectsWindow() {
-    if (!this->_sceneObjectsWindowVisible) {
+void DebugUI::drawRendererShaderEditor() {
+    if ((this->_rendererShaderEditorVisible & 1) == 0) {
+        return;
+    }
+
+    if (ImGui::Begin("Shader editor")) {
+        if (ImGui::Combo("Current Shader", &this->_selectedShaderIdx, this->_shaders.data(), this->_shaders.size())) {
+            if (this->_selectedShaderIdx >= 0) {
+                this->loadShader(this->_shaders[this->_selectedShaderIdx]);
+            }
+        }
+
+        if (ImGui::Button("Save")) {
+            if (this->_selectedShaderIdx >= 0) {
+                this->saveShader(this->_shaders[this->_selectedShaderIdx]);
+            }
+        }
+
+        ImGui::SameLine();
+
+        if (ImGui::Button("Build")) {
+            if (this->_selectedShaderIdx >= 0) {
+                this->buildShader(this->_shaders[this->_selectedShaderIdx]);
+            }
+        }
+
+        if (this->_shaderBuildResult == 0) {
+            ImGui::Text("Successfully built!");
+        } else if (this->_shaderBuildResult != -1) {
+            ImGui::Text("Failed to build!");
+        }
+
+        ImGui::InputTextMultiline("Shader Code", this->_shaderCode.data(), this->_shaderCode.size(), ImVec2(-1, -1));
+
+        ImGui::End();
+    }
+}
+
+void DebugUI::drawSceneObjectsWindow() {
+    if ((this->_sceneObjectsWindowVisible & 1) == 0) {
         return;
     }
 
@@ -134,8 +221,8 @@ void DebugUI::renderSceneObjectsWindow() {
     }
 }
 
-void DebugUI::renderSceneLightsWindow() {
-    if (!this->_sceneLightsWindowVisible) {
+void DebugUI::drawSceneLightsWindow() {
+    if ((this->_sceneLightsWindowVisible & 1) == 0) {
         return;
     }
 
@@ -195,7 +282,14 @@ void DebugUI::renderSceneLightsWindow() {
 
 DebugUI::DebugUI(Engine *engine)
         : _engine(engine) {
-    //
+    this->_shaders.push_back("data/shaders/composition.frag");
+    this->_shaders.push_back("data/shaders/composition.vert");
+    this->_shaders.push_back("data/shaders/default.frag");
+    this->_shaders.push_back("data/shaders/default.vert");
+    this->_shaders.push_back("data/shaders/scene_composition.frag");
+    this->_shaders.push_back("data/shaders/shadow.frag");
+    this->_shaders.push_back("data/shaders/shadow.vert");
+    this->_shaders.push_back("data/shaders/skybox.frag");
 }
 
 void DebugUI::render() {
@@ -203,8 +297,9 @@ void DebugUI::render() {
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
-    renderMainMenu();
-    renderEngineFpsWindow();
-    renderSceneObjectsWindow();
-    renderSceneLightsWindow();
+    drawMainMenu();
+    drawEngineFpsWindow();
+    drawRendererShaderEditor();
+    drawSceneObjectsWindow();
+    drawSceneLightsWindow();
 }
