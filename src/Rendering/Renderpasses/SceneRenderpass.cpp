@@ -25,15 +25,15 @@
 #include "src/Rendering/Objects/DescriptorSetObject.hpp"
 
 SceneRenderpass::RenderData SceneRenderpass::getRenderData(Object *object) {
-    auto it = this->_renderData.find(object);
+    ImageObject *targetImage = object->texture() == nullptr
+                               ? this->_engine->defaultTextureResource()->texture
+                               : object->texture()->texture;
+
+    auto it = this->_renderData.find(targetImage);
 
     if (it != this->_renderData.end()) {
         return it->second;
     }
-
-    ImageObject *targetImage = object->texture() == nullptr
-                               ? this->_engine->defaultTextureResource()->texture
-                               : object->texture()->texture;
 
     ImageViewObject *textureView = this->_renderingObjectsFactory->createImageViewObject(targetImage,
                                                                                          VK_IMAGE_VIEW_TYPE_2D_ARRAY,
@@ -44,7 +44,7 @@ SceneRenderpass::RenderData SceneRenderpass::getRenderData(Object *object) {
             .descriptorSet = this->createTextureDescriptorSetFor(textureView)
     };
 
-    this->_renderData[object] = renderData;
+    this->_renderData[targetImage] = renderData;
 
     return renderData;
 }
@@ -251,13 +251,14 @@ SceneRenderpass::SceneRenderpass(RenderingDevice *renderingDevice, Swapchain *sw
             return;
         }
 
-        auto it = this->_renderData.find(event.object);
-        if (it != this->_renderData.end()) {
-            delete it->second.descriptorSet;
-            delete it->second.textureView;
-
-            this->_renderData.erase(it);
-        }
+// TODO: we use textures, not objects
+//        auto it = this->_renderData.find(event.object);
+//        if (it != this->_renderData.end()) {
+//            delete it->second.descriptorSet;
+//            delete it->second.textureView;
+//
+//            this->_renderData.erase(it);
+//        }
     });
 }
 
@@ -269,7 +270,7 @@ void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D ren
 
         std::vector<Light *> lights;
         for (uint32_t idx = 0; idx < this->_engine->scene()->lights().size(); idx++) {
-            Light* light = this->_engine->scene()->lights()[idx];
+            Light *light = this->_engine->scene()->lights()[idx];
 
             if (!light->enabled() || glm::distance(cameraPosition, light->position()) > 100) {
                 continue;

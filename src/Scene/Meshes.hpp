@@ -5,15 +5,6 @@
 
 #include "src/Resources/Vertex.hpp"
 
-static constexpr std::array<Vertex, 6> PLANE_MESH = {
-        Vertex{.pos = {1, 1, 0}, .normal = {0, 0, 1}, .color = {1, 1, 1}, .uv = {0, 0}},
-        Vertex{.pos = {-1, 1, 0}, .normal = {0, 0, 1}, .color = {1, 1, 1}, .uv = {1, 0}},
-        Vertex{.pos = {-1, -1, 0}, .normal = {0, 0, 1}, .color = {1, 1, 1}, .uv = {1, 1}},
-        Vertex{.pos = {-1, -1, 0}, .normal = {0, 0, 1}, .color = {1, 1, 1}, .uv = {1, 1}},
-        Vertex{.pos = {1, -1, 0}, .normal = {0, 0, 1}, .color = {1, 1, 1}, .uv = {0, 1}},
-        Vertex{.pos = {1, 1, 0}, .normal = {0, 0, 1}, .color = {1, 1, 1}, .uv = {0, 0}},
-};
-
 static constexpr std::array<Vertex, 36> CUBE_MESH = {
         // up
         Vertex{.pos = {-1, 1, 1}, .normal = {0, 1, 0}, .color = {1, 1, 1}, .uv = {0, 0}},

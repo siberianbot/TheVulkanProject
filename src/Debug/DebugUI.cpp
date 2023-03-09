@@ -119,7 +119,7 @@ void DebugUI::drawEngineFpsWindow() {
         ImGui::Text("Frame time: %.3f ms", delta * 1000);
         ImGui::Text("Frames per second: %.0f", 1.0f / delta);
     }
-    
+
     ImGui::End();
 }
 
@@ -169,8 +169,8 @@ void DebugUI::drawSceneObjectsWindow() {
     if (ImGui::Begin("Objects")) {
         if (ImGui::Button("Add object")) {
             Object *object = new Object(glm::vec3(0), glm::vec3(0), glm::vec3(1),
-                                        this->_engine->cubeMeshResource(),
-                                        this->_engine->cubeTextureResource());
+                                        &this->_engine->meshes()[0],
+                                        &this->_engine->textures()[0]);
 
             this->_engine->scene()->addObject(object);
             this->_selectedObject = std::nullopt;
@@ -192,6 +192,22 @@ void DebugUI::drawSceneObjectsWindow() {
 
                 if (ImGui::Selectable(name.c_str(), isSelected)) {
                     this->_selectedObject = current;
+
+                    this->_selectedObjectMeshIdx = -1;
+                    for (uint32_t idx = 0; idx < this->_engine->meshes().size(); idx++) {
+                        if ((*current)->mesh() == &this->_engine->meshes()[idx]) {
+                            this->_selectedObjectMeshIdx = idx;
+                            break;
+                        }
+                    }
+
+                    this->_selectedObjectTextureIdx = -1;
+                    for (uint32_t idx = 0; idx < this->_engine->textures().size(); idx++) {
+                        if ((*current)->texture() == &this->_engine->textures()[idx]) {
+                            this->_selectedObjectTextureIdx = idx;
+                            break;
+                        }
+                    }
                 }
 
                 if (isSelected) {
@@ -207,10 +223,24 @@ void DebugUI::drawSceneObjectsWindow() {
 
             ImGui::InputScalarN("Position", ImGuiDataType_Float, reinterpret_cast<float *>(&object->position()),
                                 3, &this->_floatStep, &this->_floatFastStep, "%.3f");
-            ImGui::InputScalarN("Rotation", ImGuiDataType_Float, reinterpret_cast<float *>(&object->rotation()),
-                                3, &this->_floatStep, &this->_floatFastStep, "%.3f");
+            ImGui::SliderAngle("Yaw", &object->rotation().x, 0, 360.0f);
+            ImGui::SliderAngle("Pitch", &object->rotation().y, 0, 360.0f);
+            ImGui::SliderAngle("Roll", &object->rotation().z, 0, 360.0f);
             ImGui::InputScalarN("Scale", ImGuiDataType_Float, reinterpret_cast<float *>(&object->scale()),
                                 3, &this->_floatStep, &this->_floatFastStep, "%.3f");
+
+            if (ImGui::Combo("Mesh", &this->_selectedObjectMeshIdx, this->_meshes.data(), this->_meshes.size())) {
+                if (this->_selectedObjectMeshIdx != -1) {
+                    object->mesh() = &this->_engine->meshes()[this->_selectedObjectMeshIdx];
+                }
+            }
+
+            if (ImGui::Combo("Texture", &this->_selectedObjectTextureIdx, this->_textures.data(),
+                             this->_textures.size())) {
+                if (this->_selectedObjectTextureIdx != -1) {
+                    object->texture() = &this->_engine->textures()[this->_selectedObjectTextureIdx];
+                }
+            }
 
             if (ImGui::Button("Delete object")) {
                 this->_engine->scene()->removeObject(object);
@@ -267,11 +297,11 @@ void DebugUI::drawSceneLightsWindow() {
             ImGui::Checkbox("Enabled", &light->enabled());
             ImGui::InputScalarN("Position", ImGuiDataType_Float, reinterpret_cast<float *>(&light->position()),
                                 3, &this->_floatStep, &this->_floatFastStep, "%.3f");
-            ImGui::InputScalarN("Rotation", ImGuiDataType_Float, reinterpret_cast<float *>(&light->rotation()),
-                                2, &this->_floatStep, &this->_floatFastStep, "%.3f");
+            ImGui::SliderAngle("Yaw", &light->rotation().x, 0, 360.0f);
+            ImGui::SliderAngle("Pitch", &light->rotation().y, 0, 360.0f);
             ImGui::ColorPicker3("Color", reinterpret_cast<float *>(&light->color()));
             ImGui::InputFloat("Radius", &light->radius(), this->_floatStep, this->_floatFastStep);
-            ImGui::InputFloat("Field of View", &light->fov(), this->_floatStep, this->_floatFastStep);
+            ImGui::SliderFloat("Field of View", &light->fov(), 0, glm::radians(180.0f));
             ImGui::InputFloat("Near", &light->near(), this->_floatStep, this->_floatFastStep);
             ImGui::InputFloat("Far", &light->far(), this->_floatStep, this->_floatFastStep);
 
@@ -295,6 +325,25 @@ DebugUI::DebugUI(Engine *engine)
     this->_shaders.push_back("data/shaders/shadow.frag");
     this->_shaders.push_back("data/shaders/shadow.vert");
     this->_shaders.push_back("data/shaders/skybox.frag");
+
+    for (uint32_t idx = 0; idx < this->_engine->meshes().size(); idx++) {
+        std::string name = std::string("mesh ") + std::to_string(reinterpret_cast<long>(&this->_engine->meshes()[idx]));
+        char *ptr = new char[name.size()];
+
+        memcpy(ptr, name.data(), name.size());
+
+        this->_meshes.push_back(ptr);
+    }
+
+    for (uint32_t idx = 0; idx < this->_engine->textures().size(); idx++) {
+        std::string name = std::string("texture ") +
+                           std::to_string(reinterpret_cast<long>(&this->_engine->textures()[idx]));
+        char *ptr = new char[name.size()];
+
+        memcpy(ptr, name.data(), name.size());
+
+        this->_textures.push_back(ptr);
+    }
 }
 
 void DebugUI::render() {

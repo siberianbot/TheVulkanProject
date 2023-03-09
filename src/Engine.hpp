@@ -28,16 +28,12 @@ private:
 
     EventQueue *_eventQueue;
 
+    std::vector<MeshRenderingResource> _meshes;
+    std::vector<TextureRenderingResource> _textures;
+
     MeshRenderingResource _skyboxMeshResource;
     TextureRenderingResource _skyboxTextureResource;
-    TextureRenderingResource _defaultTextureResource;
-    MeshRenderingResource _cubeMeshResource;
-    TextureRenderingResource _cubeTextureResource;
-    MeshRenderingResource _suzanneMeshResource;
-    MeshRenderingResource _vikingRoomMeshResource;
-    TextureRenderingResource _vikingRoomTextureResource;
-    MeshRenderingResource _planeMeshResource;
-    TextureRenderingResource _concreteTextureResource;
+    TextureRenderingResource *_defaultTextureResource;
 
     int _windowWidth = 1280;
     int _windowHeight = 720;
@@ -72,9 +68,11 @@ public:
     uint32_t windowWidth() { return this->_windowWidth; }
     uint32_t windowHeight() { return this->_windowHeight; }
     float delta() { return this->_delta; }
-    MeshRenderingResource *cubeMeshResource() { return &this->_cubeMeshResource; }
-    TextureRenderingResource *cubeTextureResource() { return &this->_cubeTextureResource; }
-    TextureRenderingResource *defaultTextureResource() { return &this->_defaultTextureResource; }
+
+    TextureRenderingResource *defaultTextureResource() { return this->_defaultTextureResource; }
+
+    std::vector<MeshRenderingResource> &meshes() { return this->_meshes; }
+    std::vector<TextureRenderingResource> &textures() { return this->_textures; }
 };
 
 #endif // ENGINE_HPP

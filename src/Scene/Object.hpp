@@ -24,8 +24,8 @@ public:
     glm::vec3 &position() { return this->_position; }
     glm::vec3 &rotation() { return this->_rotation; }
     glm::vec3 &scale() { return this->_scale; }
-    MeshRenderingResource *mesh() { return this->_mesh; }
-    TextureRenderingResource *texture() { return this->_texture; }
+    MeshRenderingResource *&mesh() { return this->_mesh; }
+    TextureRenderingResource *&texture() { return this->_texture; }
 };
 
 #endif // SCENE_OBJECT_HPP

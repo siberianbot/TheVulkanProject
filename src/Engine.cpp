@@ -18,8 +18,7 @@
 
 Engine::Engine()
         : renderer(this),
-          _eventQueue(new EventQueue()),
-          _debugUI(new DebugUI(this)) {
+          _eventQueue(new EventQueue()) {
     this->_camera.position() = glm::vec3(2, 2, 2);
     this->_camera.yaw() = glm::radians(-135.0f);
     this->_camera.pitch() = glm::radians(45.0f);
@@ -52,7 +51,7 @@ void Engine::init() {
     this->input.addReleaseHandler(GLFW_KEY_ESCAPE, [this](float delta) {
         switch (this->_state) {
             case NotFocused:
-                this->_eventQueue->pushEvent(Event{.type = CLOSE_REQUESTED_EVENT});
+//                this->_eventQueue->pushEvent(Event{.type = CLOSE_REQUESTED_EVENT});
                 break;
 
             case Focused:
@@ -97,41 +96,54 @@ void Engine::init() {
         }
     });
 
-    this->_planeMeshResource = this->renderer.getRenderingResourcesManager()->loadMesh(PLANE_MESH.size(),
-                                                                                       PLANE_MESH.data());
+    this->_meshes.push_back(this->renderer.getRenderingResourcesManager()->loadMesh(CUBE_MESH.size(),
+                                                                                    CUBE_MESH.data()));
+
+    Mesh suzanneMesh = Mesh::fromFile("data/models/suzanne.obj");
+    this->_meshes.push_back(this->renderer.getRenderingResourcesManager()->loadMesh(&suzanneMesh));
+
+    Mesh vikingRoomMesh = Mesh::fromFile("data/models/viking_room.obj");
+    this->_meshes.push_back(this->renderer.getRenderingResourcesManager()->loadMesh(&vikingRoomMesh));
 
     Texture concreteTexture = Texture::fromFile("data/textures/concrete.png");
-    this->_concreteTextureResource = this->renderer.getRenderingResourcesManager()->loadTextureArray(
+    this->_textures.push_back(this->renderer.getRenderingResourcesManager()->loadTextureArray(
             {
                     &concreteTexture,
                     &concreteTexture
-            });
+            }));
 
     Texture defaultTexture = Texture::fromFile("data/textures/default.png");
-    this->_defaultTextureResource = this->renderer.getRenderingResourcesManager()->loadTextureArray(
+    this->_textures.push_back(this->renderer.getRenderingResourcesManager()->loadTextureArray(
             {
                     &defaultTexture,
                     &defaultTexture
-            });
+            }));
 
     Texture cubeTexture = Texture::fromFile("data/textures/cube.png");
     Texture cubeSpecularTexture = Texture::fromFile("data/textures/cube_specular.png");
-    this->_cubeMeshResource = this->renderer.getRenderingResourcesManager()->loadMesh(CUBE_MESH.size(),
-                                                                                      CUBE_MESH.data());
-    this->_cubeTextureResource = this->renderer.getRenderingResourcesManager()->loadTextureArray(
+    this->_textures.push_back(this->renderer.getRenderingResourcesManager()->loadTextureArray(
             {
                     &cubeTexture,
                     &cubeSpecularTexture
-            });
+            }));
 
+
+    Texture vikingRoomTexture = Texture::fromFile("data/textures/viking_room.png");
+    Texture vikingRoomSpecularTexture = Texture::fromFile("data/textures/viking_room_specular.png");
+    this->_textures.push_back(this->renderer.getRenderingResourcesManager()->loadTextureArray(
+            {
+                    &vikingRoomTexture,
+                    &vikingRoomSpecularTexture,
+            }));
+
+    this->_skyboxMeshResource = this->renderer.getRenderingResourcesManager()->loadMesh(SKYBOX_MESH.size(),
+                                                                                        SKYBOX_MESH.data());
     Texture skyboxRightTexture = Texture::fromFile("data/textures/skybox_right.jpg");
     Texture skyboxLeftTexture = Texture::fromFile("data/textures/skybox_left.jpg");
     Texture skyboxUpTexture = Texture::fromFile("data/textures/skybox_up.jpg");
     Texture skyboxDownTexture = Texture::fromFile("data/textures/skybox_down.jpg");
     Texture skyboxFrontTexture = Texture::fromFile("data/textures/skybox_front.jpg");
     Texture skyboxBackTexture = Texture::fromFile("data/textures/skybox_back.jpg");
-    this->_skyboxMeshResource = this->renderer.getRenderingResourcesManager()->loadMesh(SKYBOX_MESH.size(),
-                                                                                        SKYBOX_MESH.data());
     this->_skyboxTextureResource = this->renderer.getRenderingResourcesManager()->loadTextureCube(
             {
                     &skyboxFrontTexture,
@@ -142,59 +154,45 @@ void Engine::init() {
                     &skyboxLeftTexture,
             });
 
-    Mesh suzanneMesh = Mesh::fromFile("data/models/suzanne.obj");
-    this->_suzanneMeshResource = this->renderer.getRenderingResourcesManager()->loadMesh(&suzanneMesh);
-
-    Mesh vikingRoomMesh = Mesh::fromFile("data/models/viking_room.obj");
-    this->_vikingRoomMeshResource = this->renderer.getRenderingResourcesManager()->loadMesh(&vikingRoomMesh);
-
-    Texture vikingRoomTexture = Texture::fromFile("data/textures/viking_room.png");
-    Texture vikingRoomSpecularTexture = Texture::fromFile("data/textures/viking_room_specular.png");
-    this->_vikingRoomTextureResource = this->renderer.getRenderingResourcesManager()->loadTextureArray(
-            {
-                    &vikingRoomTexture,
-                    &vikingRoomSpecularTexture,
-            });
-
     this->_scene = new Scene(this, new Skybox(&this->_skyboxMeshResource, &this->_skyboxTextureResource));
 
     this->renderer.initRenderpasses();
 
-    this->_scene->addObject(new Object(glm::vec3(0, 0, 2), glm::vec3(0), glm::vec3(1), &this->_vikingRoomMeshResource,
-                                       &this->_vikingRoomTextureResource));
+    this->_scene->addObject(new Object(glm::vec3(0, 0, 2), glm::vec3(0), glm::vec3(1), &this->_meshes[2],
+                                       &this->_textures[3]));
 
-    this->_scene->addObject(new Object(glm::vec3(0), glm::vec3(0), glm::vec3(0.5f), &this->_cubeMeshResource,
-                                       &this->_cubeTextureResource));
+    this->_scene->addObject(new Object(glm::vec3(0), glm::vec3(0), glm::vec3(0.5f), &this->_meshes[0],
+                                       &this->_textures[2]));
 
-    this->_scene->addObject(new Object(glm::vec3(0, 0, -2), glm::vec3(0), glm::vec3(0.5f), &this->_suzanneMeshResource,
-                                       &this->_defaultTextureResource));
+    this->_scene->addObject(new Object(glm::vec3(0, 0, -2), glm::vec3(0), glm::vec3(0.5f), &this->_meshes[1],
+                                       &this->_textures[1]));
 
     // down
     this->_scene->addObject(new Object(glm::vec3(0, -4, 0), glm::vec3(glm::radians(-90.0f), 0, 0), glm::vec3(7, 9, 0.1),
-                                       &this->_cubeMeshResource, &this->_concreteTextureResource));
+                                       &this->_meshes[0], &this->_textures[0]));
 
     // front
     this->_scene->addObject(new Object(glm::vec3(7, 0, 0), glm::vec3(0, glm::radians(-90.0f), 0), glm::vec3(9, 4, 0.1),
-                                       &this->_cubeMeshResource, &this->_concreteTextureResource));
+                                       &this->_meshes[0], &this->_textures[0]));
 
     // back
     this->_scene->addObject(new Object(glm::vec3(-7, 0, 0), glm::vec3(0, glm::radians(90.0f), 0), glm::vec3(9, 4, 0.1),
-                                       &this->_cubeMeshResource, &this->_concreteTextureResource));
+                                       &this->_meshes[0], &this->_textures[0]));
 
     // left
     this->_scene->addObject(new Object(glm::vec3(0, 0, -9), glm::vec3(0, 0, 0), glm::vec3(7, 4, 0.1),
-                                       &this->_cubeMeshResource, &this->_concreteTextureResource));
+                                       &this->_meshes[0], &this->_textures[0]));
 
     // right
     this->_scene->addObject(new Object(glm::vec3(0, 0, 9), glm::vec3(0, glm::radians(180.0f), 0), glm::vec3(7, 4, 0.1),
-                                       &this->_cubeMeshResource, &this->_concreteTextureResource));
+                                       &this->_meshes[0], &this->_textures[0]));
 
     Light *light;
 
-//    light = new Light(glm::vec3(10), glm::vec3(1), 1000);
-//    light->rotation().x = glm::radians(-135.0f);
-//    light->rotation().y = glm::radians(45.0f);
-//    this->_scene->addLight(light);
+    light = new Light(glm::vec3(10), glm::vec3(1), 1000);
+    light->rotation().x = glm::radians(-135.0f);
+    light->rotation().y = glm::radians(45.0f);
+    this->_scene->addLight(light);
 
     light = new Light(glm::vec3(2, 0, -2), glm::vec3(1, 0, 0), 50);
     light->rotation().x = glm::radians(-225.0f);
@@ -210,6 +208,8 @@ void Engine::init() {
     light->rotation().x = glm::radians(-135.0f);
     light->rotation().y = glm::radians(90.0f);
     this->_scene->addLight(light);
+
+    this->_debugUI = new DebugUI(this);
 }
 
 void Engine::cleanup() {
@@ -217,16 +217,16 @@ void Engine::cleanup() {
 
     delete this->_scene;
 
-    this->renderer.getRenderingResourcesManager()->freeMesh(this->_vikingRoomMeshResource);
-    this->renderer.getRenderingResourcesManager()->freeTexture(this->_vikingRoomTextureResource);
-    this->renderer.getRenderingResourcesManager()->freeMesh(this->_suzanneMeshResource);
-    this->renderer.getRenderingResourcesManager()->freeMesh(this->_cubeMeshResource);
-    this->renderer.getRenderingResourcesManager()->freeTexture(this->_cubeTextureResource);
-    this->renderer.getRenderingResourcesManager()->freeMesh(this->_skyboxMeshResource);
-    this->renderer.getRenderingResourcesManager()->freeMesh(this->_planeMeshResource);
+    for (TextureRenderingResource &texture: this->_textures) {
+        this->renderer.getRenderingResourcesManager()->freeTexture(texture);
+    }
+
+    for (MeshRenderingResource &mesh: this->_meshes) {
+        this->renderer.getRenderingResourcesManager()->freeMesh(mesh);
+    }
+
     this->renderer.getRenderingResourcesManager()->freeTexture(this->_skyboxTextureResource);
-    this->renderer.getRenderingResourcesManager()->freeTexture(this->_defaultTextureResource);
-    this->renderer.getRenderingResourcesManager()->freeTexture(this->_concreteTextureResource);
+    this->renderer.getRenderingResourcesManager()->freeMesh(this->_skyboxMeshResource);
 
     this->renderer.cleanup();
 

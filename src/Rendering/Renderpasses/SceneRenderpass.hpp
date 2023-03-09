@@ -49,7 +49,7 @@ private:
     Swapchain *_swapchain;
 
     VkSampler _textureSampler;
-    std::map<Object *, RenderData> _renderData;
+    std::map<ImageObject *, RenderData> _renderData;
     ImageViewObject *_skyboxTextureView;
     DescriptorSetObject *_skyboxDescriptorSet;
 
