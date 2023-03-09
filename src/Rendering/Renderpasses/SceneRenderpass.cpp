@@ -267,11 +267,16 @@ void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D ren
     {
         glm::vec3 cameraPosition = this->_engine->camera().position();
 
-        std::vector<Light *> lights(this->_engine->scene()->lights().size());
-        std::copy_if(this->_engine->scene()->lights().begin(), this->_engine->scene()->lights().end(), lights.begin(),
-                     [&](Light *l) {
-                         return glm::distance(cameraPosition, l->position()) < 100;
-                     });
+        std::vector<Light *> lights;
+        for (uint32_t idx = 0; idx < this->_engine->scene()->lights().size(); idx++) {
+            Light* light = this->_engine->scene()->lights()[idx];
+
+            if (!light->enabled() || glm::distance(cameraPosition, light->position()) > 100) {
+                continue;
+            }
+
+            lights.push_back(light);
+        }
 
         this->_compositionSceneData->numLights = std::min(MAX_NUM_LIGHTS, (int) lights.size());
         for (int idx = 0; idx < this->_compositionSceneData->numLights; idx++) {
@@ -367,10 +372,12 @@ void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D ren
         for (Object *object: this->_engine->scene()->objects()) {
             RenderData renderData = getRenderData(object);
 
-            glm::mat4 model = object->getModelMatrix();
+            glm::mat4 model = object->getModelMatrix(false);
+            glm::mat4 rot = object->getModelMatrix(true);
             MeshConstants constants = {
                     .matrix = projection * view * model,
-                    .model = model
+                    .model = model,
+                    .modelRotation = rot
             };
             vkCmdPushConstants(commandBuffer, this->_scenePipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
                                sizeof(MeshConstants), &constants);

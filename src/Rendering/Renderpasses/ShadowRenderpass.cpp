@@ -32,11 +32,16 @@ void ShadowRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D re
                                       uint32_t imageIdx) {
     glm::vec3 cameraPosition = this->_engine->camera().position();
 
-    std::vector<Light *> lights(this->_engine->scene()->lights().size());
-    std::copy_if(this->_engine->scene()->lights().begin(), this->_engine->scene()->lights().end(), lights.begin(),
-                 [&](Light *l) {
-                     return glm::distance(cameraPosition, l->position()) < 100;
-                 });
+    std::vector<Light *> lights;
+    for (uint32_t idx = 0; idx < this->_engine->scene()->lights().size(); idx++) {
+        Light* light = this->_engine->scene()->lights()[idx];
+
+        if (!light->enabled() || glm::distance(cameraPosition, light->position()) > 100) {
+            continue;
+        }
+
+        lights.push_back(light);
+    }
 
     const std::array<VkClearValue, 1> clearValues = {
             VkClearValue{.depthStencil = {1, 0}},
@@ -89,7 +94,7 @@ void ShadowRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D re
 
         uint32_t idx = 0;
         for (Object *object: this->_engine->scene()->objects()) {
-            glm::mat4 model = object->getModelMatrix();
+            glm::mat4 model = object->getModelMatrix(false);
             MeshConstants constants = {
                     .matrix = projection * view * model,
             };
@@ -146,7 +151,7 @@ void ShadowRenderpass::initRenderpass() {
             .addFragmentShader("data/shaders/shadow.frag.spv")
             .addBinding(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
             .addAttribute(0, 0, offsetof(Vertex, pos), VK_FORMAT_R32G32B32_SFLOAT)
-            .withCullMode(VK_CULL_MODE_NONE)
+//            .withCullMode(VK_CULL_MODE_NONE)
             .withDepthBias()
             .build();
 

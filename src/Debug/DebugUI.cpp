@@ -118,8 +118,9 @@ void DebugUI::drawEngineFpsWindow() {
 
         ImGui::Text("Frame time: %.3f ms", delta * 1000);
         ImGui::Text("Frames per second: %.0f", 1.0f / delta);
-        ImGui::End();
     }
+    
+    ImGui::End();
 }
 
 void DebugUI::drawRendererShaderEditor() {
@@ -155,9 +156,9 @@ void DebugUI::drawRendererShaderEditor() {
         }
 
         ImGui::InputTextMultiline("Shader Code", this->_shaderCode.data(), this->_shaderCode.size(), ImVec2(-1, -1));
-
-        ImGui::End();
     }
+
+    ImGui::End();
 }
 
 void DebugUI::drawSceneObjectsWindow() {
@@ -216,9 +217,9 @@ void DebugUI::drawSceneObjectsWindow() {
                 this->_selectedObject = std::nullopt;
             }
         }
-
-        ImGui::End();
     }
+
+    ImGui::End();
 }
 
 void DebugUI::drawSceneLightsWindow() {
@@ -263,21 +264,25 @@ void DebugUI::drawSceneLightsWindow() {
         if (this->_selectedLight.has_value()) {
             Light *light = *this->_selectedLight.value();
 
+            ImGui::Checkbox("Enabled", &light->enabled());
             ImGui::InputScalarN("Position", ImGuiDataType_Float, reinterpret_cast<float *>(&light->position()),
                                 3, &this->_floatStep, &this->_floatFastStep, "%.3f");
             ImGui::InputScalarN("Rotation", ImGuiDataType_Float, reinterpret_cast<float *>(&light->rotation()),
                                 2, &this->_floatStep, &this->_floatFastStep, "%.3f");
             ImGui::ColorPicker3("Color", reinterpret_cast<float *>(&light->color()));
             ImGui::InputFloat("Radius", &light->radius(), this->_floatStep, this->_floatFastStep);
+            ImGui::InputFloat("Field of View", &light->fov(), this->_floatStep, this->_floatFastStep);
+            ImGui::InputFloat("Near", &light->near(), this->_floatStep, this->_floatFastStep);
+            ImGui::InputFloat("Far", &light->far(), this->_floatStep, this->_floatFastStep);
 
             if (ImGui::Button("Delete light")) {
                 this->_engine->scene()->removeLight(light);
                 this->_selectedLight = std::nullopt;
             }
         }
-
-        ImGui::End();
     }
+
+    ImGui::End();
 }
 
 DebugUI::DebugUI(Engine *engine)

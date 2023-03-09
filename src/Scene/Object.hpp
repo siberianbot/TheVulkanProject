@@ -19,7 +19,7 @@ public:
     Object(const glm::vec3 &position, const glm::vec3 &rotation, const glm::vec3 &scale,
            MeshRenderingResource *mesh, TextureRenderingResource *texture);
 
-    glm::mat4 getModelMatrix();
+    glm::mat4 getModelMatrix(bool rotationOnly);
 
     glm::vec3 &position() { return this->_position; }
     glm::vec3 &rotation() { return this->_rotation; }

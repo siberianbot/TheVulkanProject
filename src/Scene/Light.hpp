@@ -13,19 +13,21 @@ enum LightKind : uint32_t {
 
 class Light {
 private:
+    bool _enabled = true;
     LightKind _kind = SPOT_LIGHT;
     glm::vec3 _position;
     glm::vec2 _rotation = glm::vec2(0);
     glm::vec3 _color = glm::vec3(1);
     float _radius = 50.0f;
     float _fov = glm::radians(90.0f);
-    float _near = 1.0f;
+    float _near = 0.1f;
     float _far = 100.0f;
 
 public:
     explicit Light();
     [[deprecated]] Light(const glm::vec3 &position, const glm::vec3 &color, const float &radius);
 
+    bool &enabled() { return this->_enabled; }
     LightKind &kind() { return this->_kind; }
     glm::vec3 &position() { return this->_position; }
     glm::vec2 &rotation() { return this->_rotation; }

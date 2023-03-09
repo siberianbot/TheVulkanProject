@@ -197,7 +197,7 @@ void Engine::init() {
 //    this->_scene->addLight(light);
 
     light = new Light(glm::vec3(2, 0, -2), glm::vec3(1, 0, 0), 50);
-    light->rotation().x = glm::radians(-180.0f);
+    light->rotation().x = glm::radians(-225.0f);
     light->rotation().y = glm::radians(90.0f);
     this->_scene->addLight(light);
 
@@ -207,7 +207,7 @@ void Engine::init() {
     this->_scene->addLight(light);
 
     light = new Light(glm::vec3(2, 0, 2), glm::vec3(0, 0, 1), 50);
-    light->rotation().x = glm::radians(-180.0f);
+    light->rotation().x = glm::radians(-135.0f);
     light->rotation().y = glm::radians(90.0f);
     this->_scene->addLight(light);
 }

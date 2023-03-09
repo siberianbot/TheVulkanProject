@@ -32,20 +32,29 @@ const mat4 biasMat = mat4(
 0.0, 0.5, 0.0, 0.0,
 0.0, 0.0, 1.0, 0.0,
 0.5, 0.5, 0.0, 1.0);
-const float bias = 0.005;
 
 float textureProj(int shadowIdx, vec4 shadowCoord)
 {
-    float shadow = 1.0;
-    if (shadowCoord.z > -1.0 && shadowCoord.z < 1.0)
+    vec4 normalized = shadowCoord / shadowCoord.w;
+
+    if (shadowCoord.x < 0 || shadowCoord.y < 0) {
+        return AMBIENT;
+    }
+
+    if (normalized.x < 0 || normalized.x > 1 || normalized.y < 0 || normalized.y > 1) {
+        return AMBIENT;
+    }
+
+    if (normalized.z > -1.0 && normalized.z < 1.0)
     {
-        float dist = texture(sceneShadows[shadowIdx], shadowCoord.st).r;
-        if (shadowCoord.w > 0.0 && dist < shadowCoord.z - bias)
+        float dist = texture(sceneShadows[shadowIdx], normalized.st).r;
+        if (normalized.w > 0.0 && dist < normalized.z)
         {
-            shadow = AMBIENT;
+            return AMBIENT;
         }
     }
-    return shadow;
+
+    return 1.0f;
 }
 
 vec3 blend(vec4 back, vec4 front) {
@@ -59,17 +68,18 @@ void main() {
     vec3 normal = subpassLoad(inputNormal, 0).rgb;
     float specular = subpassLoad(inputSpecular, 0).r;
 
-    vec3 fragColor = AMBIENT * albedo.rgb;
-
     int numLights = min(scene.numLights, MAX_NUM_LIGHTS);
+
+    vec3 fragColor = AMBIENT * albedo.rgb;
+    float shadow = numLights > 0 ? 0.0f : 1.0f;
+
     for (int idx = 0; idx < numLights; idx++)
     {
         vec3 L = scene.lights[idx].position - position;
         float dist = length(L);
-        L = normalize(L);
 
-        vec3 V = scene.cameraPosition - position;
-        V = normalize(V);
+        L = normalize(scene.lights[idx].position - position);
+        vec3 V = normalize(scene.cameraPosition - position);
 
         float atten = scene.lights[idx].radius / (pow(dist, 2.0) + 1.0);
 
@@ -81,11 +91,15 @@ void main() {
         float NdotR = max(0.0, dot(R, V));
         vec3 spec = scene.lights[idx].color * specular * pow(NdotR, 32.0) * atten;
 
-        vec4 inShadowCoord = (biasMat * scene.lights[idx].projection) * vec4(position, 1);
-        float shadow = textureProj(idx, inShadowCoord / inShadowCoord.w);
+        fragColor += diff + spec;
 
-        fragColor += shadow * (diff + spec);
+        vec4 inShadowCoord = (biasMat * scene.lights[idx].projection) * vec4(position, 1);
+        shadow += atten * textureProj(idx, inShadowCoord);
     }
 
-    outColor = blend(skybox, vec4(fragColor, albedo.a));
+    if (numLights > 0) {
+        shadow /= numLights;
+    }
+
+    outColor = blend(skybox, vec4(shadow * fragColor, albedo.a));
 }
