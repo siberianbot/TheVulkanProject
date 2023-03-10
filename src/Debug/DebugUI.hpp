@@ -15,6 +15,12 @@ class DebugUI {
 private:
     Engine *_engine;
 
+    const char *_lightKinds[3] = {
+            "Point",
+            "Spot",
+            "Rectangle"
+    };
+
     std::vector<const char*> _shaders;
     int _selectedShaderIdx = -1;
     int _shaderBuildResult = -1;
@@ -33,6 +39,7 @@ private:
     int _selectedObjectMeshIdx = -1;
     int _selectedObjectTextureIdx = -1;
     std::optional<std::vector<Light *>::const_iterator> _selectedLight = std::nullopt;
+    int _selectedLightKindIdx = -1;
 
     void loadShader(const char *path);
     void saveShader(const char *path);

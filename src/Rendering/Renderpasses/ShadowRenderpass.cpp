@@ -151,7 +151,7 @@ void ShadowRenderpass::initRenderpass() {
             .addFragmentShader("data/shaders/shadow.frag.spv")
             .addBinding(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
             .addAttribute(0, 0, offsetof(Vertex, pos), VK_FORMAT_R32G32B32_SFLOAT)
-//            .withCullMode(VK_CULL_MODE_NONE)
+            .withCullMode(VK_CULL_MODE_NONE)
             .withDepthBias()
             .build();
 

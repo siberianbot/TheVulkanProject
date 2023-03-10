@@ -49,16 +49,12 @@ void Engine::init() {
     this->renderer.init();
 
     this->input.addReleaseHandler(GLFW_KEY_ESCAPE, [this](float delta) {
-        switch (this->_state) {
-            case NotFocused:
-//                this->_eventQueue->pushEvent(Event{.type = CLOSE_REQUESTED_EVENT});
-                break;
-
-            case Focused:
-                this->_state = NotFocused;
-                glfwSetInputMode(this->_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-                break;
+        if (this->_state != Focused) {
+            return;
         }
+
+        this->_state = NotFocused;
+        glfwSetInputMode(this->_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     });
 
     this->input.addPressHandler(GLFW_KEY_W, [this](float delta) {
@@ -168,12 +164,12 @@ void Engine::init() {
                                        &this->_textures[1]));
 
     // down
-    this->_scene->addObject(new Object(glm::vec3(0, -4, 0), glm::vec3(glm::radians(-90.0f), 0, 0), glm::vec3(7, 9, 0.1),
-                                       &this->_meshes[0], &this->_textures[0]));
+    this->_scene->addObject(new Object(glm::vec3(0, -4, 0), glm::vec3(glm::radians(270.0f), 0, 0),
+                                       glm::vec3(7, 9, 0.1), &this->_meshes[0], &this->_textures[0]));
 
     // front
-    this->_scene->addObject(new Object(glm::vec3(7, 0, 0), glm::vec3(0, glm::radians(-90.0f), 0), glm::vec3(9, 4, 0.1),
-                                       &this->_meshes[0], &this->_textures[0]));
+    this->_scene->addObject(new Object(glm::vec3(7, 0, 0), glm::vec3(0, glm::radians(270.0f), 0),
+                                       glm::vec3(9, 4, 0.1), &this->_meshes[0], &this->_textures[0]));
 
     // back
     this->_scene->addObject(new Object(glm::vec3(-7, 0, 0), glm::vec3(0, glm::radians(90.0f), 0), glm::vec3(9, 4, 0.1),
@@ -189,23 +185,29 @@ void Engine::init() {
 
     Light *light;
 
-    light = new Light(glm::vec3(10), glm::vec3(1), 1000);
-    light->rotation().x = glm::radians(-135.0f);
+    light = new Light(glm::vec3(10), glm::vec3(1), 500);
+    light->kind() = RECT_LIGHT;
+    light->rotation().x = glm::radians(225.0f);
     light->rotation().y = glm::radians(45.0f);
+    light->rect().x = 20;
+    light->rect().y = 20;
     this->_scene->addLight(light);
 
     light = new Light(glm::vec3(2, 0, -2), glm::vec3(1, 0, 0), 50);
-    light->rotation().x = glm::radians(-225.0f);
+    light->enabled() = false;
+    light->rotation().x = glm::radians(135.0f);
     light->rotation().y = glm::radians(90.0f);
     this->_scene->addLight(light);
 
     light = new Light(glm::vec3(2, 0, 0), glm::vec3(0, 1, 0), 50);
-    light->rotation().x = glm::radians(-180.0f);
+    light->enabled() = false;
+    light->rotation().x = glm::radians(180.0f);
     light->rotation().y = glm::radians(90.0f);
     this->_scene->addLight(light);
 
     light = new Light(glm::vec3(2, 0, 2), glm::vec3(0, 0, 1), 50);
-    light->rotation().x = glm::radians(-135.0f);
+    light->enabled() = false;
+    light->rotation().x = glm::radians(225.0f);
     light->rotation().y = glm::radians(90.0f);
     this->_scene->addLight(light);
 

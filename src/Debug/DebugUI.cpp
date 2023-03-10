@@ -223,8 +223,8 @@ void DebugUI::drawSceneObjectsWindow() {
 
             ImGui::InputScalarN("Position", ImGuiDataType_Float, reinterpret_cast<float *>(&object->position()),
                                 3, &this->_floatStep, &this->_floatFastStep, "%.3f");
-            ImGui::SliderAngle("Yaw", &object->rotation().x, 0, 360.0f);
-            ImGui::SliderAngle("Pitch", &object->rotation().y, 0, 360.0f);
+            ImGui::SliderAngle("Pitch", &object->rotation().x, 0, 360.0f);
+            ImGui::SliderAngle("Yaw", &object->rotation().y, 0, 360.0f);
             ImGui::SliderAngle("Roll", &object->rotation().z, 0, 360.0f);
             ImGui::InputScalarN("Scale", ImGuiDataType_Float, reinterpret_cast<float *>(&object->scale()),
                                 3, &this->_floatStep, &this->_floatFastStep, "%.3f");
@@ -281,6 +281,7 @@ void DebugUI::drawSceneLightsWindow() {
 
                 if (ImGui::Selectable(name.c_str(), isSelected)) {
                     this->_selectedLight = current;
+                    this->_selectedLightKindIdx = (int) (*current)->kind();
                 }
 
                 if (isSelected) {
@@ -295,13 +296,30 @@ void DebugUI::drawSceneLightsWindow() {
             Light *light = *this->_selectedLight.value();
 
             ImGui::Checkbox("Enabled", &light->enabled());
+            if (ImGui::Combo("Kind", &this->_selectedLightKindIdx, this->_lightKinds, 3)) {
+                if (this->_selectedLightKindIdx >= 0) {
+                    light->kind() = (LightKind) this->_selectedLightKindIdx;
+                }
+            }
             ImGui::InputScalarN("Position", ImGuiDataType_Float, reinterpret_cast<float *>(&light->position()),
                                 3, &this->_floatStep, &this->_floatFastStep, "%.3f");
-            ImGui::SliderAngle("Yaw", &light->rotation().x, 0, 360.0f);
-            ImGui::SliderAngle("Pitch", &light->rotation().y, 0, 360.0f);
+            ImGui::SliderAngle("Pitch", &light->rotation().x, 0, 360.0f);
+            ImGui::SliderAngle("Yaw", &light->rotation().y, 0, 360.0f);
             ImGui::ColorPicker3("Color", reinterpret_cast<float *>(&light->color()));
-            ImGui::InputFloat("Radius", &light->radius(), this->_floatStep, this->_floatFastStep);
-            ImGui::SliderFloat("Field of View", &light->fov(), 0, glm::radians(180.0f));
+            ImGui::InputFloat("Power", &light->radius(), this->_floatStep, this->_floatFastStep);
+
+            switch (light->kind()) {
+                case POINT_LIGHT:
+                case SPOT_LIGHT:
+                    ImGui::SliderFloat("Field of View", &light->fov(), 0, glm::radians(180.0f));
+                    break;
+
+                case RECT_LIGHT:
+                    ImGui::InputScalarN("Rectangle", ImGuiDataType_Float, reinterpret_cast<float *>(&light->rect()),
+                                        2, &this->_floatStep, &this->_floatFastStep, "%.3f");
+                    break;
+            }
+
             ImGui::InputFloat("Near", &light->near(), this->_floatStep, this->_floatFastStep);
             ImGui::InputFloat("Far", &light->far(), this->_floatStep, this->_floatFastStep);
 

@@ -19,13 +19,14 @@ glm::mat4 Light::getProjectionMatrix() {
     glm::mat4 projection = glm::mat4(1);
 
     switch (this->_kind) {
-        case POINT_LIGHT:
-        case RECT_LIGHT:
-            // TODO: not supported
-            break;
-
+        case POINT_LIGHT: // TODO: not supported
         case SPOT_LIGHT:
             projection = glm::perspective(this->_fov, 1.0f, this->_near, this->_far);
+            break;
+
+        case RECT_LIGHT:
+            projection = glm::ortho(-this->_rect.x, this->_rect.x, -this->_rect.y, this->_rect.y,
+                                    this->_near, this->_far);
             break;
     }
 
