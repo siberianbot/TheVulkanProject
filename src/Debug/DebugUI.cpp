@@ -8,6 +8,7 @@
 #include <imgui_impl_vulkan.h>
 
 #include "src/Engine.hpp"
+#include "src/EngineVars.hpp"
 #include "src/Events/EventQueue.hpp"
 #include "src/Scene/Light.hpp"
 #include "src/Scene/Object.hpp"
@@ -58,6 +59,10 @@ void DebugUI::drawMainMenu() {
         if (ImGui::BeginMenu("Engine")) {
             if (ImGui::MenuItem("FPS", NULL, this->_engineFpsWindowVisible & 1)) {
                 this->_engineFpsWindowVisible++;
+            }
+
+            if (ImGui::MenuItem("Variables", NULL, this->_engineVarsWindowVisible & 1)) {
+                this->_engineVarsWindowVisible++;
             }
 
             ImGui::Separator();
@@ -118,6 +123,50 @@ void DebugUI::drawEngineFpsWindow() {
 
         ImGui::Text("Frame time: %.3f ms", delta * 1000);
         ImGui::Text("Frames per second: %.0f", 1.0f / delta);
+    }
+
+    ImGui::End();
+}
+
+void DebugUI::drawEngineVarsWindow() {
+    if ((this->_engineVarsWindowVisible & 1) == 0) {
+        return;
+    }
+
+    if (ImGui::Begin("Variables")) {
+        if (ImGui::BeginTable("#vars", 2, 0, ImVec2(-1, -1))) {
+            ImGui::TableSetupColumn("Key");
+            ImGui::TableSetupColumn("Value");
+            ImGui::TableHeadersRow();
+
+            for (auto &[key, var]: this->_engine->engineVars()->vars()) {
+                ImGui::TableNextRow();
+                ImGui::TableNextColumn();
+                ImGui::Text("%s", key.c_str());
+                ImGui::TableNextColumn();
+
+                switch (var->type) {
+                    case BOOLEAN_VAR:
+                        ImGui::Checkbox("value", &var->boolValue);
+                        break;
+
+                    case INTEGER_VAR:
+                        ImGui::InputInt("value", &var->intValue);
+                        break;
+
+                    case FLOAT_VAR:
+                        ImGui::InputFloat("value", &var->floatValue);
+                        break;
+
+                    case STRING_VAR:
+                        // TODO: ImGui::InputText("value", &var->stringValue, );
+                        ImGui::Text("%s", var->stringValue);
+                        break;
+                }
+            }
+
+            ImGui::EndTable();
+        }
     }
 
     ImGui::End();
@@ -390,6 +439,7 @@ void DebugUI::render() {
 
     drawMainMenu();
     drawEngineFpsWindow();
+    drawEngineVarsWindow();
     drawRendererShaderEditor();
     drawSceneObjectsWindow();
     drawSceneLightsWindow();

@@ -4,6 +4,7 @@
 #include <imgui_impl_glfw.h>
 
 #include "Constants.hpp"
+#include "EngineVars.hpp"
 #include "src/Events/EventQueue.hpp"
 #include "src/Resources/Mesh.hpp"
 #include "src/Resources/Texture.hpp"
@@ -18,10 +19,9 @@
 
 Engine::Engine()
         : renderer(this),
-          _eventQueue(new EventQueue()) {
-    this->_camera.position() = glm::vec3(2, 2, 2);
-    this->_camera.yaw() = glm::radians(-135.0f);
-    this->_camera.pitch() = glm::radians(45.0f);
+          _eventQueue(new EventQueue()),
+          _engineVars(EngineVars::defaults()) {
+    //
 }
 
 void Engine::init() {
@@ -235,6 +235,10 @@ void Engine::init() {
     this->_scene->addLight(light);
 
     this->_debugUI = new DebugUI(this);
+
+    this->_camera.position() = glm::vec3(2, 2, 2);
+    this->_camera.yaw() = glm::radians(-135.0f);
+    this->_camera.pitch() = glm::radians(45.0f);
 }
 
 void Engine::cleanup() {
@@ -263,6 +267,9 @@ void Engine::cleanup() {
     }
 
     glfwTerminate();
+
+    delete this->_engineVars;
+    delete this->_eventQueue;
 }
 
 void Engine::run() {

@@ -8,6 +8,7 @@
 #include "src/Rendering/Renderer.hpp"
 #include "src/Rendering/RenderingResourcesManager.hpp"
 
+class EngineVars;
 class DebugUI;
 class Object;
 class Scene;
@@ -27,6 +28,7 @@ private:
     MouseInput mouseInput;
 
     EventQueue *_eventQueue;
+    EngineVars *_engineVars;
 
     std::vector<MeshRenderingResource> _meshes;
     std::vector<TextureRenderingResource> _textures;
@@ -63,6 +65,7 @@ public:
     Camera &camera() { return this->_camera; }
 
     [[nodiscard]] EventQueue *eventQueue() { return this->_eventQueue; }
+    [[nodiscard]] EngineVars *engineVars() { return this->_engineVars; }
     [[nodiscard]] Scene *scene() { return this->_scene; }
 
     uint32_t windowWidth() { return this->_windowWidth; }

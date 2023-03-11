@@ -1,6 +1,7 @@
 #include "SceneRenderpass.hpp"
 
 #include "src/Engine.hpp"
+#include "src/EngineVars.hpp"
 #include "src/Events/EventQueue.hpp"
 #include "src/Scene/Light.hpp"
 #include "src/Scene/Object.hpp"
@@ -367,7 +368,7 @@ void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D ren
     VkDeviceSize offset = 0;
 
     // SKYBOX
-    {
+    if (this->_engine->engineVars()->getOrDefault(RENDERER_SKYBOX_ENABLED_VAR, true)->boolValue) {
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->_skyboxPipeline);
 
         MeshConstants constants = {

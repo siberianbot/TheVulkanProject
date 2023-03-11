@@ -21,20 +21,21 @@ private:
             "Rectangle"
     };
 
-    std::vector<const char*> _shaders;
+    std::vector<const char *> _shaders;
     int _selectedShaderIdx = -1;
     int _shaderBuildResult = -1;
     std::string _shaderCode;
 
-    std::vector<const char*> _meshes;
-    std::vector<const char*> _textures;
+    std::vector<const char *> _meshes;
+    std::vector<const char *> _textures;
 
     float _floatStep = 0.1;
     float _floatFastStep = 0.5;
-    int _engineFpsWindowVisible;
-    int _rendererShaderEditorVisible;
-    int _sceneObjectsWindowVisible;
-    int _sceneLightsWindowVisible;
+    int _engineFpsWindowVisible = 0;
+    int _engineVarsWindowVisible = 0;
+    int _rendererShaderEditorVisible = 0;
+    int _sceneObjectsWindowVisible = 0;
+    int _sceneLightsWindowVisible = 0;
     std::optional<std::vector<Object *>::const_iterator> _selectedObject = std::nullopt;
     int _selectedObjectMeshIdx = -1;
     int _selectedObjectTextureIdx = -1;
@@ -48,6 +49,7 @@ private:
 
     void drawMainMenu();
     void drawEngineFpsWindow();
+    void drawEngineVarsWindow();
     void drawRendererShaderEditor();
     void drawSceneObjectsWindow();
     void drawSceneLightsWindow();

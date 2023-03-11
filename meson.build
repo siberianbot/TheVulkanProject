@@ -14,6 +14,7 @@ imgui = subproject('imgui', default_options: ['default_library=static'])
 src = [
     'src/Main.cpp',
     'src/Engine.cpp',
+    'src/EngineVars.cpp',
     'src/Input.cpp',
 
     # Events
