@@ -282,7 +282,7 @@ void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D ren
     {
         glm::vec3 cameraPosition = this->_engine->camera().position();
 
-        std::vector<Light *> lights;
+        std::vector<LightData> lightData;
         for (uint32_t idx = 0; idx < this->_engine->scene()->lights().size(); idx++) {
             Light *light = this->_engine->scene()->lights()[idx];
 
@@ -290,19 +290,33 @@ void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D ren
                 continue;
             }
 
-            lights.push_back(light);
+            glm::mat4 projection = light->getProjectionMatrix();
+            if (light->kind() == POINT_LIGHT) {
+                for (glm::vec3 forward: POINT_LIGHT_DIRECTIONS) {
+                    glm::mat4 view = light->getViewMatrix(forward);
+                    lightData.push_back(LightData{
+                            projection * view,
+                            light->position(),
+                            light->color(),
+                            light->radius(),
+                            (int) light->kind()
+                    });
+                }
+            } else {
+                glm::mat4 view = light->getViewMatrix();
+                lightData.push_back(LightData{
+                        projection * view,
+                        light->position(),
+                        light->color(),
+                        light->radius(),
+                        (int) light->kind()
+                });
+            }
         }
 
-        this->_compositionSceneData->numLights = std::min(MAX_NUM_LIGHTS, (int) lights.size());
+        this->_compositionSceneData->numLights = std::min(MAX_NUM_LIGHTS, (int) lightData.size());
         for (int idx = 0; idx < this->_compositionSceneData->numLights; idx++) {
-            Light *light = lights[idx];
-
-            this->_compositionSceneData->lights[idx] = LightData{
-                    .projection = light->getProjectionMatrix() * light->getViewMatrix(),
-                    .position = light->position(),
-                    .color = light->color(),
-                    .radius = light->radius()
-            };
+            this->_compositionSceneData->lights[idx] = lightData[idx];
         }
 
         this->_compositionSceneData->cameraPosition = cameraPosition;

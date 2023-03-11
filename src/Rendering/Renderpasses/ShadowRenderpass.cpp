@@ -32,7 +32,7 @@ void ShadowRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D re
                                       uint32_t imageIdx) {
     glm::vec3 cameraPosition = this->_engine->camera().position();
 
-    std::vector<Light *> lights;
+    std::vector<LightData> lightData;
     for (uint32_t idx = 0; idx < this->_engine->scene()->lights().size(); idx++) {
         Light *light = this->_engine->scene()->lights()[idx];
 
@@ -40,7 +40,16 @@ void ShadowRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D re
             continue;
         }
 
-        lights.push_back(light);
+        glm::mat4 projection = light->getProjectionMatrix();
+        if (light->kind() == POINT_LIGHT) {
+            for (glm::vec3 forward: POINT_LIGHT_DIRECTIONS) {
+                glm::mat4 view = light->getViewMatrix(forward);
+                lightData.push_back(LightData{projection, view});
+            }
+        } else {
+            glm::mat4 view = light->getViewMatrix();
+            lightData.push_back(LightData{projection, view});
+        }
     }
 
     const std::array<VkClearValue, 1> clearValues = {
@@ -76,7 +85,7 @@ void ShadowRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D re
 
     const VkDeviceSize offset = 0;
 
-    uint32_t count = std::min(MAX_NUM_LIGHTS, (int) lights.size());
+    uint32_t count = std::min(MAX_NUM_LIGHTS, (int) lightData.size());
 
     for (uint32_t lightIdx = 0; lightIdx < MAX_NUM_LIGHTS; lightIdx++) {
         renderPassBeginInfo.framebuffer = this->_framebuffers[lightIdx];
@@ -92,9 +101,7 @@ void ShadowRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D re
             continue;
         }
 
-        Light *light = lights[lightIdx];
-        glm::mat4 projection = light->getProjectionMatrix();
-        glm::mat4 view = light->getViewMatrix();
+        LightData datum = lightData[lightIdx];
 
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->_pipeline);
 
@@ -102,7 +109,7 @@ void ShadowRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D re
         for (Object *object: this->_engine->scene()->objects()) {
             glm::mat4 model = object->getModelMatrix(false);
             MeshConstants constants = {
-                    .matrix = projection * view * model,
+                    .matrix = datum.projection * datum.view * model,
             };
             vkCmdPushConstants(commandBuffer, this->_pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
                                sizeof(MeshConstants), &constants);

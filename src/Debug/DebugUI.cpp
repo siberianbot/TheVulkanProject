@@ -381,7 +381,6 @@ void DebugUI::drawSceneLightsWindow() {
             ImGui::InputFloat("Power", &light->radius(), this->_floatStep, this->_floatFastStep);
 
             switch (light->kind()) {
-                case POINT_LIGHT:
                 case SPOT_LIGHT:
                     ImGui::SliderFloat("Field of View", &light->fov(), 0, glm::radians(180.0f));
                     break;
@@ -389,6 +388,9 @@ void DebugUI::drawSceneLightsWindow() {
                 case RECT_LIGHT:
                     ImGui::InputScalarN("Rectangle", ImGuiDataType_Float, reinterpret_cast<float *>(&light->rect()),
                                         2, &this->_floatStep, &this->_floatFastStep, "%.3f");
+                    break;
+
+                default:
                     break;
             }
 

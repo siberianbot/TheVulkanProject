@@ -209,6 +209,7 @@ void Engine::init() {
     Light *light;
 
     light = new Light(glm::vec3(10), glm::vec3(1), 500);
+    light->enabled() = false;
     light->kind() = RECT_LIGHT;
     light->rotation().x = glm::radians(225.0f);
     light->rotation().y = glm::radians(45.0f);
@@ -222,10 +223,9 @@ void Engine::init() {
     light->rotation().y = glm::radians(90.0f);
     this->_scene->addLight(light);
 
-    light = new Light(glm::vec3(2, 0, 0), glm::vec3(0, 1, 0), 50);
-    light->enabled() = false;
-    light->rotation().x = glm::radians(180.0f);
-    light->rotation().y = glm::radians(90.0f);
+    light = new Light(glm::vec3(2, 2, 0), glm::vec3(0, 1, 0), 20);
+    light->enabled() = true;
+    light->kind() = POINT_LIGHT;
     this->_scene->addLight(light);
 
     light = new Light(glm::vec3(2, 0, 2), glm::vec3(0, 0, 1), 50);

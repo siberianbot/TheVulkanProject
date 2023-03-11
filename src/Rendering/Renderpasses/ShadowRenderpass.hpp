@@ -18,6 +18,11 @@ private:
         glm::mat4 matrix;
     };
 
+    struct LightData {
+        glm::mat4 projection;
+        glm::mat4 view;
+    };
+
     Engine *_engine;
     RenderingObjectsFactory *_renderingObjectsFactory;
 

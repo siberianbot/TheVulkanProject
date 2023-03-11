@@ -27,6 +27,7 @@ private:
         alignas(16) glm::vec3 position;
         alignas(16) glm::vec3 color;
         alignas(4) float radius;
+        alignas(4) int kind;
     };
 
     struct SceneData {

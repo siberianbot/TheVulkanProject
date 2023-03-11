@@ -1,3 +1,5 @@
+// TODO: improve shadowing/lighting
+
 #version 450
 
 #define AMBIENT 0.15
@@ -10,11 +12,16 @@ layout (input_attachment_index = 4, binding = 4) uniform subpassInputMS inputSpe
 
 layout (constant_id = 0) const int MAX_NUM_LIGHTS = 32;
 
+const int POINT_LIGHT = 0;
+const int SPOT_LIGHT = 1;
+const int RECT_LIGHT = 2;
+
 struct LightData {
     mat4 projection;
     vec3 position;
     vec3 color;
     float radius;
+    int kind;
 };
 
 layout (set = 1, binding = 0) uniform SceneData {
@@ -33,21 +40,23 @@ const mat4 biasMat = mat4(
 0.0, 0.0, 1.0, 0.0,
 0.5, 0.5, 0.0, 1.0);
 
-float textureProj(int shadowIdx, vec4 shadowCoord)
+float textureProj(int lightIdx, vec4 shadowCoord)
 {
     vec4 normalized = shadowCoord / shadowCoord.w;
 
-    if (shadowCoord.x < 0 || shadowCoord.y < 0) {
-        return AMBIENT;
-    }
+    if (scene.lights[lightIdx].kind != POINT_LIGHT) {
+        if (shadowCoord.x < 0 || shadowCoord.y < 0) {
+            return AMBIENT;
+        }
 
-    if (normalized.x < 0 || normalized.x > 1 || normalized.y < 0 || normalized.y > 1) {
-        return AMBIENT;
+        if (normalized.x < 0 || normalized.x > 1 || normalized.y < 0 || normalized.y > 1) {
+            return AMBIENT;
+        }
     }
 
     if (normalized.z > -1.0 && normalized.z < 1.0)
     {
-        float dist = texture(sceneShadows[shadowIdx], normalized.st).r;
+        float dist = texture(sceneShadows[lightIdx], normalized.st).r;
         if (normalized.w > 0.0 && dist < normalized.z)
         {
             return AMBIENT;

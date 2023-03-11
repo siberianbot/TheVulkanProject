@@ -41,6 +41,7 @@ public:
 
     glm::mat4 getProjectionMatrix();
     glm::mat4 getViewMatrix();
+    glm::mat4 getViewMatrix(const glm::vec3 &forward);
 };
 
 #endif // SCENE_LIGHT_HPP

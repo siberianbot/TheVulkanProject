@@ -3,6 +3,7 @@
 
 #include <cstdint>
 
+#include <glm/vec3.hpp>
 #include <vulkan/vulkan.hpp>
 
 static constexpr std::array<const char *, 1> VALIDATION_LAYERS = {
@@ -20,6 +21,14 @@ static constexpr const char *DEFAULT_FRAGMENT_SHADER = "data/shaders/default.fra
 static constexpr const char *SKYBOX_FRAGMENT_SHADER = "data/shaders/skybox.frag.spv";
 
 static constexpr const int MAX_NUM_LIGHTS = 32;
+static constexpr std::array<glm::vec3, 6> POINT_LIGHT_DIRECTIONS = {
+        glm::vec3(1, 0, 0),
+        glm::vec3(-1, 0, 0),
+        glm::vec3(0, 1, 0),
+        glm::vec3(0, -1, 0),
+        glm::vec3(0, 0, 1),
+        glm::vec3(0, 0, -1)
+};
 
 static constexpr void vkEnsure(VkResult vkExpression) {
     if (vkExpression != VK_SUCCESS) {
