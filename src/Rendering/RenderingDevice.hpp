@@ -74,6 +74,7 @@ public:
     VkDescriptorPool createDescriptorPool(const std::vector<VkDescriptorPoolSize> &sizes, uint32_t maxSets);
     void destroyDescriptorPool(VkDescriptorPool descriptorPool);
 
+    // TODO: should accept flags for any binding
     VkDescriptorSetLayout createDescriptorSetLayout(const std::vector<VkDescriptorSetLayoutBinding> &bindings);
     void destroyDescriptorSetLayout(VkDescriptorSetLayout descriptorSetLayout);
 

@@ -47,7 +47,9 @@ RenderData *SceneRenderpass::getRenderData(Object *object) {
                                  : object->albedoTexture()->texture;
 
     if (renderData->albedoTextureView == nullptr || albedoTexture != renderData->albedoTextureView->getImage()) {
-        updateDescriptorSetWithImage(renderData->descriptorSet, getImageView(albedoTexture), 0);
+        renderData->albedoTextureView = getImageView(albedoTexture);
+
+        updateDescriptorSetWithImage(renderData->descriptorSet, renderData->albedoTextureView, 0);
     }
 
     ImageObject *specTexture = object->specTexture() == nullptr
@@ -55,7 +57,9 @@ RenderData *SceneRenderpass::getRenderData(Object *object) {
                                : object->specTexture()->texture;
 
     if (renderData->specTextureView == nullptr || specTexture != renderData->specTextureView->getImage()) {
-        updateDescriptorSetWithImage(renderData->descriptorSet, getImageView(specTexture), 1);
+        renderData->specTextureView = getImageView(specTexture);
+
+        updateDescriptorSetWithImage(renderData->descriptorSet, renderData->specTextureView, 1);
     }
 
     return renderData;

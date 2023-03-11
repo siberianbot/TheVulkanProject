@@ -34,7 +34,7 @@ void ShadowRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D re
 
     std::vector<Light *> lights;
     for (uint32_t idx = 0; idx < this->_engine->scene()->lights().size(); idx++) {
-        Light* light = this->_engine->scene()->lights()[idx];
+        Light *light = this->_engine->scene()->lights()[idx];
 
         if (!light->enabled() || glm::distance(cameraPosition, light->position()) > 100) {
             continue;
@@ -78,17 +78,23 @@ void ShadowRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D re
 
     uint32_t count = std::min(MAX_NUM_LIGHTS, (int) lights.size());
 
-    for (uint32_t lightIdx = 0; lightIdx < count; lightIdx++) {
-        Light *light = lights[lightIdx];
-        glm::mat4 projection = light->getProjectionMatrix();
-        glm::mat4 view = light->getViewMatrix();
-
+    for (uint32_t lightIdx = 0; lightIdx < MAX_NUM_LIGHTS; lightIdx++) {
         renderPassBeginInfo.framebuffer = this->_framebuffers[lightIdx];
         vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
         vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
         vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
         vkCmdSetDepthBias(commandBuffer, 1.25f, 0.0f, 1.75f);
+
+        if (lightIdx >= count) {
+            vkCmdEndRenderPass(commandBuffer);
+
+            continue;
+        }
+
+        Light *light = lights[lightIdx];
+        glm::mat4 projection = light->getProjectionMatrix();
+        glm::mat4 view = light->getViewMatrix();
 
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->_pipeline);
 
