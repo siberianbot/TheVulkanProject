@@ -101,36 +101,20 @@ void Engine::init() {
     Mesh vikingRoomMesh = Mesh::fromFile("data/models/viking_room.obj");
     this->_meshes.push_back(this->renderer.getRenderingResourcesManager()->loadMesh(&vikingRoomMesh));
 
-    Texture concreteTexture = Texture::fromFile("data/textures/concrete.png");
-    this->_textures.push_back(this->renderer.getRenderingResourcesManager()->loadTextureArray(
-            {
-                    &concreteTexture,
-                    &concreteTexture
-            }));
-
     Texture defaultTexture = Texture::fromFile("data/textures/default.png");
-    this->_textures.push_back(this->renderer.getRenderingResourcesManager()->loadTextureArray(
-            {
-                    &defaultTexture,
-                    &defaultTexture
-            }));
+    this->_defaultTextureResource = this->renderer.getRenderingResourcesManager()->loadTexture(&defaultTexture);
+
+    Texture concreteTexture = Texture::fromFile("data/textures/concrete.png");
+    this->_textures.push_back(this->renderer.getRenderingResourcesManager()->loadTexture(&concreteTexture));
 
     Texture cubeTexture = Texture::fromFile("data/textures/cube.png");
-    Texture cubeSpecularTexture = Texture::fromFile("data/textures/cube_specular.png");
-    this->_textures.push_back(this->renderer.getRenderingResourcesManager()->loadTextureArray(
-            {
-                    &cubeTexture,
-                    &cubeSpecularTexture
-            }));
+    this->_textures.push_back(this->renderer.getRenderingResourcesManager()->loadTexture(&cubeTexture));
 
+    Texture cubeSpecularTexture = Texture::fromFile("data/textures/cube_specular.png");
+    this->_textures.push_back(this->renderer.getRenderingResourcesManager()->loadTexture(&cubeSpecularTexture));
 
     Texture vikingRoomTexture = Texture::fromFile("data/textures/viking_room.png");
-    Texture vikingRoomSpecularTexture = Texture::fromFile("data/textures/viking_room_specular.png");
-    this->_textures.push_back(this->renderer.getRenderingResourcesManager()->loadTextureArray(
-            {
-                    &vikingRoomTexture,
-                    &vikingRoomSpecularTexture,
-            }));
+    this->_textures.push_back(this->renderer.getRenderingResourcesManager()->loadTexture(&vikingRoomTexture));
 
     this->_skyboxMeshResource = this->renderer.getRenderingResourcesManager()->loadMesh(SKYBOX_MESH.size(),
                                                                                         SKYBOX_MESH.data());
@@ -154,34 +138,73 @@ void Engine::init() {
 
     this->renderer.initRenderpasses();
 
-    this->_scene->addObject(new Object(glm::vec3(0, 0, 2), glm::vec3(0), glm::vec3(1), &this->_meshes[2],
-                                       &this->_textures[3]));
+    Object *object;
 
-    this->_scene->addObject(new Object(glm::vec3(0), glm::vec3(0), glm::vec3(0.5f), &this->_meshes[0],
-                                       &this->_textures[2]));
+    object = new Object();
+    object->position() = glm::vec3(0, 0, 2);
+    object->mesh() = &this->_meshes[2];
+    object->albedoTexture() = &this->_textures[3];
+    this->_scene->addObject(object);
 
-    this->_scene->addObject(new Object(glm::vec3(0, 0, -2), glm::vec3(0), glm::vec3(0.5f), &this->_meshes[1],
-                                       &this->_textures[1]));
+    object = new Object();
+    object->position() = glm::vec3(0);
+    object->scale() = glm::vec3(0.5f);
+    object->mesh() = &this->_meshes[0];
+    object->albedoTexture() = &this->_textures[1];
+    object->specTexture() = &this->_textures[2];
+    this->_scene->addObject(object);
+
+    object = new Object();
+    object->position() = glm::vec3(0, 0, -2);
+    object->scale() = glm::vec3(0.5f);
+    object->mesh() = &this->_meshes[1];
+    object->albedoTexture() = &this->_textures[0];
+    this->_scene->addObject(object);
 
     // down
-    this->_scene->addObject(new Object(glm::vec3(0, -4, 0), glm::vec3(glm::radians(270.0f), 0, 0),
-                                       glm::vec3(7, 9, 0.1), &this->_meshes[0], &this->_textures[0]));
+    object = new Object();
+    object->position() = glm::vec3(0, -4, 0);
+    object->rotation() = glm::vec3(glm::radians(270.0f), 0, 0);
+    object->scale() = glm::vec3(7, 9, 0.1);
+    object->mesh() = &this->_meshes[0];
+    object->albedoTexture() = &this->_textures[0];
+    this->_scene->addObject(object);
 
     // front
-    this->_scene->addObject(new Object(glm::vec3(7, 0, 0), glm::vec3(0, glm::radians(270.0f), 0),
-                                       glm::vec3(9, 4, 0.1), &this->_meshes[0], &this->_textures[0]));
+    object = new Object();
+    object->position() = glm::vec3(7, 0, 0);
+    object->rotation() = glm::vec3(0, glm::radians(270.0f), 0);
+    object->scale() = glm::vec3(9, 4, 0.1);
+    object->mesh() = &this->_meshes[0];
+    object->albedoTexture() = &this->_textures[0];
+    this->_scene->addObject(object);
 
     // back
-    this->_scene->addObject(new Object(glm::vec3(-7, 0, 0), glm::vec3(0, glm::radians(90.0f), 0), glm::vec3(9, 4, 0.1),
-                                       &this->_meshes[0], &this->_textures[0]));
+    object = new Object();
+    object->position() = glm::vec3(-7, 0, 0);
+    object->rotation() = glm::vec3(0, glm::radians(90.0f), 0);
+    object->scale() = glm::vec3(9, 4, 0.1);
+    object->mesh() = &this->_meshes[0];
+    object->albedoTexture() = &this->_textures[0];
+    this->_scene->addObject(object);
 
     // left
-    this->_scene->addObject(new Object(glm::vec3(0, 0, -9), glm::vec3(0, 0, 0), glm::vec3(7, 4, 0.1),
-                                       &this->_meshes[0], &this->_textures[0]));
+    object = new Object();
+    object->position() = glm::vec3(0, 0, -9);
+    object->rotation() = glm::vec3(0);
+    object->scale() = glm::vec3(7, 4, 0.1);
+    object->mesh() = &this->_meshes[0];
+    object->albedoTexture() = &this->_textures[0];
+    this->_scene->addObject(object);
 
     // right
-    this->_scene->addObject(new Object(glm::vec3(0, 0, 9), glm::vec3(0, glm::radians(180.0f), 0), glm::vec3(7, 4, 0.1),
-                                       &this->_meshes[0], &this->_textures[0]));
+    object = new Object();
+    object->position() = glm::vec3(0, 0, 9);
+    object->rotation() = glm::vec3(0, glm::radians(180.0f), 0);
+    object->scale() = glm::vec3(7, 4, 0.1);
+    object->mesh() = &this->_meshes[0];
+    object->albedoTexture() = &this->_textures[0];
+    this->_scene->addObject(object);
 
     Light *light;
 
@@ -227,6 +250,7 @@ void Engine::cleanup() {
         this->renderer.getRenderingResourcesManager()->freeMesh(mesh);
     }
 
+    this->renderer.getRenderingResourcesManager()->freeTexture(this->_defaultTextureResource);
     this->renderer.getRenderingResourcesManager()->freeTexture(this->_skyboxTextureResource);
     this->renderer.getRenderingResourcesManager()->freeMesh(this->_skyboxMeshResource);
 

@@ -24,35 +24,59 @@
 #include "src/Rendering/Objects/ImageViewObject.hpp"
 #include "src/Rendering/Objects/DescriptorSetObject.hpp"
 
-SceneRenderpass::RenderData SceneRenderpass::getRenderData(Object *object) {
-    ImageObject *targetImage = object->texture() == nullptr
-                               ? this->_engine->defaultTextureResource()->texture
-                               : object->texture()->texture;
+SceneRenderpass::RenderData *SceneRenderpass::getRenderData(Object *object) {
+    auto it = this->_renderData.find(object);
 
-    auto it = this->_renderData.find(targetImage);
+    RenderData *renderData;
 
     if (it != this->_renderData.end()) {
-        return it->second;
+        renderData = it->second;
+    } else {
+        renderData = new RenderData{
+                .descriptorSet = this->_renderingObjectsFactory->createDescriptorSetObject(
+                        this->_descriptorPool, this->_objectDescriptorSetLayout, MAX_INFLIGHT_FRAMES)
+        };
+
+        this->_renderData[object] = renderData;
     }
 
-    ImageViewObject *textureView = this->_renderingObjectsFactory->createImageViewObject(targetImage,
-                                                                                         VK_IMAGE_VIEW_TYPE_2D_ARRAY,
-                                                                                         VK_IMAGE_ASPECT_COLOR_BIT);
+    ImageObject *albedoTexture = object->albedoTexture() == nullptr
+                                 ? this->_engine->defaultTextureResource()->texture
+                                 : object->albedoTexture()->texture;
 
-    RenderData renderData = {
-            .textureView = textureView,
-            .descriptorSet = this->createTextureDescriptorSetFor(textureView)
-    };
+    if (renderData->albedoTextureView == nullptr || albedoTexture != renderData->albedoTextureView->getImage()) {
+        updateDescriptorSetWithImage(renderData->descriptorSet, getImageView(albedoTexture), 0);
+    }
 
-    this->_renderData[targetImage] = renderData;
+    ImageObject *specTexture = object->specTexture() == nullptr
+                               ? this->_engine->defaultTextureResource()->texture // TODO
+                               : object->specTexture()->texture;
+
+    if (renderData->specTextureView == nullptr || specTexture != renderData->specTextureView->getImage()) {
+        updateDescriptorSetWithImage(renderData->descriptorSet, getImageView(specTexture), 1);
+    }
 
     return renderData;
 }
 
-DescriptorSetObject *SceneRenderpass::createTextureDescriptorSetFor(ImageViewObject *imageViewObject) {
-    DescriptorSetObject *descriptorSetObject = this->_renderingObjectsFactory->createDescriptorSetObject(
-            this->_descriptorPool, this->_objectDescriptorSetLayout, MAX_INFLIGHT_FRAMES);
+ImageViewObject *SceneRenderpass::getImageView(ImageObject *image) {
+    auto it = this->_imageViews.find(image);
 
+    if (it != this->_imageViews.end()) {
+        return it->second;
+    }
+
+    ImageViewObject *imageView = this->_renderingObjectsFactory->createImageViewObject(image,
+                                                                                       VK_IMAGE_VIEW_TYPE_2D,
+                                                                                       VK_IMAGE_ASPECT_COLOR_BIT);
+
+    this->_imageViews[image] = imageView;
+
+    return imageView;
+}
+
+void SceneRenderpass::updateDescriptorSetWithImage(DescriptorSetObject *descriptorSetObject,
+                                                   ImageViewObject *imageViewObject, uint32_t binding) {
     VkDescriptorImageInfo imageInfo = {
             .sampler = this->_textureSampler,
             .imageView = imageViewObject->getHandle(),
@@ -65,7 +89,7 @@ DescriptorSetObject *SceneRenderpass::createTextureDescriptorSetFor(ImageViewObj
                 .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                 .pNext = nullptr,
                 .dstSet = descriptorSetObject->getDescriptorSet(idx),
-                .dstBinding = 0,
+                .dstBinding = binding,
                 .dstArrayElement = 0,
                 .descriptorCount = 1,
                 .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
@@ -76,8 +100,6 @@ DescriptorSetObject *SceneRenderpass::createTextureDescriptorSetFor(ImageViewObj
     }
 
     this->_renderingDevice->updateDescriptorSets(writes);
-
-    return descriptorSetObject;
 }
 
 void SceneRenderpass::initSkyboxPipeline() {
@@ -103,8 +125,10 @@ void SceneRenderpass::initSkyboxPipeline() {
             VK_IMAGE_VIEW_TYPE_CUBE,
             VK_IMAGE_ASPECT_COLOR_BIT);
 
-    this->_skyboxDescriptorSet = this->createTextureDescriptorSetFor(
-            this->_skyboxTextureView);
+    this->_skyboxDescriptorSet = this->_renderingObjectsFactory->createDescriptorSetObject(
+            this->_descriptorPool, this->_objectDescriptorSetLayout, MAX_INFLIGHT_FRAMES);
+
+    updateDescriptorSetWithImage(this->_skyboxDescriptorSet, this->_skyboxTextureView, 0);
 }
 
 void SceneRenderpass::destroySkyboxPipeline() {
@@ -137,8 +161,12 @@ void SceneRenderpass::initScenePipeline() {
 
 void SceneRenderpass::destroyScenePipeline() {
     for (const auto &item: this->_renderData) {
-        delete item.second.textureView;
-        delete item.second.descriptorSet;
+        delete item.second->descriptorSet;
+        delete item.second;
+    }
+
+    for (const auto &item: this->_imageViews) {
+        delete item.second;
     }
 
     this->_renderData.clear();
@@ -251,14 +279,13 @@ SceneRenderpass::SceneRenderpass(RenderingDevice *renderingDevice, Swapchain *sw
             return;
         }
 
-// TODO: we use textures, not objects
-//        auto it = this->_renderData.find(event.object);
-//        if (it != this->_renderData.end()) {
-//            delete it->second.descriptorSet;
-//            delete it->second.textureView;
-//
-//            this->_renderData.erase(it);
-//        }
+        auto it = this->_renderData.find(event.object);
+        if (it != this->_renderData.end()) {
+            delete it->second->descriptorSet;
+            delete it->second;
+
+            this->_renderData.erase(it);
+        }
     });
 }
 
@@ -371,8 +398,6 @@ void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D ren
 
         uint32_t idx = 0;
         for (Object *object: this->_engine->scene()->objects()) {
-            RenderData renderData = getRenderData(object);
-
             glm::mat4 model = object->getModelMatrix(false);
             glm::mat4 rot = object->getModelMatrix(true);
             MeshConstants constants = {
@@ -390,9 +415,9 @@ void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D ren
                 vkCmdBindIndexBuffer(commandBuffer, object->mesh()->indices->getHandle(), 0, VK_INDEX_TYPE_UINT32);
             }
 
-            VkDescriptorSet descriptorSet = renderData.descriptorSet->getDescriptorSet(frameIdx);
+            VkDescriptorSet descriptor = getRenderData(object)->descriptorSet->getDescriptorSet(frameIdx);
             vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->_scenePipelineLayout,
-                                    0, 1, &descriptorSet, 0, nullptr);
+                                    0, 1, &descriptor, 0, nullptr);
 
             if (object->mesh()->indices != nullptr) {
                 vkCmdDrawIndexed(commandBuffer, object->mesh()->count, 1, 0, 0, idx++);
@@ -534,6 +559,7 @@ void SceneRenderpass::initRenderpass() {
 
     this->_objectDescriptorSetLayout = DescriptorSetLayoutBuilder(this->_renderingDevice)
             .withBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
+            .withBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
             .build();
 
     this->_textureSampler = this->_renderingDevice->createSampler();

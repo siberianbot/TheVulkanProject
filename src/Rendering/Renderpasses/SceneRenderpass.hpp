@@ -12,6 +12,7 @@
 class Engine;
 class Object;
 class Swapchain;
+struct TextureRenderingResource;
 class RenderingObjectsFactory;
 class DescriptorSetObject;
 class BufferObject;
@@ -40,8 +41,9 @@ private:
     };
 
     struct RenderData {
-        ImageViewObject *textureView;
         DescriptorSetObject *descriptorSet;
+        ImageViewObject *albedoTextureView;
+        ImageViewObject *specTextureView;
     };
 
     RenderingObjectsFactory *_renderingObjectsFactory;
@@ -49,7 +51,8 @@ private:
     Swapchain *_swapchain;
 
     VkSampler _textureSampler;
-    std::map<ImageObject *, RenderData> _renderData;
+    std::map<Object *, RenderData *> _renderData;
+    std::map<ImageObject *, ImageViewObject *> _imageViews;
     ImageViewObject *_skyboxTextureView;
     DescriptorSetObject *_skyboxDescriptorSet;
 
@@ -96,9 +99,11 @@ private:
 
     std::vector<RenderpassBase *> _shadowRenderpasses;
 
-    RenderData getRenderData(Object *object);
+    RenderData *getRenderData(Object *object);
+    ImageViewObject *getImageView(ImageObject *image);
 
-    DescriptorSetObject *createTextureDescriptorSetFor(ImageViewObject *imageViewObject);
+    void updateDescriptorSetWithImage(DescriptorSetObject *descriptorSetObject, ImageViewObject *imageViewObject,
+                                      uint32_t binding);
 
     void initSkyboxPipeline();
     void destroySkyboxPipeline();

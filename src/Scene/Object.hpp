@@ -9,23 +9,22 @@ struct TextureRenderingResource;
 
 class Object {
 private:
-    glm::vec3 _position;
-    glm::vec3 _rotation;
-    glm::vec3 _scale;
-    MeshRenderingResource *_mesh;
-    TextureRenderingResource *_texture;
+    glm::vec3 _position = glm::vec3(0);
+    glm::vec3 _rotation = glm::vec3(0);
+    glm::vec3 _scale = glm::vec3(1);
+    MeshRenderingResource *_mesh = nullptr;
+    TextureRenderingResource *_albedoTexture = nullptr;
+    TextureRenderingResource *_specTexture = nullptr;
 
 public:
-    Object(const glm::vec3 &position, const glm::vec3 &rotation, const glm::vec3 &scale,
-           MeshRenderingResource *mesh, TextureRenderingResource *texture);
-
     glm::mat4 getModelMatrix(bool rotationOnly);
 
     glm::vec3 &position() { return this->_position; }
     glm::vec3 &rotation() { return this->_rotation; }
     glm::vec3 &scale() { return this->_scale; }
     MeshRenderingResource *&mesh() { return this->_mesh; }
-    TextureRenderingResource *&texture() { return this->_texture; }
+    TextureRenderingResource *&albedoTexture() { return this->_albedoTexture; }
+    TextureRenderingResource *&specTexture() { return this->_specTexture; }
 };
 
 #endif // SCENE_OBJECT_HPP

@@ -33,7 +33,7 @@ private:
 
     MeshRenderingResource _skyboxMeshResource;
     TextureRenderingResource _skyboxTextureResource;
-    TextureRenderingResource *_defaultTextureResource;
+    TextureRenderingResource _defaultTextureResource;
 
     int _windowWidth = 1280;
     int _windowHeight = 720;
@@ -69,7 +69,7 @@ public:
     uint32_t windowHeight() { return this->_windowHeight; }
     float delta() { return this->_delta; }
 
-    TextureRenderingResource *defaultTextureResource() { return this->_defaultTextureResource; }
+    TextureRenderingResource *defaultTextureResource() { return &this->_defaultTextureResource; }
 
     std::vector<MeshRenderingResource> &meshes() { return this->_meshes; }
     std::vector<TextureRenderingResource> &textures() { return this->_textures; }

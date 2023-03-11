@@ -168,9 +168,9 @@ void DebugUI::drawSceneObjectsWindow() {
 
     if (ImGui::Begin("Objects")) {
         if (ImGui::Button("Add object")) {
-            Object *object = new Object(glm::vec3(0), glm::vec3(0), glm::vec3(1),
-                                        &this->_engine->meshes()[0],
-                                        &this->_engine->textures()[0]);
+            Object *object = new Object();
+            object->mesh() = &this->_engine->meshes()[0];
+            object->albedoTexture() = &this->_engine->textures()[0];
 
             this->_engine->scene()->addObject(object);
             this->_selectedObject = std::nullopt;
@@ -203,8 +203,16 @@ void DebugUI::drawSceneObjectsWindow() {
 
                     this->_selectedObjectTextureIdx = -1;
                     for (uint32_t idx = 0; idx < this->_engine->textures().size(); idx++) {
-                        if ((*current)->texture() == &this->_engine->textures()[idx]) {
-                            this->_selectedObjectTextureIdx = idx;
+                        if ((*current)->albedoTexture() == &this->_engine->textures()[idx]) {
+                            this->_selectedObjectTextureIdx = idx + 1;
+                            break;
+                        }
+                    }
+
+                    this->_selectedObjectSpecTextureIdx = -1;
+                    for (uint32_t idx = 0; idx < this->_engine->textures().size(); idx++) {
+                        if ((*current)->specTexture() == &this->_engine->textures()[idx]) {
+                            this->_selectedObjectSpecTextureIdx = idx + 1;
                             break;
                         }
                     }
@@ -237,8 +245,17 @@ void DebugUI::drawSceneObjectsWindow() {
 
             if (ImGui::Combo("Texture", &this->_selectedObjectTextureIdx, this->_textures.data(),
                              this->_textures.size())) {
-                if (this->_selectedObjectTextureIdx != -1) {
-                    object->texture() = &this->_engine->textures()[this->_selectedObjectTextureIdx];
+                if (this->_selectedObjectTextureIdx - 1 != -1) {
+                    object->albedoTexture() = &this->_engine->textures()[this->_selectedObjectTextureIdx - 1];
+                }
+            }
+
+            if (ImGui::Combo("Specular", &this->_selectedObjectSpecTextureIdx, this->_textures.data(),
+                             this->_textures.size())) {
+                if (this->_selectedObjectSpecTextureIdx - 1 != -1) {
+                    object->specTexture() = &this->_engine->textures()[this->_selectedObjectSpecTextureIdx - 1];
+                } else {
+                    object->specTexture() = nullptr;
                 }
             }
 
@@ -352,6 +369,8 @@ DebugUI::DebugUI(Engine *engine)
 
         this->_meshes.push_back(ptr);
     }
+
+    this->_textures.push_back("none");
 
     for (uint32_t idx = 0; idx < this->_engine->textures().size(); idx++) {
         std::string name = std::string("texture ") +

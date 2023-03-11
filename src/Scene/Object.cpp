@@ -3,16 +3,6 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/quaternion.hpp>
 
-Object::Object(const glm::vec3 &position, const glm::vec3 &rotation, const glm::vec3 &scale,
-               MeshRenderingResource *mesh, TextureRenderingResource *texture)
-        : _position(position),
-          _rotation(rotation),
-          _scale(scale),
-          _mesh(mesh),
-          _texture(texture) {
-    //
-}
-
 glm::mat4 Object::getModelMatrix(bool rotationOnly) {
     glm::mat4 r = toMat4(glm::quat(this->_rotation));
 

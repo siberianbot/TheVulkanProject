@@ -38,6 +38,7 @@ private:
     std::optional<std::vector<Object *>::const_iterator> _selectedObject = std::nullopt;
     int _selectedObjectMeshIdx = -1;
     int _selectedObjectTextureIdx = -1;
+    int _selectedObjectSpecTextureIdx = -1;
     std::optional<std::vector<Light *>::const_iterator> _selectedLight = std::nullopt;
     int _selectedLightKindIdx = -1;
 
