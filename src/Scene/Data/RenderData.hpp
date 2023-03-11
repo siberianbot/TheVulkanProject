@@ -8,7 +8,6 @@ class ImageViewObject;
 
 struct RenderData : public IData {
     RenderData() = default;
-
     ~RenderData() override;
 
     DescriptorSetObject *descriptorSet = nullptr;
