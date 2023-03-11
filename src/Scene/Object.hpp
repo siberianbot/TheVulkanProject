@@ -1,9 +1,12 @@
 #ifndef SCENE_OBJECT_HPP
 #define SCENE_OBJECT_HPP
 
+#include <vector>
+
 #include <glm/vec3.hpp>
 #include <glm/mat4x4.hpp>
 
+struct IData;
 struct MeshRenderingResource;
 struct TextureRenderingResource;
 
@@ -15,8 +18,11 @@ private:
     MeshRenderingResource *_mesh = nullptr;
     TextureRenderingResource *_albedoTexture = nullptr;
     TextureRenderingResource *_specTexture = nullptr;
+    std::vector<IData *> _data;
 
 public:
+    ~Object();
+
     glm::mat4 getModelMatrix(bool rotationOnly);
 
     glm::vec3 &position() { return this->_position; }
@@ -25,6 +31,7 @@ public:
     MeshRenderingResource *&mesh() { return this->_mesh; }
     TextureRenderingResource *&albedoTexture() { return this->_albedoTexture; }
     TextureRenderingResource *&specTexture() { return this->_specTexture; }
+    std::vector<IData *> &data() { return this->_data; }
 };
 
 #endif // SCENE_OBJECT_HPP

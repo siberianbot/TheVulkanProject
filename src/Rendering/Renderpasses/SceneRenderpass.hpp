@@ -12,6 +12,7 @@
 class Engine;
 class Object;
 class Swapchain;
+struct RenderData;
 struct TextureRenderingResource;
 class RenderingObjectsFactory;
 class DescriptorSetObject;
@@ -40,18 +41,11 @@ private:
         glm::mat4 modelRotation;
     };
 
-    struct RenderData {
-        DescriptorSetObject *descriptorSet;
-        ImageViewObject *albedoTextureView;
-        ImageViewObject *specTextureView;
-    };
-
     RenderingObjectsFactory *_renderingObjectsFactory;
     Engine *_engine;
     Swapchain *_swapchain;
 
     VkSampler _textureSampler;
-    std::map<Object *, RenderData *> _renderData;
     std::map<ImageObject *, ImageViewObject *> _imageViews;
     ImageViewObject *_skyboxTextureView;
     DescriptorSetObject *_skyboxDescriptorSet;

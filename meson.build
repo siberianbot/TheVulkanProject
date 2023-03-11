@@ -62,6 +62,7 @@ src = [
     'src/Scene/Object.cpp',
     'src/Scene/Scene.cpp',
     'src/Scene/Skybox.cpp',
+    'src/Scene/Data/RenderData.cpp',
 
     # Debug
     'src/Debug/DebugUI.cpp',

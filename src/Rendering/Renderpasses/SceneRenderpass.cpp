@@ -2,11 +2,11 @@
 
 #include "src/Engine.hpp"
 #include "src/EngineVars.hpp"
-#include "src/Events/EventQueue.hpp"
 #include "src/Scene/Light.hpp"
 #include "src/Scene/Object.hpp"
 #include "src/Scene/Scene.hpp"
 #include "src/Scene/Skybox.hpp"
+#include "src/Scene/Data/RenderData.hpp"
 #include "src/Resources/Vertex.hpp"
 #include "src/Rendering/PhysicalDevice.hpp"
 #include "src/Rendering/RenderingDevice.hpp"
@@ -25,20 +25,21 @@
 #include "src/Rendering/Objects/ImageViewObject.hpp"
 #include "src/Rendering/Objects/DescriptorSetObject.hpp"
 
-SceneRenderpass::RenderData *SceneRenderpass::getRenderData(Object *object) {
-    auto it = this->_renderData.find(object);
+RenderData *SceneRenderpass::getRenderData(Object *object) {
+    auto it = std::find_if(object->data().begin(), object->data().end(), [](IData *data) {
+        return dynamic_cast<RenderData *>(data) != nullptr;
+    });
 
     RenderData *renderData;
 
-    if (it != this->_renderData.end()) {
-        renderData = it->second;
+    if (it != object->data().end()) {
+        renderData = dynamic_cast<RenderData *>(*it);
     } else {
-        renderData = new RenderData{
-                .descriptorSet = this->_renderingObjectsFactory->createDescriptorSetObject(
-                        this->_descriptorPool, this->_objectDescriptorSetLayout, MAX_INFLIGHT_FRAMES)
-        };
+        renderData = new RenderData();
+        renderData->descriptorSet = this->_renderingObjectsFactory->createDescriptorSetObject(
+                this->_descriptorPool, this->_objectDescriptorSetLayout, MAX_INFLIGHT_FRAMES);
 
-        this->_renderData[object] = renderData;
+        object->data().push_back(renderData);
     }
 
     ImageObject *albedoTexture = object->albedoTexture() == nullptr
@@ -161,16 +162,9 @@ void SceneRenderpass::initScenePipeline() {
 }
 
 void SceneRenderpass::destroyScenePipeline() {
-    for (const auto &item: this->_renderData) {
-        delete item.second->descriptorSet;
-        delete item.second;
-    }
-
     for (const auto &item: this->_imageViews) {
         delete item.second;
     }
-
-    this->_renderData.clear();
 
     this->_renderingDevice->destroyPipeline(this->_scenePipeline);
     this->_renderingDevice->destroyPipelineLayout(this->_scenePipelineLayout);
@@ -275,19 +269,7 @@ SceneRenderpass::SceneRenderpass(RenderingDevice *renderingDevice, Swapchain *sw
           _renderingObjectsFactory(renderingObjectsFactory),
           _engine(engine),
           _swapchain(swapchain) {
-    this->_engine->eventQueue()->addHandler([this](const Event &event) {
-        if (event.type != OBJECT_DESTROYED_EVENT) {
-            return;
-        }
-
-        auto it = this->_renderData.find(event.object);
-        if (it != this->_renderData.end()) {
-            delete it->second->descriptorSet;
-            delete it->second;
-
-            this->_renderData.erase(it);
-        }
-    });
+    //
 }
 
 void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D renderArea,

@@ -255,6 +255,8 @@ void DebugUI::drawSceneObjectsWindow() {
                         if ((*current)->albedoTexture() == &this->_engine->textures()[idx]) {
                             this->_selectedObjectTextureIdx = idx + 1;
                             break;
+                        } else {
+                            this->_selectedObjectTextureIdx = 0;
                         }
                     }
 
@@ -263,6 +265,8 @@ void DebugUI::drawSceneObjectsWindow() {
                         if ((*current)->specTexture() == &this->_engine->textures()[idx]) {
                             this->_selectedObjectSpecTextureIdx = idx + 1;
                             break;
+                        } else {
+                            this->_selectedObjectSpecTextureIdx = 0;
                         }
                     }
                 }
@@ -296,6 +300,8 @@ void DebugUI::drawSceneObjectsWindow() {
                              this->_textures.size())) {
                 if (this->_selectedObjectTextureIdx - 1 != -1) {
                     object->albedoTexture() = &this->_engine->textures()[this->_selectedObjectTextureIdx - 1];
+                } else {
+                    object->albedoTexture() = nullptr;
                 }
             }
 
