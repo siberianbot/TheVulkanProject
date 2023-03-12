@@ -1,7 +1,7 @@
 #ifndef RESOURCES_TEXTURE_HPP
 #define RESOURCES_TEXTURE_HPP
 
-#include <string>
+#include <filesystem>
 
 class Texture {
 private:
@@ -20,7 +20,7 @@ public:
 
     [[nodiscard]] void *data() const { return this->_pixels; }
 
-    [[nodiscard]] static Texture fromFile(const std::string &path);
+    [[nodiscard]] static Texture *fromFile(const std::filesystem::path &path);
 };
 
 #endif // RESOURCES_TEXTURE_HPP

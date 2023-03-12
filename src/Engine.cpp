@@ -99,44 +99,57 @@ void Engine::init() {
     this->_meshes.push_back(this->renderer.getRenderingResourcesManager()->loadMesh(CUBE_MESH.size(),
                                                                                     CUBE_MESH.data()));
 
-    Mesh suzanneMesh = Mesh::fromFile("data/models/suzanne.obj");
-    this->_meshes.push_back(this->renderer.getRenderingResourcesManager()->loadMesh(&suzanneMesh));
+    Mesh *suzanneMesh = this->_resourceManager->openMesh("suzanne");
+    this->_meshes.push_back(this->renderer.getRenderingResourcesManager()->loadMesh(suzanneMesh));
+    delete suzanneMesh;
 
-    Mesh vikingRoomMesh = Mesh::fromFile("data/models/viking_room.obj");
-    this->_meshes.push_back(this->renderer.getRenderingResourcesManager()->loadMesh(&vikingRoomMesh));
+    Mesh *vikingRoomMesh = this->_resourceManager->openMesh("viking_room");
+    this->_meshes.push_back(this->renderer.getRenderingResourcesManager()->loadMesh(vikingRoomMesh));
+    delete vikingRoomMesh;
 
-    Texture defaultTexture = Texture::fromFile("data/textures/default.png");
-    this->_defaultTextureResource = this->renderer.getRenderingResourcesManager()->loadTexture(&defaultTexture);
+    Texture *defaultTexture = this->_resourceManager->openTexture("default_texture");
+    this->_defaultTextureResource = this->renderer.getRenderingResourcesManager()->loadTexture(defaultTexture);
+    delete defaultTexture;
 
-    Texture concreteTexture = Texture::fromFile("data/textures/concrete.png");
-    this->_textures.push_back(this->renderer.getRenderingResourcesManager()->loadTexture(&concreteTexture));
+    Texture *concreteTexture = this->_resourceManager->openTexture("concrete");
+    this->_textures.push_back(this->renderer.getRenderingResourcesManager()->loadTexture(concreteTexture));
+    delete concreteTexture;
 
-    Texture cubeTexture = Texture::fromFile("data/textures/cube.png");
-    this->_textures.push_back(this->renderer.getRenderingResourcesManager()->loadTexture(&cubeTexture));
+    Texture *cubeTexture = this->_resourceManager->openTexture("cube");
+    this->_textures.push_back(this->renderer.getRenderingResourcesManager()->loadTexture(cubeTexture));
+    delete cubeTexture;
 
-    Texture cubeSpecularTexture = Texture::fromFile("data/textures/cube_specular.png");
-    this->_textures.push_back(this->renderer.getRenderingResourcesManager()->loadTexture(&cubeSpecularTexture));
+    Texture *cubeSpecularTexture = this->_resourceManager->openTexture("cube_specular");
+    this->_textures.push_back(this->renderer.getRenderingResourcesManager()->loadTexture(cubeSpecularTexture));
+    delete cubeSpecularTexture;
 
-    Texture vikingRoomTexture = Texture::fromFile("data/textures/viking_room.png");
-    this->_textures.push_back(this->renderer.getRenderingResourcesManager()->loadTexture(&vikingRoomTexture));
+    Texture *vikingRoomTexture = this->_resourceManager->openTexture("viking_room_texture");
+    this->_textures.push_back(this->renderer.getRenderingResourcesManager()->loadTexture(vikingRoomTexture));
+    delete vikingRoomTexture;
 
     this->_skyboxMeshResource = this->renderer.getRenderingResourcesManager()->loadMesh(SKYBOX_MESH.size(),
                                                                                         SKYBOX_MESH.data());
-    Texture skyboxRightTexture = Texture::fromFile("data/textures/skybox_right.jpg");
-    Texture skyboxLeftTexture = Texture::fromFile("data/textures/skybox_left.jpg");
-    Texture skyboxUpTexture = Texture::fromFile("data/textures/skybox_up.jpg");
-    Texture skyboxDownTexture = Texture::fromFile("data/textures/skybox_down.jpg");
-    Texture skyboxFrontTexture = Texture::fromFile("data/textures/skybox_front.jpg");
-    Texture skyboxBackTexture = Texture::fromFile("data/textures/skybox_back.jpg");
+    Texture *skyboxRightTexture = this->_resourceManager->openTexture("skybox_right");
+    Texture *skyboxLeftTexture = this->_resourceManager->openTexture("skybox_left");
+    Texture *skyboxUpTexture = this->_resourceManager->openTexture("skybox_up");
+    Texture *skyboxDownTexture = this->_resourceManager->openTexture("skybox_down");
+    Texture *skyboxFrontTexture = this->_resourceManager->openTexture("skybox_front");
+    Texture *skyboxBackTexture = this->_resourceManager->openTexture("skybox_back");
     this->_skyboxTextureResource = this->renderer.getRenderingResourcesManager()->loadTextureCube(
             {
-                    &skyboxFrontTexture,
-                    &skyboxBackTexture,
-                    &skyboxUpTexture,
-                    &skyboxDownTexture,
-                    &skyboxRightTexture,
-                    &skyboxLeftTexture,
+                    skyboxFrontTexture,
+                    skyboxBackTexture,
+                    skyboxUpTexture,
+                    skyboxDownTexture,
+                    skyboxRightTexture,
+                    skyboxLeftTexture,
             });
+    delete skyboxFrontTexture;
+    delete skyboxBackTexture;
+    delete skyboxUpTexture;
+    delete skyboxDownTexture;
+    delete skyboxRightTexture;
+    delete skyboxLeftTexture;
 
     this->_scene = new Scene(this, new Skybox(&this->_skyboxMeshResource, &this->_skyboxTextureResource));
 

@@ -6,7 +6,7 @@
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tiny_obj_loader.h>
 
-Mesh Mesh::fromFile(const std::string &path) {
+Mesh *Mesh::fromFile(const std::filesystem::path &path) {
     tinyobj::attrib_t attrib;
     std::vector<tinyobj::shape_t> shapes;
     std::vector<tinyobj::material_t> materials;
@@ -16,12 +16,12 @@ Mesh Mesh::fromFile(const std::string &path) {
         throw std::runtime_error("mesh loading failure");
     }
 
-    Mesh mesh;
+    Mesh *mesh = new Mesh();
     std::map<uint32_t, Vertex> indexMap;
 
     for (const auto &shape: shapes) {
         for (const auto &index: shape.mesh.indices) {
-            mesh._indices.push_back(index.vertex_index);
+            mesh->_indices.push_back(index.vertex_index);
 
             if (indexMap.find(index.vertex_index) != indexMap.end()) {
                 continue;
@@ -47,9 +47,9 @@ Mesh Mesh::fromFile(const std::string &path) {
         }
     }
 
-    mesh._vertices.resize(indexMap.size());
+    mesh->_vertices.resize(indexMap.size());
     for (const auto &pair: indexMap) {
-        mesh._vertices[pair.first] = pair.second;
+        mesh->_vertices[pair.first] = pair.second;
     }
 
     return mesh;
