@@ -36,6 +36,7 @@ private:
     int _rendererShaderEditorVisible = 0;
     int _sceneObjectsWindowVisible = 0;
     int _sceneLightsWindowVisible = 0;
+    int _resourcesListWindowVisible = 0;
     std::optional<std::vector<Object *>::const_iterator> _selectedObject = std::nullopt;
     int _selectedObjectMeshIdx = -1;
     int _selectedObjectTextureIdx = -1;
@@ -53,6 +54,7 @@ private:
     void drawRendererShaderEditor();
     void drawSceneObjectsWindow();
     void drawSceneLightsWindow();
+    void drawResourcesListWindow();
 
 public:
     DebugUI(Engine *engine);

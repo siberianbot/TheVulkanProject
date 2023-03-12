@@ -10,6 +10,7 @@
 #include "src/Engine.hpp"
 #include "src/EngineVars.hpp"
 #include "src/Events/EventQueue.hpp"
+#include "src/Resources/ResourceManager.hpp"
 #include "src/Scene/Light.hpp"
 #include "src/Scene/Object.hpp"
 #include "src/Scene/Scene.hpp"
@@ -95,6 +96,14 @@ void DebugUI::drawMainMenu() {
 
             if (ImGui::MenuItem("Lights", NULL, this->_sceneLightsWindowVisible & 1)) {
                 this->_sceneLightsWindowVisible++;
+            }
+
+            ImGui::EndMenu();
+        }
+
+        if (ImGui::BeginMenu("Resources")) {
+            if (ImGui::MenuItem("Resources list", NULL, this->_resourcesListWindowVisible & 1)) {
+                this->_resourcesListWindowVisible++;
             }
 
             ImGui::EndMenu();
@@ -407,6 +416,57 @@ void DebugUI::drawSceneLightsWindow() {
     ImGui::End();
 }
 
+void DebugUI::drawResourcesListWindow() {
+    if ((this->_resourcesListWindowVisible & 1) == 0) {
+        return;
+    }
+
+
+    if (ImGui::Begin("Resources list")) {
+        if (ImGui::BeginTable("#resources", 3, 0, ImVec2(-1, -1))) {
+            ImGui::TableSetupColumn("Id");
+            ImGui::TableSetupColumn("Type");
+            ImGui::TableSetupColumn("Path");
+            ImGui::TableHeadersRow();
+
+            for (auto &[id, resource]: this->_engine->resourceManager()->resources()) {
+                ImGui::TableNextRow();
+
+                ImGui::TableNextColumn();
+                ImGui::Text("%s", id.c_str());
+
+                ImGui::TableNextColumn();
+                std::string type;
+                switch (resource.type) {
+                    case MODEL_OBJ_RESOURCE:
+                        type = "model-obj";
+                        break;
+
+                    case SHADER_CODE_RESOURCE:
+                        type = "shader-code";
+                        break;
+
+                    case SHADER_SPV_RESOURCE:
+                        type = "shader-spv";
+                        break;
+
+                    case IMAGE_RESOURCE:
+                        type = "image";
+                        break;
+                }
+                ImGui::Text("%s", type.c_str());
+
+                ImGui::TableNextColumn();
+                ImGui::Text("%s", resource.path.c_str());
+            }
+
+            ImGui::EndTable();
+        }
+    }
+
+    ImGui::End();
+}
+
 DebugUI::DebugUI(Engine *engine)
         : _engine(engine) {
     this->_shaders.push_back("data/shaders/composition.frag");
@@ -451,4 +511,5 @@ void DebugUI::render() {
     drawRendererShaderEditor();
     drawSceneObjectsWindow();
     drawSceneLightsWindow();
+    drawResourcesListWindow();
 }

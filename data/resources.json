@@ -1,0 +1,147 @@
+[
+  {
+    "id": "suzanne",
+    "type": "model-obj",
+    "path": "models/suzanne.obj"
+  },
+  {
+    "id": "viking_room",
+    "type": "model-obj",
+    "path": "models/viking_room.obj"
+  },
+  {
+    "id": "composition.frag",
+    "type": "shader-code",
+    "path": "shaders/composition.frag"
+  },
+  {
+    "id": "composition.frag.spv",
+    "type": "shader-spv",
+    "path": "shaders/composition.frag.spv"
+  },
+  {
+    "id": "composition.vert",
+    "type": "shader-code",
+    "path": "shaders/composition.vert"
+  },
+  {
+    "id": "composition.vert.spv",
+    "type": "shader-spv",
+    "path": "shaders/composition.vert.spv"
+  },
+  {
+    "id": "default.frag",
+    "type": "shader-code",
+    "path": "shaders/default.frag"
+  },
+  {
+    "id": "default.frag.spv",
+    "type": "shader-spv",
+    "path": "shaders/default.frag.spv"
+  },
+  {
+    "id": "default.vert",
+    "type": "shader-code",
+    "path": "shaders/default.vert"
+  },
+  {
+    "id": "default.vert.spv",
+    "type": "shader-spv",
+    "path": "shaders/default.vert.spv"
+  },
+  {
+    "id": "scene_composition.frag",
+    "type": "shader-code",
+    "path": "shaders/scene_composition.frag"
+  },
+  {
+    "id": "scene_composition.frag.spv",
+    "type": "shader-spv",
+    "path": "shaders/scene_composition.frag.spv"
+  },
+  {
+    "id": "shadow.frag",
+    "type": "shader-code",
+    "path": "shaders/shadow.frag"
+  },
+  {
+    "id": "shadow.frag.spv",
+    "type": "shader-spv",
+    "path": "shaders/shadow.frag.spv"
+  },
+  {
+    "id": "shadow.vert",
+    "type": "shader-code",
+    "path": "shaders/shadow.vert"
+  },
+  {
+    "id": "shadow.vert.spv",
+    "type": "shader-spv",
+    "path": "shaders/shadow.vert.spv"
+  },
+  {
+    "id": "skybox.frag",
+    "type": "shader-code",
+    "path": "shaders/skybox.frag"
+  },
+  {
+    "id": "skybox.frag.spv",
+    "type": "shader-spv",
+    "path": "shaders/skybox.frag.spv"
+  },
+  {
+    "id": "concrete",
+    "type": "image",
+    "path": "textures/concrete.png"
+  },
+  {
+    "id": "cube",
+    "type": "image",
+    "path": "textures/cube.png"
+  },
+  {
+    "id": "cube_specular",
+    "type": "image",
+    "path": "textures/cube_specular.png"
+  },
+  {
+    "id": "default_texture",
+    "type": "image",
+    "path": "textures/default.png"
+  },
+  {
+    "id": "skybox_back",
+    "type": "image",
+    "path": "textures/skybox_back.jpg"
+  },
+  {
+    "id": "skybox_down",
+    "type": "image",
+    "path": "textures/skybox_down.jpg"
+  },
+  {
+    "id": "skybox_front",
+    "type": "image",
+    "path": "textures/skybox_front.jpg"
+  },
+  {
+    "id": "skybox_left",
+    "type": "image",
+    "path": "textures/skybox_left.jpg"
+  },
+  {
+    "id": "skybox_right",
+    "type": "image",
+    "path": "textures/skybox_right.jpg"
+  },
+  {
+    "id": "skybox_up",
+    "type": "image",
+    "path": "textures/skybox_up.jpg"
+  },
+  {
+    "id": "viking_room_texture",
+    "type": "image",
+    "path": "textures/viking_room.png"
+  }
+]

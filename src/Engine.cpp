@@ -8,6 +8,7 @@
 #include "src/Events/EventQueue.hpp"
 #include "src/Resources/Mesh.hpp"
 #include "src/Resources/Texture.hpp"
+#include "src/Resources/ResourceManager.hpp"
 #include "src/Scene/Light.hpp"
 #include "src/Scene/Object.hpp"
 #include "src/Scene/Scene.hpp"
@@ -20,11 +21,14 @@
 Engine::Engine()
         : renderer(this),
           _eventQueue(new EventQueue()),
-          _engineVars(EngineVars::defaults()) {
+          _engineVars(EngineVars::defaults()),
+          _resourceManager(new ResourceManager()) {
     //
 }
 
 void Engine::init() {
+    this->_resourceManager->addDataDir("data");
+
     initGlfw();
     initWindow();
 

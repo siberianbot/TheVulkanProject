@@ -13,6 +13,7 @@ class DebugUI;
 class Object;
 class Scene;
 class EventQueue;
+class ResourceManager;
 
 enum CameraControlState {
     NotFocused,
@@ -29,6 +30,7 @@ private:
 
     EventQueue *_eventQueue;
     EngineVars *_engineVars;
+    ResourceManager *_resourceManager;
 
     std::vector<MeshRenderingResource> _meshes;
     std::vector<TextureRenderingResource> _textures;
@@ -66,6 +68,7 @@ public:
 
     [[nodiscard]] EventQueue *eventQueue() { return this->_eventQueue; }
     [[nodiscard]] EngineVars *engineVars() { return this->_engineVars; }
+    [[nodiscard]] ResourceManager *resourceManager() { return this->_resourceManager; }
     [[nodiscard]] Scene *scene() { return this->_scene; }
 
     uint32_t windowWidth() { return this->_windowWidth; }

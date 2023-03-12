@@ -7,9 +7,12 @@ add_project_arguments('-DGLM_FORCE_DEPTH_ZERO_TO_ONE', language: 'cpp')
 # turn on VSync (see PhysicalDevice::getPreferredPresentMode)
 # add_project_arguments('-DVSYNC', language: 'cpp')
 
-vulkan = dependency('vulkan')
-glfw = dependency('glfw3')
-imgui = subproject('imgui', default_options: ['default_library=static'])
+deps = [
+    dependency('vulkan'),
+    dependency('glfw3'),
+    subproject('imgui', default_options: ['default_library=static']).get_variable('imgui_dep'),
+    subproject('nlohmann_json').get_variable('nlohmann_json_dep')
+]
 
 src = [
     'src/Main.cpp',
@@ -55,6 +58,7 @@ src = [
     # Resources
     'src/Resources/Mesh.cpp',
     'src/Resources/Texture.cpp',
+    'src/Resources/ResourceManager.cpp',
 
     # Scene
     'src/Scene/Camera.cpp',
@@ -84,5 +88,4 @@ foreach shader : shaders
     run_command('glslangValidator', '-gVS', '-V', shader, '-o', shader + '.spv', check: true)
 endforeach
 
-exe = executable('thevulkanproject', src,
-  dependencies: [ glfw, vulkan, imgui.get_variable('imgui_dep') ])
+exe = executable('thevulkanproject', src, dependencies: deps)
