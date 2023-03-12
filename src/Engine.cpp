@@ -245,6 +245,7 @@ void Engine::cleanup() {
     this->renderer.wait();
 
     delete this->_scene;
+    this->_scene = nullptr;
 
     for (TextureRenderingResource &texture: this->_textures) {
         this->renderer.getRenderingResourcesManager()->freeTexture(texture);

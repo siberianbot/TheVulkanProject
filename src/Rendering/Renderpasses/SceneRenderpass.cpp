@@ -170,6 +170,8 @@ void SceneRenderpass::destroyScenePipeline() {
         delete item.second;
     }
 
+    this->_imageViews.clear();
+
     this->_renderingDevice->destroyPipeline(this->_scenePipeline);
     this->_renderingDevice->destroyPipelineLayout(this->_scenePipelineLayout);
 }
@@ -574,6 +576,21 @@ void SceneRenderpass::destroyRenderpass() {
     this->destroyCompositionPipeline();
     this->destroyScenePipeline();
     this->destroySkyboxPipeline();
+
+    if (this->_engine->scene() != nullptr) {
+        for (Object *object: this->_engine->scene()->objects()) {
+            auto it = std::find_if(object->data().begin(), object->data().end(), [](IData *data) {
+                return dynamic_cast<RenderData *>(data) != nullptr;
+            });
+
+            if (it != object->data().end()) {
+                RenderData *data = dynamic_cast<RenderData *>(*it);
+                delete data;
+
+                object->data().erase(it);
+            }
+        }
+    }
 
     this->_renderingDevice->destroyDescriptorSetLayout(this->_objectDescriptorSetLayout);
     this->_renderingDevice->destroyDescriptorPool(this->_descriptorPool);
