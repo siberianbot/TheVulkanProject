@@ -48,8 +48,8 @@ private:
 
     VkSampler _textureSampler;
     std::map<ImageObject *, ImageViewObject *> _imageViews;
-    ImageViewObject *_skyboxTextureView;
     DescriptorSetObject *_skyboxDescriptorSet;
+    ImageViewObject *_skyboxTextureView = nullptr;
 
     ImageObject *_skyboxImage;
     ImageViewObject *_skyboxImageView;

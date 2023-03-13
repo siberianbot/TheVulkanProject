@@ -5,6 +5,7 @@
 
 class Object;
 class Light;
+class Scene;
 
 enum EventType {
     CLOSE_REQUESTED_EVENT,
@@ -13,7 +14,8 @@ enum EventType {
     OBJECT_CREATED_EVENT,
     OBJECT_DESTROYED_EVENT,
     LIGHT_CREATED_EVENT,
-    LIGHT_DESTROYED_EVENT
+    LIGHT_DESTROYED_EVENT,
+    SCENE_TRANSITION_EVENT
 };
 
 struct ViewportEvent {
@@ -30,6 +32,8 @@ struct Event {
         Light *light;
         // VIEWPORT_RESIZED_EVENT
         ViewportEvent viewport;
+        // SCENE_TRANSITION_EVENT
+        Scene *scene;
     };
 };
 

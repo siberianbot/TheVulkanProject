@@ -17,6 +17,7 @@
 #include "src/Objects/Light.hpp"
 #include "src/Objects/Object.hpp"
 #include "src/Scene/Scene.hpp"
+#include "src/Scene/SceneManager.hpp"
 
 static constexpr const uint32_t SIZE = 1024;
 
@@ -31,24 +32,27 @@ ShadowRenderpass::ShadowRenderpass(RenderingDevice *renderingDevice, Engine *eng
 void ShadowRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D renderArea, uint32_t frameIdx,
                                       uint32_t imageIdx) {
     glm::vec3 cameraPosition = this->_engine->camera().position();
+    Scene *currentScene = this->_engine->sceneManager()->currentScene();
 
     std::vector<LightData> lightData;
-    for (uint32_t idx = 0; idx < this->_engine->scene()->lights().size(); idx++) {
-        Light *light = this->_engine->scene()->lights()[idx];
+    if (currentScene != nullptr) {
+        for (uint32_t idx = 0; idx < currentScene->lights().size(); idx++) {
+            Light *light = currentScene->lights()[idx];
 
-        if (!light->enabled() || glm::distance(cameraPosition, light->position()) > 100) {
-            continue;
-        }
+            if (!light->enabled() || glm::distance(cameraPosition, light->position()) > 100) {
+                continue;
+            }
 
-        glm::mat4 projection = light->getProjectionMatrix();
-        if (light->kind() == POINT_LIGHT) {
-            for (glm::vec3 forward: POINT_LIGHT_DIRECTIONS) {
-                glm::mat4 view = light->getViewMatrix(forward);
+            glm::mat4 projection = light->getProjectionMatrix();
+            if (light->kind() == POINT_LIGHT) {
+                for (glm::vec3 forward: POINT_LIGHT_DIRECTIONS) {
+                    glm::mat4 view = light->getViewMatrix(forward);
+                    lightData.push_back(LightData{projection, view});
+                }
+            } else {
+                glm::mat4 view = light->getViewMatrix();
                 lightData.push_back(LightData{projection, view});
             }
-        } else {
-            glm::mat4 view = light->getViewMatrix();
-            lightData.push_back(LightData{projection, view});
         }
     }
 
@@ -95,7 +99,7 @@ void ShadowRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D re
         vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
         vkCmdSetDepthBias(commandBuffer, 1.25f, 0.0f, 1.75f);
 
-        if (lightIdx >= count) {
+        if (lightIdx >= count || currentScene == nullptr) {
             vkCmdEndRenderPass(commandBuffer);
 
             continue;
@@ -106,7 +110,7 @@ void ShadowRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D re
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->_pipeline);
 
         uint32_t idx = 0;
-        for (Object *object: this->_engine->scene()->objects()) {
+        for (Object *object: currentScene->objects()) {
             glm::mat4 model = object->getModelMatrix(false);
             MeshConstants constants = {
                     .matrix = datum.projection * datum.view * model,

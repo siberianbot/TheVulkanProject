@@ -15,6 +15,7 @@
 #include "src/Debug/DebugUI.hpp"
 #include "src/Resources/Meshes.hpp"
 #include "src/Objects/Skybox.hpp"
+#include "src/Scene/SceneManager.hpp"
 
 #include <glm/vec3.hpp>
 
@@ -22,7 +23,8 @@ Engine::Engine()
         : renderer(this),
           _eventQueue(new EventQueue()),
           _engineVars(EngineVars::defaults()),
-          _resourceManager(new ResourceManager()) {
+          _resourceManager(new ResourceManager()),
+          _sceneManager(new SceneManager(this->_eventQueue)) {
     //
 }
 
@@ -151,9 +153,7 @@ void Engine::init() {
     delete skyboxRightTexture;
     delete skyboxLeftTexture;
 
-    this->_scene = new Scene(this, new Skybox(&this->_skyboxMeshResource, &this->_skyboxTextureResource));
-
-    this->renderer.initRenderpasses();
+    Scene *scene = new Scene(this, new Skybox(&this->_skyboxMeshResource, &this->_skyboxTextureResource));
 
     Object *object;
 
@@ -161,7 +161,7 @@ void Engine::init() {
     object->position() = glm::vec3(0, 0, 2);
     object->mesh() = &this->_meshes[2];
     object->albedoTexture() = &this->_textures[3];
-    this->_scene->addObject(object);
+    scene->addObject(object);
 
     object = new Object();
     object->position() = glm::vec3(0);
@@ -169,14 +169,14 @@ void Engine::init() {
     object->mesh() = &this->_meshes[0];
     object->albedoTexture() = &this->_textures[1];
     object->specTexture() = &this->_textures[2];
-    this->_scene->addObject(object);
+    scene->addObject(object);
 
     object = new Object();
     object->position() = glm::vec3(0, 0, -2);
     object->scale() = glm::vec3(0.5f);
     object->mesh() = &this->_meshes[1];
     object->albedoTexture() = &this->_textures[0];
-    this->_scene->addObject(object);
+    scene->addObject(object);
 
     // down
     object = new Object();
@@ -185,7 +185,7 @@ void Engine::init() {
     object->scale() = glm::vec3(7, 9, 0.1);
     object->mesh() = &this->_meshes[0];
     object->albedoTexture() = &this->_textures[0];
-    this->_scene->addObject(object);
+    scene->addObject(object);
 
     // front
     object = new Object();
@@ -194,7 +194,7 @@ void Engine::init() {
     object->scale() = glm::vec3(9, 4, 0.1);
     object->mesh() = &this->_meshes[0];
     object->albedoTexture() = &this->_textures[0];
-    this->_scene->addObject(object);
+    scene->addObject(object);
 
     // back
     object = new Object();
@@ -203,7 +203,7 @@ void Engine::init() {
     object->scale() = glm::vec3(9, 4, 0.1);
     object->mesh() = &this->_meshes[0];
     object->albedoTexture() = &this->_textures[0];
-    this->_scene->addObject(object);
+    scene->addObject(object);
 
     // left
     object = new Object();
@@ -212,7 +212,7 @@ void Engine::init() {
     object->scale() = glm::vec3(7, 4, 0.1);
     object->mesh() = &this->_meshes[0];
     object->albedoTexture() = &this->_textures[0];
-    this->_scene->addObject(object);
+    scene->addObject(object);
 
     // right
     object = new Object();
@@ -221,7 +221,7 @@ void Engine::init() {
     object->scale() = glm::vec3(7, 4, 0.1);
     object->mesh() = &this->_meshes[0];
     object->albedoTexture() = &this->_textures[0];
-    this->_scene->addObject(object);
+    scene->addObject(object);
 
     Light *light;
 
@@ -232,37 +232,36 @@ void Engine::init() {
     light->rotation().y = glm::radians(45.0f);
     light->rect().x = 20;
     light->rect().y = 20;
-    this->_scene->addLight(light);
+    scene->addLight(light);
 
     light = new Light(glm::vec3(2, 0, -2), glm::vec3(1, 0, 0), 50);
     light->enabled() = false;
     light->rotation().x = glm::radians(135.0f);
     light->rotation().y = glm::radians(90.0f);
-    this->_scene->addLight(light);
+    scene->addLight(light);
 
     light = new Light(glm::vec3(2, 2, 0), glm::vec3(0, 1, 0), 20);
     light->enabled() = true;
     light->kind() = POINT_LIGHT;
-    this->_scene->addLight(light);
+    scene->addLight(light);
 
     light = new Light(glm::vec3(2, 0, 2), glm::vec3(0, 0, 1), 50);
     light->enabled() = false;
     light->rotation().x = glm::radians(225.0f);
     light->rotation().y = glm::radians(90.0f);
-    this->_scene->addLight(light);
+    scene->addLight(light);
 
     this->_debugUI = new DebugUI(this);
 
     this->_camera.position() = glm::vec3(2, 2, 2);
     this->_camera.yaw() = glm::radians(-135.0f);
     this->_camera.pitch() = glm::radians(45.0f);
+
+    this->_sceneManager->switchScene(scene);
 }
 
 void Engine::cleanup() {
     this->renderer.wait();
-
-    delete this->_scene;
-    this->_scene = nullptr;
 
     for (TextureRenderingResource &texture: this->_textures) {
         this->renderer.getRenderingResourcesManager()->freeTexture(texture);
@@ -286,6 +285,8 @@ void Engine::cleanup() {
 
     glfwTerminate();
 
+    delete this->_sceneManager;
+    delete this->_resourceManager;
     delete this->_engineVars;
     delete this->_eventQueue;
 }

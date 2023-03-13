@@ -69,6 +69,7 @@ src = [
 
     # Scene
     'src/Scene/Scene.cpp',
+    'src/Scene/SceneManager.cpp',
 
     # Debug
     'src/Debug/DebugUI.cpp',

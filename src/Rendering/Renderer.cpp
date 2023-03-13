@@ -106,6 +106,8 @@ void Renderer::init() {
     this->_renderpasses.push_back(imguiRenderpass);
     this->_renderpasses.push_back(presentRenderpass);
 
+    this->initRenderpasses();
+
     this->_engine->eventQueue()->addHandler([this](const Event &event) {
         switch (event.type) {
             case RENDERER_RELOADING_REQUESTED_EVENT:

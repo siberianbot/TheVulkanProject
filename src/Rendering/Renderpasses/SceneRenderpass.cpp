@@ -2,9 +2,11 @@
 
 #include "src/Engine.hpp"
 #include "src/EngineVars.hpp"
+#include "src/Events/EventQueue.hpp"
 #include "src/Objects/Light.hpp"
 #include "src/Objects/Object.hpp"
 #include "src/Scene/Scene.hpp"
+#include "src/Scene/SceneManager.hpp"
 #include "src/Objects/Skybox.hpp"
 #include "src/Objects/Data/RenderData.hpp"
 #include "src/Resources/Vertex.hpp"
@@ -126,20 +128,17 @@ void SceneRenderpass::initSkyboxPipeline() {
             .forSubpass(0)
             .build();
 
-    this->_skyboxTextureView = this->_renderingObjectsFactory->createImageViewObject(
-            this->_engine->scene()->skybox()->texture()->texture,
-            VK_IMAGE_VIEW_TYPE_CUBE,
-            VK_IMAGE_ASPECT_COLOR_BIT);
-
     this->_skyboxDescriptorSet = this->_renderingObjectsFactory->createDescriptorSetObject(
             this->_descriptorPool, this->_objectDescriptorSetLayout, MAX_INFLIGHT_FRAMES);
-
-    updateDescriptorSetWithImage(this->_skyboxDescriptorSet, this->_skyboxTextureView, 0);
 }
 
 void SceneRenderpass::destroySkyboxPipeline() {
     delete this->_skyboxDescriptorSet;
-    delete this->_skyboxTextureView;
+
+    if (this->_skyboxTextureView != nullptr) {
+        delete this->_skyboxTextureView;
+        this->_skyboxTextureView = nullptr;
+    }
 
     this->_renderingDevice->destroyPipeline(this->_skyboxPipeline);
     this->_renderingDevice->destroyPipelineLayout(this->_skyboxPipelineLayout);
@@ -275,27 +274,55 @@ SceneRenderpass::SceneRenderpass(RenderingDevice *renderingDevice, Swapchain *sw
           _renderingObjectsFactory(renderingObjectsFactory),
           _engine(engine),
           _swapchain(swapchain) {
-    //
+    this->_engine->eventQueue()->addHandler([this](const Event &event) {
+        if (event.type != SCENE_TRANSITION_EVENT) {
+            return;
+        }
+
+        if (this->_skyboxTextureView != nullptr) {
+            delete this->_skyboxTextureView;
+        }
+
+        this->_skyboxTextureView = this->_renderingObjectsFactory->createImageViewObject(
+                this->_engine->sceneManager()->currentScene()->skybox()->texture()->texture,
+                VK_IMAGE_VIEW_TYPE_CUBE,
+                VK_IMAGE_ASPECT_COLOR_BIT);
+
+        updateDescriptorSetWithImage(this->_skyboxDescriptorSet, this->_skyboxTextureView, 0);
+    });
 }
 
 void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D renderArea,
                                      uint32_t frameIdx, uint32_t imageIdx) {
+    Scene *currentScene = this->_engine->sceneManager()->currentScene();
+
     // PREPARE SCENE DATA
     {
         glm::vec3 cameraPosition = this->_engine->camera().position();
 
         std::vector<LightData> lightData;
-        for (uint32_t idx = 0; idx < this->_engine->scene()->lights().size(); idx++) {
-            Light *light = this->_engine->scene()->lights()[idx];
+        if (currentScene != nullptr) {
+            for (uint32_t idx = 0; idx < currentScene->lights().size(); idx++) {
+                Light *light = currentScene->lights()[idx];
 
-            if (!light->enabled() || glm::distance(cameraPosition, light->position()) > 100) {
-                continue;
-            }
+                if (!light->enabled() || glm::distance(cameraPosition, light->position()) > 100) {
+                    continue;
+                }
 
-            glm::mat4 projection = light->getProjectionMatrix();
-            if (light->kind() == POINT_LIGHT) {
-                for (glm::vec3 forward: POINT_LIGHT_DIRECTIONS) {
-                    glm::mat4 view = light->getViewMatrix(forward);
+                glm::mat4 projection = light->getProjectionMatrix();
+                if (light->kind() == POINT_LIGHT) {
+                    for (glm::vec3 forward: POINT_LIGHT_DIRECTIONS) {
+                        glm::mat4 view = light->getViewMatrix(forward);
+                        lightData.push_back(LightData{
+                                projection * view,
+                                light->position(),
+                                light->color(),
+                                light->radius(),
+                                (int) light->kind()
+                        });
+                    }
+                } else {
+                    glm::mat4 view = light->getViewMatrix();
                     lightData.push_back(LightData{
                             projection * view,
                             light->position(),
@@ -304,15 +331,6 @@ void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D ren
                             (int) light->kind()
                     });
                 }
-            } else {
-                glm::mat4 view = light->getViewMatrix();
-                lightData.push_back(LightData{
-                        projection * view,
-                        light->position(),
-                        light->color(),
-                        light->radius(),
-                        (int) light->kind()
-                });
             }
         }
 
@@ -370,7 +388,8 @@ void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D ren
     VkDeviceSize offset = 0;
 
     // SKYBOX
-    if (this->_engine->engineVars()->getOrDefault(RENDERER_SKYBOX_ENABLED_VAR, true)->boolValue) {
+    if (this->_engine->engineVars()->getOrDefault(RENDERER_SKYBOX_ENABLED_VAR, true)->boolValue &&
+        currentScene != nullptr) {
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->_skyboxPipeline);
 
         MeshConstants constants = {
@@ -384,7 +403,7 @@ void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D ren
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->_skyboxPipelineLayout,
                                 0, 1, &descriptorSet, 0, nullptr);
 
-        BufferObject *vertices = this->_engine->scene()->skybox()->mesh()->vertices;
+        BufferObject *vertices = currentScene->skybox()->mesh()->vertices;
         VkBuffer vertexBuffer = vertices->getHandle();
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer, &offset);
 
@@ -394,13 +413,13 @@ void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D ren
     vkCmdNextSubpass(commandBuffer, VK_SUBPASS_CONTENTS_INLINE);
 
     // SCENE
-    {
+    if (currentScene != nullptr) {
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->_scenePipeline);
 
         glm::mat4 view = this->_engine->camera().getViewMatrix(false);
 
         uint32_t idx = 0;
-        for (Object *object: this->_engine->scene()->objects()) {
+        for (Object *object: currentScene->objects()) {
             glm::mat4 model = object->getModelMatrix(false);
             glm::mat4 rot = object->getModelMatrix(true);
             MeshConstants constants = {
@@ -577,8 +596,8 @@ void SceneRenderpass::destroyRenderpass() {
     this->destroyScenePipeline();
     this->destroySkyboxPipeline();
 
-    if (this->_engine->scene() != nullptr) {
-        for (Object *object: this->_engine->scene()->objects()) {
+    if (this->_engine->sceneManager()->currentScene() != nullptr) {
+        for (Object *object: this->_engine->sceneManager()->currentScene()->objects()) {
             auto it = std::find_if(object->data().begin(), object->data().end(), [](IData *data) {
                 return dynamic_cast<RenderData *>(data) != nullptr;
             });

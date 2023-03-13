@@ -56,13 +56,13 @@ private:
 
     void handleResize();
 
+    void initRenderpasses();
     void cleanupRenderpasses();
 
 public:
     Renderer(Engine *engine);
 
     void init();
-    void initRenderpasses();
     void cleanup();
 
     void render();

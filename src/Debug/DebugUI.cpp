@@ -14,6 +14,7 @@
 #include "src/Objects/Light.hpp"
 #include "src/Objects/Object.hpp"
 #include "src/Scene/Scene.hpp"
+#include "src/Scene/SceneManager.hpp"
 
 void DebugUI::loadShader(const char *path) {
     std::ifstream shader(path);
@@ -225,25 +226,33 @@ void DebugUI::drawSceneObjectsWindow() {
     }
 
     if (ImGui::Begin("Objects")) {
+        Scene *currentScene = this->_engine->sceneManager()->currentScene();
+
+        if (currentScene == nullptr) {
+            ImGui::Text("Scene not available");
+            ImGui::End();
+            return;
+        }
+
         if (ImGui::Button("Add object")) {
             Object *object = new Object();
             object->mesh() = &this->_engine->meshes()[0];
             object->albedoTexture() = &this->_engine->textures()[0];
 
-            this->_engine->scene()->addObject(object);
+            currentScene->addObject(object);
             this->_selectedObject = std::nullopt;
         }
 
         ImGui::SameLine();
 
         if (ImGui::Button("Remove all objects")) {
-            this->_engine->scene()->clearObjects();
+            currentScene->clearObjects();
             this->_selectedObject = std::nullopt;
         }
 
         if (ImGui::BeginListBox("#objects", ImVec2(-FLT_MIN, 10 * ImGui::GetTextLineHeightWithSpacing()))) {
-            for (auto current = this->_engine->scene()->objects().begin();
-                 current != this->_engine->scene()->objects().end(); ++current) {
+            for (auto current = currentScene->objects().begin();
+                 current != currentScene->objects().end(); ++current) {
                 const bool isSelected = (this->_selectedObject == current);
 
                 std::string name = std::string("object ") + std::to_string(reinterpret_cast<long>(*current));
@@ -324,7 +333,7 @@ void DebugUI::drawSceneObjectsWindow() {
             }
 
             if (ImGui::Button("Delete object")) {
-                this->_engine->scene()->removeObject(object);
+                currentScene->removeObject(object);
                 this->_selectedObject = std::nullopt;
             }
         }
@@ -339,23 +348,31 @@ void DebugUI::drawSceneLightsWindow() {
     }
 
     if (ImGui::Begin("Lights")) {
+        Scene *currentScene = this->_engine->sceneManager()->currentScene();
+
+        if (currentScene == nullptr) {
+            ImGui::Text("Scene not available");
+            ImGui::End();
+            return;
+        }
+
         if (ImGui::Button("Add light")) {
             Light *light = new Light();
 
-            this->_engine->scene()->addLight(light);
+            currentScene->addLight(light);
             this->_selectedLight = std::nullopt;
         }
 
         ImGui::SameLine();
 
         if (ImGui::Button("Remove all lights")) {
-            this->_engine->scene()->clearLights();
+            currentScene->clearLights();
             this->_selectedLight = std::nullopt;
         }
 
         if (ImGui::BeginListBox("#lights", ImVec2(-FLT_MIN, 10 * ImGui::GetTextLineHeightWithSpacing()))) {
-            for (auto current = this->_engine->scene()->lights().begin();
-                 current != this->_engine->scene()->lights().end(); ++current) {
+            for (auto current = currentScene->lights().begin();
+                 current != currentScene->lights().end(); ++current) {
                 const bool isSelected = (this->_selectedLight == current);
 
                 std::string name = std::string("light ") + std::to_string(reinterpret_cast<long>(*current));
@@ -407,7 +424,7 @@ void DebugUI::drawSceneLightsWindow() {
             ImGui::InputFloat("Far", &light->far(), this->_floatStep, this->_floatFastStep);
 
             if (ImGui::Button("Delete light")) {
-                this->_engine->scene()->removeLight(light);
+                currentScene->removeLight(light);
                 this->_selectedLight = std::nullopt;
             }
         }

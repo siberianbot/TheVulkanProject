@@ -14,6 +14,7 @@ class Object;
 class Scene;
 class EventQueue;
 class ResourceManager;
+class SceneManager;
 
 enum CameraControlState {
     NotFocused,
@@ -31,6 +32,7 @@ private:
     EventQueue *_eventQueue;
     EngineVars *_engineVars;
     ResourceManager *_resourceManager;
+    SceneManager *_sceneManager;
 
     std::vector<MeshRenderingResource> _meshes;
     std::vector<TextureRenderingResource> _textures;
@@ -44,7 +46,6 @@ private:
     float _delta = 0;
     CameraControlState _state = NotFocused;
     Camera _camera;
-    Scene *_scene;
     DebugUI *_debugUI;
 
     void initGlfw();
@@ -69,7 +70,7 @@ public:
     [[nodiscard]] EventQueue *eventQueue() { return this->_eventQueue; }
     [[nodiscard]] EngineVars *engineVars() { return this->_engineVars; }
     [[nodiscard]] ResourceManager *resourceManager() { return this->_resourceManager; }
-    [[nodiscard]] Scene *scene() { return this->_scene; }
+    [[nodiscard]] SceneManager *sceneManager() { return this->_sceneManager; }
 
     uint32_t windowWidth() { return this->_windowWidth; }
     uint32_t windowHeight() { return this->_windowHeight; }
