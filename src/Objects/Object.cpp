@@ -3,7 +3,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/quaternion.hpp>
 
-#include "src/Scene/Data/IData.hpp"
+#include "src/Objects/Data/IData.hpp"
 
 Object::~Object() {
     for (IData *data: this->_data) {

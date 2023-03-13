@@ -1,5 +1,5 @@
-#ifndef SCENE_SKYBOX_HPP
-#define SCENE_SKYBOX_HPP
+#ifndef OBJECTS_SKYBOX_HPP
+#define OBJECTS_SKYBOX_HPP
 
 struct MeshRenderingResource;
 struct TextureRenderingResource;
@@ -16,4 +16,4 @@ public:
     TextureRenderingResource *texture() { return this->_texture; }
 };
 
-#endif // SCENE_SKYBOX_HPP
+#endif // OBJECTS_SKYBOX_HPP

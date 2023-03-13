@@ -1,9 +1,9 @@
-#ifndef SCENE_MESHES_HPP
-#define SCENE_MESHES_HPP
+#ifndef RESOURCES_MESHES_HPP
+#define RESOURCES_MESHES_HPP
 
 #include <array>
 
-#include "src/Resources/Vertex.hpp"
+#include "Vertex.hpp"
 
 static constexpr std::array<Vertex, 36> CUBE_MESH = {
         // up
@@ -105,4 +105,4 @@ static constexpr std::array<Vertex, 36> SKYBOX_MESH = {
         Vertex{.pos = {-1, -1, 1}},
 };
 
-#endif // SCENE_MESHES_HPP
+#endif // RESOURCES_MESHES_HPP

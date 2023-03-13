@@ -60,13 +60,15 @@ src = [
     'src/Resources/Texture.cpp',
     'src/Resources/ResourceManager.cpp',
 
+    # Objects
+    'src/Objects/Camera.cpp',
+    'src/Objects/Light.cpp',
+    'src/Objects/Object.cpp',
+    'src/Objects/Skybox.cpp',
+    'src/Objects/Data/RenderData.cpp',
+
     # Scene
-    'src/Scene/Camera.cpp',
-    'src/Scene/Light.cpp',
-    'src/Scene/Object.cpp',
     'src/Scene/Scene.cpp',
-    'src/Scene/Skybox.cpp',
-    'src/Scene/Data/RenderData.cpp',
 
     # Debug
     'src/Debug/DebugUI.cpp',

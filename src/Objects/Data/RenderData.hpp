@@ -1,5 +1,5 @@
-#ifndef SCENE_DATA_RENDERDATA_HPP
-#define SCENE_DATA_RENDERDATA_HPP
+#ifndef OBJECTS_DATA_RENDERDATA_HPP
+#define OBJECTS_DATA_RENDERDATA_HPP
 
 #include "IData.hpp"
 
@@ -15,4 +15,4 @@ struct RenderData : public IData {
     ImageViewObject *specTextureView = nullptr;
 };
 
-#endif // SCENE_DATA_RENDERDATA_HPP
+#endif // OBJECTS_DATA_RENDERDATA_HPP

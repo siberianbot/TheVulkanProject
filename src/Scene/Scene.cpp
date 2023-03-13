@@ -4,8 +4,8 @@
 
 #include "src/Engine.hpp"
 #include "src/Events/EventQueue.hpp"
-#include "src/Scene/Light.hpp"
-#include "src/Scene/Object.hpp"
+#include "src/Objects/Light.hpp"
+#include "src/Objects/Object.hpp"
 
 Scene::Scene(Engine *engine, Skybox *skybox)
         : _engine(engine),

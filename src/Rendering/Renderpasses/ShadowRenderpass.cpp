@@ -14,8 +14,8 @@
 #include "src/Rendering/Objects/BufferObject.hpp"
 #include "src/Rendering/Objects/ImageObject.hpp"
 #include "src/Rendering/Objects/ImageViewObject.hpp"
-#include "src/Scene/Light.hpp"
-#include "src/Scene/Object.hpp"
+#include "src/Objects/Light.hpp"
+#include "src/Objects/Object.hpp"
 #include "src/Scene/Scene.hpp"
 
 static constexpr const uint32_t SIZE = 1024;

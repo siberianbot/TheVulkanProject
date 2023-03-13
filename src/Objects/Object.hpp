@@ -1,5 +1,5 @@
-#ifndef SCENE_OBJECT_HPP
-#define SCENE_OBJECT_HPP
+#ifndef OBJECTS_OBJECT_HPP
+#define OBJECTS_OBJECT_HPP
 
 #include <vector>
 
@@ -34,4 +34,4 @@ public:
     std::vector<IData *> &data() { return this->_data; }
 };
 
-#endif // SCENE_OBJECT_HPP
+#endif // OBJECTS_OBJECT_HPP

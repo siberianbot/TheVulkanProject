@@ -1,5 +1,5 @@
-#ifndef SCENE_LIGHT_HPP
-#define SCENE_LIGHT_HPP
+#ifndef OBJECTS_LIGHT_HPP
+#define OBJECTS_LIGHT_HPP
 
 #include <glm/vec3.hpp>
 #include <glm/mat4x4.hpp>
@@ -44,4 +44,4 @@ public:
     glm::mat4 getViewMatrix(const glm::vec3 &forward);
 };
 
-#endif // SCENE_LIGHT_HPP
+#endif // OBJECTS_LIGHT_HPP

@@ -9,12 +9,12 @@
 #include "src/Resources/Mesh.hpp"
 #include "src/Resources/Texture.hpp"
 #include "src/Resources/ResourceManager.hpp"
-#include "src/Scene/Light.hpp"
-#include "src/Scene/Object.hpp"
+#include "src/Objects/Light.hpp"
+#include "src/Objects/Object.hpp"
 #include "src/Scene/Scene.hpp"
 #include "src/Debug/DebugUI.hpp"
-#include "src/Scene/Meshes.hpp"
-#include "src/Scene/Skybox.hpp"
+#include "src/Resources/Meshes.hpp"
+#include "src/Objects/Skybox.hpp"
 
 #include <glm/vec3.hpp>
 

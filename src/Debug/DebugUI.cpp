@@ -11,8 +11,8 @@
 #include "src/EngineVars.hpp"
 #include "src/Events/EventQueue.hpp"
 #include "src/Resources/ResourceManager.hpp"
-#include "src/Scene/Light.hpp"
-#include "src/Scene/Object.hpp"
+#include "src/Objects/Light.hpp"
+#include "src/Objects/Object.hpp"
 #include "src/Scene/Scene.hpp"
 
 void DebugUI::loadShader(const char *path) {

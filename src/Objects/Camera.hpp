@@ -1,5 +1,5 @@
-#ifndef SCENE_CAMERA_HPP
-#define SCENE_CAMERA_HPP
+#ifndef OBJECTS_CAMERA_HPP
+#define OBJECTS_CAMERA_HPP
 
 #include <glm/vec3.hpp>
 #include <glm/mat4x4.hpp>
@@ -28,4 +28,4 @@ public:
     glm::mat4 getViewMatrix(bool ignorePosition);
 };
 
-#endif // SCENE_CAMERA_HPP
+#endif // OBJECTS_CAMERA_HPP
