@@ -6,13 +6,11 @@
 #include <vulkan/vulkan.hpp>
 
 class RenderingDevice;
-class RenderingObjectsFactory;
 class ImageViewObject;
 
 class Swapchain {
 private:
     RenderingDevice *_renderingDevice;
-    RenderingObjectsFactory *_renderingObjectsFactory;
 
     VkSwapchainKHR _swapchain = VK_NULL_HANDLE;
     VkExtent2D _swapchainExtent = {};
@@ -21,7 +19,7 @@ private:
     uint32_t _swapchainMinImageCount;
 
 public:
-    explicit Swapchain(RenderingDevice *renderingDevice, RenderingObjectsFactory *renderingObjectsFactory);
+    explicit Swapchain(RenderingDevice *renderingDevice);
     ~Swapchain();
 
     [[nodiscard]] VkSwapchainKHR getHandle() const { return this->_swapchain; }

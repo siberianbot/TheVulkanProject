@@ -6,7 +6,6 @@
 class PhysicalDevice;
 class CommandExecutor;
 class Swapchain;
-class RenderingObjectsFactory;
 class ImageObject;
 class ImageViewObject;
 
@@ -16,15 +15,13 @@ private:
     PhysicalDevice *_physicalDevice;
     CommandExecutor *_commandExecutor;
     Swapchain *_swapchain;
-    RenderingObjectsFactory *_renderingObjectsFactory;
     VkDescriptorPool _descriptorPool;
 
     ImageObject *_resultImage;
     ImageViewObject *_resultImageView;
 
 public:
-    ImguiRenderpass(RenderingDevice *renderingDevice, Swapchain *swapchain,
-                    RenderingObjectsFactory *renderingObjectsFactory, VkInstance instance,
+    ImguiRenderpass(RenderingDevice *renderingDevice, Swapchain *swapchain, VkInstance instance,
                     PhysicalDevice *physicalDevice, CommandExecutor *commandExecutor);
     ~ImguiRenderpass() override = default;
 

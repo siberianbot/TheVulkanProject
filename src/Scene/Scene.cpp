@@ -4,11 +4,14 @@
 
 #include "src/Engine.hpp"
 #include "src/Events/EventQueue.hpp"
+#include "src/Objects/Camera.hpp"
 #include "src/Objects/Light.hpp"
 #include "src/Objects/Object.hpp"
+#include "src/Objects/Skybox.hpp"
 
 Scene::Scene(Engine *engine, Skybox *skybox)
         : _engine(engine),
+          _camera(new Camera()),
           _skybox(skybox) {
     //
 }
@@ -16,6 +19,9 @@ Scene::Scene(Engine *engine, Skybox *skybox)
 Scene::~Scene() {
     this->clearObjects();
     this->clearLights();
+
+    delete this->_camera;
+    delete this->_skybox;
 }
 
 void Scene::addObject(Object *object) {

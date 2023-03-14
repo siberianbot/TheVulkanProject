@@ -19,3 +19,9 @@ void FenceObject::wait(uint64_t timeout) {
 void FenceObject::reset() {
     this->_renderingDevice->resetFence(this->_fence);
 }
+
+FenceObject *FenceObject::create(RenderingDevice *renderingDevice, bool signaled) {
+    VkFence fence = renderingDevice->createFence(signaled);
+
+    return new FenceObject(renderingDevice, fence);
+}

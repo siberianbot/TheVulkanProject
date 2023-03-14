@@ -1,93 +1,71 @@
 [
   {
+    "id": "cube",
+    "type": "mesh",
+    "path": "models/cube.obj"
+  },
+  {
+    "id": "skybox",
+    "type": "mesh",
+    "path": "models/skybox.obj"
+  },
+  {
     "id": "suzanne",
-    "type": "model-obj",
+    "type": "mesh",
     "path": "models/suzanne.obj"
   },
   {
     "id": "viking_room",
-    "type": "model-obj",
+    "type": "mesh",
     "path": "models/viking_room.obj"
   },
   {
-    "id": "composition.frag",
-    "type": "shader-code",
-    "path": "shaders/composition.frag"
+    "id": "composition_frag",
+    "type": "shader",
+    "code-path": "shaders/composition.frag",
+    "bin-path": "shaders/composition.frag.spv"
   },
   {
-    "id": "composition.frag.spv",
-    "type": "shader-spv",
-    "path": "shaders/composition.frag.spv"
+    "id": "composition_vert",
+    "type": "shader",
+    "code-path": "shaders/composition.vert",
+    "bin-path": "shaders/composition.vert.spv"
   },
   {
-    "id": "composition.vert",
-    "type": "shader-code",
-    "path": "shaders/composition.vert"
+    "id": "default_frag",
+    "type": "shader",
+    "code-path": "shaders/default.frag",
+    "bin-path": "shaders/default.frag.spv"
   },
   {
-    "id": "composition.vert.spv",
-    "type": "shader-spv",
-    "path": "shaders/composition.vert.spv"
+    "id": "default_vert",
+    "type": "shader",
+    "code-path": "shaders/default.vert",
+    "bin-path": "shaders/default.vert.spv"
   },
   {
-    "id": "default.frag",
-    "type": "shader-code",
-    "path": "shaders/default.frag"
+    "id": "scene_composition_frag",
+    "type": "shader",
+    "code-path": "shaders/scene_composition.frag",
+    "bin-path": "shaders/scene_composition.frag.spv"
   },
   {
-    "id": "default.frag.spv",
-    "type": "shader-spv",
-    "path": "shaders/default.frag.spv"
+    "id": "shadow_frag",
+    "type": "shader",
+    "code-path": "shaders/shadow.frag",
+    "bin-path": "shaders/shadow.frag.spv"
   },
   {
-    "id": "default.vert",
-    "type": "shader-code",
-    "path": "shaders/default.vert"
+    "id": "shadow_vert",
+    "type": "shader",
+    "code-path": "shaders/shadow.vert",
+    "bin-path": "shaders/shadow.vert.spv"
   },
   {
-    "id": "default.vert.spv",
-    "type": "shader-spv",
-    "path": "shaders/default.vert.spv"
-  },
-  {
-    "id": "scene_composition.frag",
-    "type": "shader-code",
-    "path": "shaders/scene_composition.frag"
-  },
-  {
-    "id": "scene_composition.frag.spv",
-    "type": "shader-spv",
-    "path": "shaders/scene_composition.frag.spv"
-  },
-  {
-    "id": "shadow.frag",
-    "type": "shader-code",
-    "path": "shaders/shadow.frag"
-  },
-  {
-    "id": "shadow.frag.spv",
-    "type": "shader-spv",
-    "path": "shaders/shadow.frag.spv"
-  },
-  {
-    "id": "shadow.vert",
-    "type": "shader-code",
-    "path": "shaders/shadow.vert"
-  },
-  {
-    "id": "shadow.vert.spv",
-    "type": "shader-spv",
-    "path": "shaders/shadow.vert.spv"
-  },
-  {
-    "id": "skybox.frag",
-    "type": "shader-code",
-    "path": "shaders/skybox.frag"
-  },
-  {
-    "id": "skybox.frag.spv",
-    "type": "shader-spv",
-    "path": "shaders/skybox.frag.spv"
+    "id": "skybox_frag",
+    "type": "shader",
+    "code-path": "shaders/skybox.frag",
+    "bin-path": "shaders/skybox.frag.spv"
   },
   {
     "id": "concrete",
@@ -95,14 +73,19 @@
     "path": "textures/concrete.png"
   },
   {
-    "id": "cube",
+    "id": "cube_texture",
     "type": "image",
     "path": "textures/cube.png"
   },
   {
-    "id": "cube_specular",
+    "id": "cube_texture_specular",
     "type": "image",
     "path": "textures/cube_specular.png"
+  },
+  {
+    "id": "viking_room_texture",
+    "type": "image",
+    "path": "textures/viking_room.png"
   },
   {
     "id": "default_texture",
@@ -110,38 +93,15 @@
     "path": "textures/default.png"
   },
   {
-    "id": "skybox_back",
-    "type": "image",
-    "path": "textures/skybox_back.jpg"
-  },
-  {
-    "id": "skybox_down",
-    "type": "image",
-    "path": "textures/skybox_down.jpg"
-  },
-  {
-    "id": "skybox_front",
-    "type": "image",
-    "path": "textures/skybox_front.jpg"
-  },
-  {
-    "id": "skybox_left",
-    "type": "image",
-    "path": "textures/skybox_left.jpg"
-  },
-  {
-    "id": "skybox_right",
-    "type": "image",
-    "path": "textures/skybox_right.jpg"
-  },
-  {
-    "id": "skybox_up",
-    "type": "image",
-    "path": "textures/skybox_up.jpg"
-  },
-  {
-    "id": "viking_room_texture",
-    "type": "image",
-    "path": "textures/viking_room.png"
+    "id": "skybox_texture",
+    "type": "cube-image",
+    "paths": [
+      "textures/skybox_front.jpg",
+      "textures/skybox_back.jpg",
+      "textures/skybox_up.jpg",
+      "textures/skybox_down.jpg",
+      "textures/skybox_right.jpg",
+      "textures/skybox_left.jpg"
+    ]
   }
 ]

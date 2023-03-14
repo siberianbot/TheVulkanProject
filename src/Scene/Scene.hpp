@@ -5,6 +5,7 @@
 #include <vector>
 
 class Engine;
+class Camera;
 class Object;
 class Skybox;
 class Light;
@@ -12,8 +13,11 @@ class Light;
 class Scene {
 private:
     Engine *_engine;
+
     std::vector<Object *> _objects;
     std::vector<Light *> _lights;
+
+    Camera *_camera;
     Skybox *_skybox;
 
 public:
@@ -22,6 +26,8 @@ public:
 
     [[nodiscard]] const std::vector<Object *> &objects() const { return this->_objects; }
     [[nodiscard]] const std::vector<Light *> &lights() const { return this->_lights; }
+
+    [[nodiscard]] Camera *camera() const { return this->_camera; }
     [[nodiscard]] Skybox *skybox() const { return this->_skybox; }
 
     void addObject(Object *object);

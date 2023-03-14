@@ -1,5 +1,5 @@
-#ifndef RESOURCES_VERTEX_HPP
-#define RESOURCES_VERTEX_HPP
+#ifndef TYPES_VERTEX_HPP
+#define TYPES_VERTEX_HPP
 
 #include <glm/glm.hpp>
 
@@ -10,4 +10,4 @@ struct Vertex {
     glm::vec2 uv;
 };
 
-#endif // RESOURCES_VERTEX_HPP
+#endif // TYPES_VERTEX_HPP

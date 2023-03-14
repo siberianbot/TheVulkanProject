@@ -8,13 +8,17 @@ class RenderingDevice;
 class SemaphoreObject {
 private:
     RenderingDevice *_renderingDevice;
+
     VkSemaphore _semaphore;
 
-public:
     SemaphoreObject(RenderingDevice *renderingDevice, VkSemaphore semaphore);
+
+public:
     ~SemaphoreObject();
 
     [[nodiscard]] VkSemaphore getHandle() const { return this->_semaphore; }
+
+    [[nodiscard]] static SemaphoreObject *create(RenderingDevice *renderingDevice);
 };
 
 #endif // RENDERING_OBJECTS_SEMAPHOREOBJECT_HPP

@@ -1,20 +1,19 @@
 #ifndef ENGINE_HPP
 #define ENGINE_HPP
 
+#include <cstdint>
 #include <vector>
 
-#include "Input.hpp"
-#include "src/Objects/Camera.hpp"
-#include "src/Rendering/Renderer.hpp"
-#include "src/Rendering/RenderingResourcesManager.hpp"
-
+struct GLFWwindow;
 class EngineVars;
 class DebugUI;
-class Object;
 class Scene;
 class EventQueue;
 class ResourceManager;
 class SceneManager;
+class Renderer;
+class Input;
+class MouseInput;
 
 enum CameraControlState {
     NotFocused,
@@ -25,28 +24,19 @@ class Engine {
 private:
     GLFWwindow *_window = nullptr;
 
-    Renderer renderer;
-    Input input;
-    MouseInput mouseInput;
-
+    Renderer *_renderer;
+    Input *_input;
+    MouseInput *_mouseInput;
     EventQueue *_eventQueue;
     EngineVars *_engineVars;
     ResourceManager *_resourceManager;
     SceneManager *_sceneManager;
-
-    std::vector<MeshRenderingResource> _meshes;
-    std::vector<TextureRenderingResource> _textures;
-
-    MeshRenderingResource _skyboxMeshResource;
-    TextureRenderingResource _skyboxTextureResource;
-    TextureRenderingResource _defaultTextureResource;
+    DebugUI *_debugUI;
 
     int _windowWidth = 1280;
     int _windowHeight = 720;
     float _delta = 0;
     CameraControlState _state = NotFocused;
-    Camera _camera;
-    DebugUI *_debugUI;
 
     void initGlfw();
     void initWindow();
@@ -64,22 +54,17 @@ public:
 
     void run();
 
-    GLFWwindow *window() { return this->_window; }
-    Camera &camera() { return this->_camera; }
+    [[nodiscard]] GLFWwindow *window() { return this->_window; }
 
+    [[nodiscard]] Renderer *renderer() { return this->_renderer; }
     [[nodiscard]] EventQueue *eventQueue() { return this->_eventQueue; }
     [[nodiscard]] EngineVars *engineVars() { return this->_engineVars; }
     [[nodiscard]] ResourceManager *resourceManager() { return this->_resourceManager; }
     [[nodiscard]] SceneManager *sceneManager() { return this->_sceneManager; }
 
-    uint32_t windowWidth() { return this->_windowWidth; }
-    uint32_t windowHeight() { return this->_windowHeight; }
-    float delta() { return this->_delta; }
-
-    TextureRenderingResource *defaultTextureResource() { return &this->_defaultTextureResource; }
-
-    std::vector<MeshRenderingResource> &meshes() { return this->_meshes; }
-    std::vector<TextureRenderingResource> &textures() { return this->_textures; }
+    [[nodiscard]] uint32_t windowWidth() { return this->_windowWidth; }
+    [[nodiscard]] uint32_t windowHeight() { return this->_windowHeight; }
+    [[nodiscard]] float delta() { return this->_delta; }
 };
 
 #endif // ENGINE_HPP

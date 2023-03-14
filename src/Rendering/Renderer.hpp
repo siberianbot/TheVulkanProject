@@ -15,11 +15,10 @@ class PhysicalDevice;
 class RenderingDevice;
 class CommandExecutor;
 class Swapchain;
-class RenderingObjectsFactory;
 class FenceObject;
 class SemaphoreObject;
 class RenderpassBase;
-class RenderingResourcesManager;
+class RendererAllocator;
 
 class Renderer {
 private:
@@ -39,10 +38,10 @@ private:
     VkSurfaceKHR _surface = VK_NULL_HANDLE;
     PhysicalDevice *_physicalDevice;
     RenderingDevice *_renderingDevice;
-    RenderingObjectsFactory *_renderingObjectsFactory;
     CommandExecutor *_commandExecutor;
     Swapchain *_swapchain;
-    RenderingResourcesManager *_renderingResourcesManager;
+    RendererAllocator *_rendererAllocator;
+
     std::array<SyncObjectsGroup *, MAX_INFLIGHT_FRAMES> _syncObjectsGroups;
     std::vector<RenderpassBase *> _renderpasses;
 
@@ -68,9 +67,7 @@ public:
     void render();
     void wait();
 
-    [[nodiscard]] RenderingResourcesManager *getRenderingResourcesManager() const {
-        return this->_renderingResourcesManager;
-    }
+    [[nodiscard]] RendererAllocator *rendererAllocator() const { return this->_rendererAllocator; }
 };
 
 #endif // RENDERING_RENDERER_HPP

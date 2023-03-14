@@ -11,3 +11,9 @@ SemaphoreObject::SemaphoreObject(RenderingDevice *renderingDevice, VkSemaphore s
 SemaphoreObject::~SemaphoreObject() {
     this->_renderingDevice->destroySemaphore(this->_semaphore);
 }
+
+SemaphoreObject *SemaphoreObject::create(RenderingDevice *renderingDevice) {
+    VkSemaphore semaphore = renderingDevice->createSemaphore();
+
+    return new SemaphoreObject(renderingDevice, semaphore);
+}

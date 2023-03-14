@@ -3,42 +3,44 @@
 
 #include <filesystem>
 #include <map>
+#include <optional>
 #include <string>
-#include <vector>
 
-class Mesh;
-class Texture;
+#include "src/Types/ResourceType.hpp"
 
-enum ResourceType {
-    MODEL_OBJ_RESOURCE,
-    SHADER_CODE_RESOURCE,
-    SHADER_SPV_RESOURCE,
-    IMAGE_RESOURCE
-};
-
-struct Resource {
-    ResourceType type;
-    std::filesystem::path path;
-};
+class Resource;
+class CubeImageResource;
+class ImageResource;
+class MeshResource;
+class ShaderResource;
+class RendererAllocator;
 
 class ResourceManager {
 private:
-    std::map<std::string, Resource> _resources;
+    RendererAllocator *_rendererAllocator;
 
-    Resource getResource(const std::string &id, ResourceType type);
-    std::vector<char> readFile(const std::filesystem::path &path);
+    std::map<std::string, Resource *> _resources;
+
+    Resource *getResource(const std::string &id, ResourceType type);
 
 public:
+    ResourceManager(RendererAllocator *rendererAllocator);
+    ~ResourceManager();
+
     void addDataDir(const std::filesystem::path &path);
 
-    // TODO: rename to represent resource types
-    Mesh *openMesh(const std::string &id);
-    Texture *openTexture(const std::string &id);
+    [[nodiscard]] std::optional<std::string> getIdOf(Resource *resource) const;
 
-    std::vector<char> readShaderBinary(const std::string &id);
-    std::vector<char> readShaderCode(const std::string &id);
+    [[nodiscard]] MeshResource *loadMesh(const std::string &id);
+    [[nodiscard]] ImageResource *loadImage(const std::string &id);
+    [[nodiscard]] CubeImageResource *loadCubeImage(const std::string &id);
+    [[nodiscard]] ShaderResource *loadShader(const std::string &id);
 
-    std::map<std::string, Resource> &resources() { return this->_resources; }
+    [[nodiscard]] ImageResource *loadDefaultImage();
+
+    void unloadAll();
+
+    const std::map<std::string, Resource *> &resources() const { return this->_resources; }
 };
 
 #endif // RESOURCES_RESOURCEMANAGER_HPP

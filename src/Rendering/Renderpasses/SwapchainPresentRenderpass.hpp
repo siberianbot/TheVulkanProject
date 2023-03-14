@@ -6,13 +6,11 @@
 #include "RenderpassBase.hpp"
 
 class Swapchain;
-class RenderingObjectsFactory;
 class DescriptorSetObject;
 
 class SwapchainPresentRenderpass : public RenderpassBase {
 private:
     Swapchain *_swapchain;
-    RenderingObjectsFactory *_renderingObjectsFactory;
 
     std::vector<RenderpassBase *> _inputRenderpasses;
 
@@ -23,8 +21,7 @@ private:
     DescriptorSetObject *_descriptorSet;
 
 public:
-    SwapchainPresentRenderpass(RenderingDevice *renderingDevice, Swapchain *swapchain,
-                               RenderingObjectsFactory *renderingObjectsFactory);
+    SwapchainPresentRenderpass(RenderingDevice *renderingDevice, Swapchain *swapchain);
     ~SwapchainPresentRenderpass() override = default;
 
     void recordCommands(VkCommandBuffer commandBuffer, VkRect2D renderArea,

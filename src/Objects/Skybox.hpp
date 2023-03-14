@@ -1,19 +1,19 @@
 #ifndef OBJECTS_SKYBOX_HPP
 #define OBJECTS_SKYBOX_HPP
 
-struct MeshRenderingResource;
-struct TextureRenderingResource;
+class MeshResource;
+class CubeImageResource;
 
 class Skybox {
 private:
-    MeshRenderingResource *_mesh;
-    TextureRenderingResource *_texture;
+    MeshResource *_mesh;
+    CubeImageResource *_texture;
 
 public:
-    Skybox(MeshRenderingResource *mesh, TextureRenderingResource *texture);
+    Skybox(MeshResource *mesh, CubeImageResource *texture);
 
-    MeshRenderingResource *mesh() { return this->_mesh; }
-    TextureRenderingResource *texture() { return this->_texture; }
+    MeshResource *mesh() { return this->_mesh; }
+    CubeImageResource *texture() { return this->_texture; }
 };
 
 #endif // OBJECTS_SKYBOX_HPP

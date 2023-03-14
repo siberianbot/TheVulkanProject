@@ -3,16 +3,16 @@
 #include "src/Engine.hpp"
 #include "src/EngineVars.hpp"
 #include "src/Events/EventQueue.hpp"
+#include "src/Objects/Camera.hpp"
 #include "src/Objects/Light.hpp"
 #include "src/Objects/Object.hpp"
 #include "src/Scene/Scene.hpp"
 #include "src/Scene/SceneManager.hpp"
 #include "src/Objects/Skybox.hpp"
 #include "src/Objects/Data/RenderData.hpp"
-#include "src/Resources/Vertex.hpp"
+#include "src/Types/Vertex.hpp"
 #include "src/Rendering/PhysicalDevice.hpp"
 #include "src/Rendering/RenderingDevice.hpp"
-#include "src/Rendering/RenderingObjectsFactory.hpp"
 #include "src/Rendering/Swapchain.hpp"
 #include "src/Rendering/Builders/RenderpassBuilder.hpp"
 #include "src/Rendering/Builders/FramebufferBuilder.hpp"
@@ -26,6 +26,10 @@
 #include "src/Rendering/Objects/ImageObject.hpp"
 #include "src/Rendering/Objects/ImageViewObject.hpp"
 #include "src/Rendering/Objects/DescriptorSetObject.hpp"
+#include "src/Resources/ResourceManager.hpp"
+#include "src/Resources/CubeImageResource.hpp"
+#include "src/Resources/ImageResource.hpp"
+#include "src/Resources/MeshResource.hpp"
 
 RenderData *SceneRenderpass::getRenderData(Object *object) {
     auto it = std::find_if(object->data().begin(), object->data().end(), [](IData *data) {
@@ -38,15 +42,16 @@ RenderData *SceneRenderpass::getRenderData(Object *object) {
         renderData = dynamic_cast<RenderData *>(*it);
     } else {
         renderData = new RenderData();
-        renderData->descriptorSet = this->_renderingObjectsFactory->createDescriptorSetObject(
-                this->_descriptorPool, this->_objectDescriptorSetLayout, MAX_INFLIGHT_FRAMES);
+        renderData->descriptorSet = DescriptorSetObject::create(this->_renderingDevice, MAX_INFLIGHT_FRAMES,
+                                                                this->_descriptorPool,
+                                                                this->_objectDescriptorSetLayout);
 
         object->data().push_back(renderData);
     }
 
     ImageObject *albedoTexture = object->albedoTexture() == nullptr
-                                 ? this->_engine->defaultTextureResource()->texture
-                                 : object->albedoTexture()->texture;
+                                 ? this->_engine->resourceManager()->loadDefaultImage()->image()
+                                 : object->albedoTexture()->image();
 
     if (renderData->albedoTextureView == nullptr || albedoTexture != renderData->albedoTextureView->getImage()) {
         renderData->albedoTextureView = getImageView(albedoTexture);
@@ -55,8 +60,8 @@ RenderData *SceneRenderpass::getRenderData(Object *object) {
     }
 
     ImageObject *specTexture = object->specTexture() == nullptr
-                               ? this->_engine->defaultTextureResource()->texture // TODO
-                               : object->specTexture()->texture;
+                               ? this->_engine->resourceManager()->loadDefaultImage()->image()
+                               : object->specTexture()->image();
 
     if (renderData->specTextureView == nullptr || specTexture != renderData->specTextureView->getImage()) {
         renderData->specTextureView = getImageView(specTexture);
@@ -74,9 +79,8 @@ ImageViewObject *SceneRenderpass::getImageView(ImageObject *image) {
         return it->second;
     }
 
-    ImageViewObject *imageView = this->_renderingObjectsFactory->createImageViewObject(image,
-                                                                                       VK_IMAGE_VIEW_TYPE_2D,
-                                                                                       VK_IMAGE_ASPECT_COLOR_BIT);
+    ImageViewObject *imageView = ImageViewObject::create(this->_renderingDevice, image, VK_IMAGE_VIEW_TYPE_2D,
+                                                         VK_IMAGE_ASPECT_COLOR_BIT);
 
     this->_imageViews[image] = imageView;
 
@@ -128,8 +132,18 @@ void SceneRenderpass::initSkyboxPipeline() {
             .forSubpass(0)
             .build();
 
-    this->_skyboxDescriptorSet = this->_renderingObjectsFactory->createDescriptorSetObject(
-            this->_descriptorPool, this->_objectDescriptorSetLayout, MAX_INFLIGHT_FRAMES);
+    this->_skyboxDescriptorSet = DescriptorSetObject::create(this->_renderingDevice, MAX_INFLIGHT_FRAMES,
+                                                             this->_descriptorPool, this->_objectDescriptorSetLayout);
+
+    Scene *currentScene = this->_engine->sceneManager()->currentScene();
+    if (currentScene != nullptr) {
+        this->_skyboxTextureView = ImageViewObject::create(this->_renderingDevice,
+                                                           currentScene->skybox()->texture()->image(),
+                                                           VK_IMAGE_VIEW_TYPE_CUBE,
+                                                           VK_IMAGE_ASPECT_COLOR_BIT);
+
+        updateDescriptorSetWithImage(this->_skyboxDescriptorSet, this->_skyboxTextureView, 0);
+    }
 }
 
 void SceneRenderpass::destroySkyboxPipeline() {
@@ -189,14 +203,16 @@ void SceneRenderpass::initCompositionPipeline() {
             .withBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, MAX_NUM_LIGHTS)
             .build();
 
-    this->_compositionSceneDataBuffer = this->_renderingObjectsFactory->createBufferObject(
-            sizeof(SceneData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    this->_compositionSceneDataBuffer = BufferObject::create(this->_renderingDevice, sizeof(SceneData),
+                                                             VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                                                             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                                             VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
     this->_compositionSceneData = reinterpret_cast<SceneData *>(this->_compositionSceneDataBuffer->map());
 
-    this->_compositionSceneDataDescriptorSet = this->_renderingObjectsFactory->createDescriptorSetObject(
-            this->_descriptorPool, this->_compositionSceneDataDescriptorSetLayout, MAX_INFLIGHT_FRAMES);
+    this->_compositionSceneDataDescriptorSet = DescriptorSetObject::create(this->_renderingDevice, MAX_INFLIGHT_FRAMES,
+                                                                           this->_descriptorPool,
+                                                                           this->_compositionSceneDataDescriptorSetLayout);
 
     for (uint32_t frameIdx = 0; frameIdx < MAX_INFLIGHT_FRAMES; frameIdx++) {
         VkDescriptorBufferInfo bufferInfo = {
@@ -268,10 +284,8 @@ void SceneRenderpass::destroyCompositionPipeline() {
     delete this->_compositionSceneDataBuffer;
 }
 
-SceneRenderpass::SceneRenderpass(RenderingDevice *renderingDevice, Swapchain *swapchain,
-                                 RenderingObjectsFactory *renderingObjectsFactory, Engine *engine)
+SceneRenderpass::SceneRenderpass(RenderingDevice *renderingDevice, Swapchain *swapchain, Engine *engine)
         : RenderpassBase(renderingDevice),
-          _renderingObjectsFactory(renderingObjectsFactory),
           _engine(engine),
           _swapchain(swapchain) {
     this->_engine->eventQueue()->addHandler([this](const Event &event) {
@@ -283,10 +297,10 @@ SceneRenderpass::SceneRenderpass(RenderingDevice *renderingDevice, Swapchain *sw
             delete this->_skyboxTextureView;
         }
 
-        this->_skyboxTextureView = this->_renderingObjectsFactory->createImageViewObject(
-                this->_engine->sceneManager()->currentScene()->skybox()->texture()->texture,
-                VK_IMAGE_VIEW_TYPE_CUBE,
-                VK_IMAGE_ASPECT_COLOR_BIT);
+        this->_skyboxTextureView = ImageViewObject::create(this->_renderingDevice,
+                                                           event.scene->skybox()->texture()->image(),
+                                                           VK_IMAGE_VIEW_TYPE_CUBE,
+                                                           VK_IMAGE_ASPECT_COLOR_BIT);
 
         updateDescriptorSetWithImage(this->_skyboxDescriptorSet, this->_skyboxTextureView, 0);
     });
@@ -298,10 +312,10 @@ void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D ren
 
     // PREPARE SCENE DATA
     {
-        glm::vec3 cameraPosition = this->_engine->camera().position();
-
         std::vector<LightData> lightData;
         if (currentScene != nullptr) {
+            glm::vec3 cameraPosition = currentScene->camera()->position();
+
             for (uint32_t idx = 0; idx < currentScene->lights().size(); idx++) {
                 Light *light = currentScene->lights()[idx];
 
@@ -332,19 +346,15 @@ void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D ren
                     });
                 }
             }
+
+            this->_compositionSceneData->cameraPosition = cameraPosition;
         }
 
         this->_compositionSceneData->numLights = std::min(MAX_NUM_LIGHTS, (int) lightData.size());
         for (int idx = 0; idx < this->_compositionSceneData->numLights; idx++) {
             this->_compositionSceneData->lights[idx] = lightData[idx];
         }
-
-        this->_compositionSceneData->cameraPosition = cameraPosition;
     }
-
-    glm::mat4 projection = this->_engine->camera().getProjectionMatrix(renderArea.extent.width,
-                                                                       renderArea.extent.height);
-    projection[1][1] *= -1;
 
     const std::array<VkClearValue, 8> clearValues = {
             VkClearValue{.color = {{0, 0, 0, 0}}}, // 0
@@ -390,10 +400,14 @@ void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D ren
     // SKYBOX
     if (this->_engine->engineVars()->getOrDefault(RENDERER_SKYBOX_ENABLED_VAR, true)->boolValue &&
         currentScene != nullptr) {
+        glm::mat4 projection = currentScene->camera()->getProjectionMatrix(renderArea.extent.width,
+                                                                           renderArea.extent.height);
+        projection[1][1] *= -1;
+
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->_skyboxPipeline);
 
         MeshConstants constants = {
-                .matrix = projection * this->_engine->camera().getViewMatrix(true) * glm::mat4(1),
+                .matrix = projection * currentScene->camera()->getViewMatrix(true) * glm::mat4(1),
                 .model = glm::mat4(1)
         };
         vkCmdPushConstants(commandBuffer, this->_skyboxPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
@@ -403,23 +417,32 @@ void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D ren
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->_skyboxPipelineLayout,
                                 0, 1, &descriptorSet, 0, nullptr);
 
-        BufferObject *vertices = currentScene->skybox()->mesh()->vertices;
-        VkBuffer vertexBuffer = vertices->getHandle();
+        VkBuffer vertexBuffer = currentScene->skybox()->mesh()->vertexBuffer()->getHandle();
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer, &offset);
+        vkCmdBindIndexBuffer(commandBuffer, currentScene->skybox()->mesh()->indexBuffer()->getHandle(), 0,
+                             VK_INDEX_TYPE_UINT32);
 
-        vkCmdDraw(commandBuffer, vertices->getSize(), 1, 0, 0);
+        vkCmdDrawIndexed(commandBuffer, currentScene->skybox()->mesh()->count(), 1, 0, 0, 0);
     }
 
     vkCmdNextSubpass(commandBuffer, VK_SUBPASS_CONTENTS_INLINE);
 
     // SCENE
     if (currentScene != nullptr) {
+        glm::mat4 projection = currentScene->camera()->getProjectionMatrix(renderArea.extent.width,
+                                                                           renderArea.extent.height);
+        projection[1][1] *= -1;
+
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->_scenePipeline);
 
-        glm::mat4 view = this->_engine->camera().getViewMatrix(false);
+        glm::mat4 view = currentScene->camera()->getViewMatrix(false);
 
         uint32_t idx = 0;
         for (Object *object: currentScene->objects()) {
+            if (object->mesh() == nullptr) {
+                continue;
+            }
+
             glm::mat4 model = object->getModelMatrix(false);
             glm::mat4 rot = object->getModelMatrix(true);
             MeshConstants constants = {
@@ -430,22 +453,15 @@ void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D ren
             vkCmdPushConstants(commandBuffer, this->_scenePipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
                                sizeof(MeshConstants), &constants);
 
-            VkBuffer vertexBuffer = object->mesh()->vertices->getHandle();
+            VkBuffer vertexBuffer = object->mesh()->vertexBuffer()->getHandle();
             vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer, &offset);
-
-            if (object->mesh()->indices != nullptr) {
-                vkCmdBindIndexBuffer(commandBuffer, object->mesh()->indices->getHandle(), 0, VK_INDEX_TYPE_UINT32);
-            }
+            vkCmdBindIndexBuffer(commandBuffer, object->mesh()->indexBuffer()->getHandle(), 0, VK_INDEX_TYPE_UINT32);
 
             VkDescriptorSet descriptor = getRenderData(object)->descriptorSet->getDescriptorSet(frameIdx);
             vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->_scenePipelineLayout,
                                     0, 1, &descriptor, 0, nullptr);
 
-            if (object->mesh()->indices != nullptr) {
-                vkCmdDrawIndexed(commandBuffer, object->mesh()->count, 1, 0, 0, idx++);
-            } else {
-                vkCmdDraw(commandBuffer, object->mesh()->vertices->getSize(), 1, 0, 0);
-            }
+            vkCmdDrawIndexed(commandBuffer, object->mesh()->count(), 1, 0, 0, idx++);
         }
     }
 
@@ -623,93 +639,94 @@ void SceneRenderpass::createFramebuffers() {
     VkSampleCountFlagBits samples = this->_renderingDevice->getPhysicalDevice()->getMsaaSamples();
     VkFormat colorFormat = this->_renderingDevice->getPhysicalDevice()->getColorFormat();
 
-    this->_skyboxImage = this->_renderingObjectsFactory->createImageObject(extent.width, extent.height, 1, 0,
-                                                                           colorFormat,
-                                                                           VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT |
-                                                                           VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT |
-                                                                           VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-                                                                           samples,
-                                                                           VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    this->_skyboxImageView = this->_renderingObjectsFactory->createImageViewObject(this->_skyboxImage,
-                                                                                   VK_IMAGE_VIEW_TYPE_2D,
-                                                                                   VK_IMAGE_ASPECT_COLOR_BIT);
+    this->_skyboxImage = ImageObject::create(this->_renderingDevice, extent.width, extent.height, 1, 0,
+                                             colorFormat,
+                                             VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT |
+                                             VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT |
+                                             VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+                                             samples,
+                                             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    this->_skyboxImageView = ImageViewObject::create(this->_renderingDevice, this->_skyboxImage,
+                                                     VK_IMAGE_VIEW_TYPE_2D,
+                                                     VK_IMAGE_ASPECT_COLOR_BIT);
 
-    this->_albedoImage = this->_renderingObjectsFactory->createImageObject(extent.width, extent.height, 1, 0,
-                                                                           VK_FORMAT_R8G8B8A8_UNORM,
-                                                                           VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT |
-                                                                           VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT |
-                                                                           VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-                                                                           samples,
-                                                                           VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    this->_albedoImageView = this->_renderingObjectsFactory->createImageViewObject(this->_albedoImage,
-                                                                                   VK_IMAGE_VIEW_TYPE_2D,
-                                                                                   VK_IMAGE_ASPECT_COLOR_BIT);
+    this->_albedoImage = ImageObject::create(this->_renderingDevice, extent.width, extent.height, 1, 0,
+                                             VK_FORMAT_R8G8B8A8_UNORM,
+                                             VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT |
+                                             VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT |
+                                             VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+                                             samples,
+                                             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    this->_albedoImageView = ImageViewObject::create(this->_renderingDevice, this->_albedoImage,
+                                                     VK_IMAGE_VIEW_TYPE_2D,
+                                                     VK_IMAGE_ASPECT_COLOR_BIT);
 
-    this->_positionImage = this->_renderingObjectsFactory->createImageObject(extent.width, extent.height, 1, 0,
-                                                                             VK_FORMAT_R16G16B16A16_SFLOAT,
-                                                                             VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT |
-                                                                             VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT |
-                                                                             VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-                                                                             samples,
-                                                                             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    this->_positionImageView = this->_renderingObjectsFactory->createImageViewObject(this->_positionImage,
-                                                                                     VK_IMAGE_VIEW_TYPE_2D,
-                                                                                     VK_IMAGE_ASPECT_COLOR_BIT);
+    this->_positionImage = ImageObject::create(this->_renderingDevice, extent.width, extent.height, 1, 0,
+                                               VK_FORMAT_R16G16B16A16_SFLOAT,
+                                               VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT |
+                                               VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT |
+                                               VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+                                               samples,
+                                               VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    this->_positionImageView = ImageViewObject::create(this->_renderingDevice, this->_positionImage,
+                                                       VK_IMAGE_VIEW_TYPE_2D,
+                                                       VK_IMAGE_ASPECT_COLOR_BIT);
 
-    this->_normalImage = this->_renderingObjectsFactory->createImageObject(extent.width, extent.height, 1, 0,
-                                                                           VK_FORMAT_R16G16B16A16_SFLOAT,
-                                                                           VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT |
-                                                                           VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT |
-                                                                           VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-                                                                           samples,
-                                                                           VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    this->_normalImageView = this->_renderingObjectsFactory->createImageViewObject(this->_normalImage,
-                                                                                   VK_IMAGE_VIEW_TYPE_2D,
-                                                                                   VK_IMAGE_ASPECT_COLOR_BIT);
+    this->_normalImage = ImageObject::create(this->_renderingDevice, extent.width, extent.height, 1, 0,
+                                             VK_FORMAT_R16G16B16A16_SFLOAT,
+                                             VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT |
+                                             VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT |
+                                             VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+                                             samples,
+                                             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    this->_normalImageView = ImageViewObject::create(this->_renderingDevice, this->_normalImage,
+                                                     VK_IMAGE_VIEW_TYPE_2D,
+                                                     VK_IMAGE_ASPECT_COLOR_BIT);
 
-    this->_specularImage = this->_renderingObjectsFactory->createImageObject(extent.width, extent.height, 1, 0,
-                                                                             VK_FORMAT_R8G8B8A8_UNORM,
-                                                                             VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT |
-                                                                             VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT |
-                                                                             VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-                                                                             samples,
-                                                                             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    this->_specularImageView = this->_renderingObjectsFactory->createImageViewObject(this->_specularImage,
-                                                                                     VK_IMAGE_VIEW_TYPE_2D,
-                                                                                     VK_IMAGE_ASPECT_COLOR_BIT);
+    this->_specularImage = ImageObject::create(this->_renderingDevice, extent.width, extent.height, 1, 0,
+                                               VK_FORMAT_R8G8B8A8_UNORM,
+                                               VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT |
+                                               VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT |
+                                               VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+                                               samples,
+                                               VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    this->_specularImageView = ImageViewObject::create(this->_renderingDevice, this->_specularImage,
+                                                       VK_IMAGE_VIEW_TYPE_2D,
+                                                       VK_IMAGE_ASPECT_COLOR_BIT);
 
-    this->_depthImage = this->_renderingObjectsFactory->createImageObject(extent.width, extent.height, 1, 0,
-                                                                          this->_renderingDevice->getPhysicalDevice()->getDepthFormat(),
-                                                                          VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-                                                                          samples,
-                                                                          VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    this->_depthImageView = this->_renderingObjectsFactory->createImageViewObject(this->_depthImage,
-                                                                                  VK_IMAGE_VIEW_TYPE_2D,
-                                                                                  VK_IMAGE_ASPECT_DEPTH_BIT);
+    this->_depthImage = ImageObject::create(this->_renderingDevice, extent.width, extent.height, 1, 0,
+                                            this->_renderingDevice->getPhysicalDevice()->getDepthFormat(),
+                                            VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+                                            samples,
+                                            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    this->_depthImageView = ImageViewObject::create(this->_renderingDevice, this->_depthImage,
+                                                    VK_IMAGE_VIEW_TYPE_2D,
+                                                    VK_IMAGE_ASPECT_DEPTH_BIT);
 
-    this->_compositionImage = this->_renderingObjectsFactory->createImageObject(extent.width, extent.height, 1, 0,
-                                                                                colorFormat,
-                                                                                VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT |
-                                                                                VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-                                                                                samples,
-                                                                                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    this->_compositionImageView = this->_renderingObjectsFactory->createImageViewObject(this->_compositionImage,
-                                                                                        VK_IMAGE_VIEW_TYPE_2D,
-                                                                                        VK_IMAGE_ASPECT_COLOR_BIT);
+    this->_compositionImage = ImageObject::create(this->_renderingDevice, extent.width, extent.height, 1, 0,
+                                                  colorFormat,
+                                                  VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT |
+                                                  VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+                                                  samples,
+                                                  VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    this->_compositionImageView = ImageViewObject::create(this->_renderingDevice, this->_compositionImage,
+                                                          VK_IMAGE_VIEW_TYPE_2D,
+                                                          VK_IMAGE_ASPECT_COLOR_BIT);
 
-    this->_resultImage = this->_renderingObjectsFactory->createImageObject(extent.width, extent.height, 1, 0,
-                                                                           colorFormat,
-                                                                           VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT |
-                                                                           VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT |
-                                                                           VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-                                                                           VK_SAMPLE_COUNT_1_BIT,
-                                                                           VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    this->_resultImageView = this->_renderingObjectsFactory->createImageViewObject(this->_resultImage,
-                                                                                   VK_IMAGE_VIEW_TYPE_2D,
-                                                                                   VK_IMAGE_ASPECT_COLOR_BIT);
+    this->_resultImage = ImageObject::create(this->_renderingDevice, extent.width, extent.height, 1, 0,
+                                             colorFormat,
+                                             VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT |
+                                             VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT |
+                                             VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+                                             VK_SAMPLE_COUNT_1_BIT,
+                                             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    this->_resultImageView = ImageViewObject::create(this->_renderingDevice, this->_resultImage,
+                                                     VK_IMAGE_VIEW_TYPE_2D,
+                                                     VK_IMAGE_ASPECT_COLOR_BIT);
 
-    this->_compositionGBufferDescriptorSet = this->_renderingObjectsFactory->createDescriptorSetObject(
-            this->_descriptorPool, this->_compositionGBufferDescriptorSetLayout, MAX_INFLIGHT_FRAMES);
+    this->_compositionGBufferDescriptorSet = DescriptorSetObject::create(this->_renderingDevice, MAX_INFLIGHT_FRAMES,
+                                                                         this->_descriptorPool,
+                                                                         this->_compositionGBufferDescriptorSetLayout);
 
     std::array<VkImageView, 5> compositionImages = {
             this->_skyboxImageView->getHandle(),

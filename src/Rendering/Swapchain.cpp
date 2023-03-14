@@ -2,13 +2,10 @@
 
 #include "PhysicalDevice.hpp"
 #include "RenderingDevice.hpp"
-#include "RenderingObjectsFactory.hpp"
-#include "src/Rendering/Objects/ImageObject.hpp"
 #include "src/Rendering/Objects/ImageViewObject.hpp"
 
-Swapchain::Swapchain(RenderingDevice *renderingDevice, RenderingObjectsFactory *renderingObjectsFactory)
-        : _renderingDevice(renderingDevice),
-          _renderingObjectsFactory(renderingObjectsFactory) {
+Swapchain::Swapchain(RenderingDevice *renderingDevice)
+        : _renderingDevice(renderingDevice) {
     //
 }
 
@@ -37,11 +34,11 @@ void Swapchain::create() {
     this->_swapchainImages = this->_renderingDevice->getSwapchainImages(this->_swapchain);
     this->_swapchainImageViews.resize(this->_swapchainImages.size());
 
+    VkFormat colorFormat = this->_renderingDevice->getPhysicalDevice()->getColorFormat();
+
     for (uint32_t idx = 0; idx < this->_swapchainImages.size(); idx++) {
-        this->_swapchainImageViews[idx] = this->_renderingObjectsFactory->createImageViewObject(
-                this->_swapchainImages[idx],
-                this->_renderingDevice->getPhysicalDevice()->getColorFormat(),
-                VK_IMAGE_ASPECT_COLOR_BIT);
+        this->_swapchainImageViews[idx] = ImageViewObject::create(this->_renderingDevice, this->_swapchainImages[idx],
+                                                                  colorFormat, VK_IMAGE_ASPECT_COLOR_BIT);
     }
 }
 

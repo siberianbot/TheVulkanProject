@@ -9,7 +9,6 @@
 #include "src/Rendering/Common.hpp"
 
 class Engine;
-class RenderingObjectsFactory;
 class ImageObject;
 
 class ShadowRenderpass : public RenderpassBase {
@@ -24,7 +23,6 @@ private:
     };
 
     Engine *_engine;
-    RenderingObjectsFactory *_renderingObjectsFactory;
 
     VkPipelineLayout _pipelineLayout;
     VkPipeline _pipeline;
@@ -33,8 +31,7 @@ private:
     std::array<ImageViewObject *, MAX_NUM_LIGHTS> _depthImageViews;
 
 public:
-    ShadowRenderpass(RenderingDevice *renderingDevice, Engine *engine,
-                     RenderingObjectsFactory *renderingObjectsFactory);
+    ShadowRenderpass(RenderingDevice *renderingDevice, Engine *engine);
     ~ShadowRenderpass() override = default;
 
     void recordCommands(VkCommandBuffer commandBuffer, VkRect2D renderArea,

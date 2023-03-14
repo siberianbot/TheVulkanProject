@@ -29,7 +29,7 @@ src = [
     'src/Rendering/RenderingDevice.cpp',
     'src/Rendering/CommandExecutor.cpp',
     'src/Rendering/Swapchain.cpp',
-    'src/Rendering/RenderingResourcesManager.cpp',
+    'src/Rendering/RendererAllocator.cpp',
 
     'src/Rendering/Builders/AttachmentBuilder.cpp',
     'src/Rendering/Builders/DescriptorPoolBuilder.cpp',
@@ -41,13 +41,13 @@ src = [
     'src/Rendering/Builders/SpecializationInfoBuilder.cpp',
     'src/Rendering/Builders/SubpassBuilder.cpp',
 
-    'src/Rendering/RenderingObjectsFactory.cpp',
     'src/Rendering/Objects/BufferObject.cpp',
     'src/Rendering/Objects/DescriptorSetObject.cpp',
     'src/Rendering/Objects/FenceObject.cpp',
     'src/Rendering/Objects/ImageObject.cpp',
     'src/Rendering/Objects/ImageViewObject.cpp',
     'src/Rendering/Objects/SemaphoreObject.cpp',
+    'src/Rendering/Objects/ShaderObject.cpp',
 
     'src/Rendering/Renderpasses/RenderpassBase.cpp',
     'src/Rendering/Renderpasses/ImguiRenderpass.cpp',
@@ -56,9 +56,13 @@ src = [
     'src/Rendering/Renderpasses/SwapchainPresentRenderpass.cpp',
 
     # Resources
-    'src/Resources/Mesh.cpp',
-    'src/Resources/Texture.cpp',
+    'src/Resources/Resource.cpp',
     'src/Resources/ResourceManager.cpp',
+    'src/Resources/MeshResource.cpp',
+    'src/Resources/ImageBaseResource.cpp',
+    'src/Resources/ImageResource.cpp',
+    'src/Resources/CubeImageResource.cpp',
+    'src/Resources/ShaderResource.cpp',
 
     # Objects
     'src/Objects/Camera.cpp',
@@ -73,6 +77,9 @@ src = [
 
     # Debug
     'src/Debug/DebugUI.cpp',
+
+    # Types
+    'src/Types/ResourceType.cpp',
 ]
 
 # shaders compilation

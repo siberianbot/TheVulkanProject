@@ -8,8 +8,11 @@
 class Engine;
 class Light;
 class Object;
-struct MeshRenderingResource;
-struct TextureRenderingResource;
+class MeshResource;
+class ImageResource;
+class ShaderResource;
+
+static constexpr const char *NONE_ITEM = "none";
 
 class DebugUI {
 private:
@@ -21,13 +24,18 @@ private:
             "Rectangle"
     };
 
-    std::vector<const char *> _shaders;
-    int _selectedShaderIdx = -1;
-    int _shaderBuildResult = -1;
-    std::string _shaderCode;
+    ShaderResource *_selectedShaderResource = nullptr;
+    std::string _selectedShaderName = NONE_ITEM;
+    std::string _selectedShaderCode;
+    std::string _selectedShaderStatus;
 
-    std::vector<const char *> _meshes;
-    std::vector<const char *> _textures;
+    Object *_selectedObject = nullptr;
+    std::string _selectedObjectMeshName = NONE_ITEM;
+    std::string _selectedObjectAlbedoTextureName = NONE_ITEM;
+    std::string _selectedObjectSpecularTextureName = NONE_ITEM;
+
+    std::optional<std::vector<Light *>::const_iterator> _selectedLight = std::nullopt;
+    int _selectedLightKindIdx = -1;
 
     float _floatStep = 0.1;
     float _floatFastStep = 0.5;
@@ -37,16 +45,6 @@ private:
     int _sceneObjectsWindowVisible = 0;
     int _sceneLightsWindowVisible = 0;
     int _resourcesListWindowVisible = 0;
-    std::optional<std::vector<Object *>::const_iterator> _selectedObject = std::nullopt;
-    int _selectedObjectMeshIdx = -1;
-    int _selectedObjectTextureIdx = -1;
-    int _selectedObjectSpecTextureIdx = -1;
-    std::optional<std::vector<Light *>::const_iterator> _selectedLight = std::nullopt;
-    int _selectedLightKindIdx = -1;
-
-    void loadShader(const char *path);
-    void saveShader(const char *path);
-    void buildShader(const char *path);
 
     void drawMainMenu();
     void drawEngineFpsWindow();

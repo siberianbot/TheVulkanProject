@@ -1,36 +1,38 @@
 #include "Engine.hpp"
 
+#include <GLFW/glfw3.h>
+#include <glm/vec3.hpp>
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 
 #include "Constants.hpp"
 #include "EngineVars.hpp"
+#include "Input.hpp"
 #include "src/Events/EventQueue.hpp"
-#include "src/Resources/Mesh.hpp"
-#include "src/Resources/Texture.hpp"
+#include "src/Rendering/Renderer.hpp"
+#include "src/Resources/MeshResource.hpp"
+#include "src/Resources/ImageResource.hpp"
 #include "src/Resources/ResourceManager.hpp"
+#include "src/Objects/Camera.hpp"
 #include "src/Objects/Light.hpp"
 #include "src/Objects/Object.hpp"
 #include "src/Scene/Scene.hpp"
 #include "src/Debug/DebugUI.hpp"
-#include "src/Resources/Meshes.hpp"
 #include "src/Objects/Skybox.hpp"
 #include "src/Scene/SceneManager.hpp"
 
-#include <glm/vec3.hpp>
-
 Engine::Engine()
-        : renderer(this),
+        : _renderer(new Renderer(this)),
+          _input(new Input()),
+          _mouseInput(new MouseInput()),
           _eventQueue(new EventQueue()),
           _engineVars(EngineVars::defaults()),
-          _resourceManager(new ResourceManager()),
+          _resourceManager(nullptr),
           _sceneManager(new SceneManager(this->_eventQueue)) {
     //
 }
 
 void Engine::init() {
-    this->_resourceManager->addDataDir("data");
-
     initGlfw();
     initWindow();
 
@@ -52,9 +54,12 @@ void Engine::init() {
         glfwSetWindowShouldClose(this->_window, GLFW_TRUE);
     });
 
-    this->renderer.init();
+    this->_renderer->init();
 
-    this->input.addReleaseHandler(GLFW_KEY_ESCAPE, [this](float delta) {
+    this->_resourceManager = new ResourceManager(this->_renderer->rendererAllocator());
+    this->_resourceManager->addDataDir("data");
+
+    this->_input->addReleaseHandler(GLFW_KEY_ESCAPE, [this](float delta) {
         if (this->_state != Focused) {
             return;
         }
@@ -63,119 +68,117 @@ void Engine::init() {
         glfwSetInputMode(this->_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     });
 
-    this->input.addPressHandler(GLFW_KEY_W, [this](float delta) {
-        this->_camera.position() += 5 * delta * this->_camera.getForwardVector();
+    this->_input->addPressHandler(GLFW_KEY_W, [this](float delta) {
+        Camera *camera = this->_sceneManager->currentScene() != nullptr
+                         ? this->_sceneManager->currentScene()->camera()
+                         : nullptr;
+
+        if (camera == nullptr) {
+            return;
+        }
+
+        camera->position() += 5 * delta * camera->getForwardVector();
     });
-    this->input.addPressHandler(GLFW_KEY_S, [this](float delta) {
-        this->_camera.position() -= 5 * delta * this->_camera.getForwardVector();
+    this->_input->addPressHandler(GLFW_KEY_S, [this](float delta) {
+        Camera *camera = this->_sceneManager->currentScene() != nullptr
+                         ? this->_sceneManager->currentScene()->camera()
+                         : nullptr;
+
+        if (camera == nullptr) {
+            return;
+        }
+
+        camera->position() -= 5 * delta * camera->getForwardVector();
     });
-    this->input.addPressHandler(GLFW_KEY_A, [this](float delta) {
-        this->_camera.position() -= 5 * delta * this->_camera.getSideVector();
+    this->_input->addPressHandler(GLFW_KEY_A, [this](float delta) {
+        Camera *camera = this->_sceneManager->currentScene() != nullptr
+                         ? this->_sceneManager->currentScene()->camera()
+                         : nullptr;
+
+        if (camera == nullptr) {
+            return;
+        }
+
+        camera->position() -= 5 * delta * camera->getSideVector();
     });
-    this->input.addPressHandler(GLFW_KEY_D, [this](float delta) {
-        this->_camera.position() += 5 * delta * this->_camera.getSideVector();
+    this->_input->addPressHandler(GLFW_KEY_D, [this](float delta) {
+        Camera *camera = this->_sceneManager->currentScene() != nullptr
+                         ? this->_sceneManager->currentScene()->camera()
+                         : nullptr;
+
+        if (camera == nullptr) {
+            return;
+        }
+
+        camera->position() += 5 * delta * camera->getSideVector();
     });
 
-    this->mouseInput.addHandler([this](double dx, double dy) {
+    this->_mouseInput->addHandler([this](double dx, double dy) {
+        Camera *camera = this->_sceneManager->currentScene() != nullptr
+                         ? this->_sceneManager->currentScene()->camera()
+                         : nullptr;
+
+        if (camera == nullptr) {
+            return;
+        }
+
         const float sensitivity = 0.0005f;
-        this->_camera.yaw() -= sensitivity * (float) dx;
-        this->_camera.pitch() += sensitivity * (float) dy;
+        camera->yaw() -= sensitivity * (float) dx;
+        camera->pitch() += sensitivity * (float) dy;
 
         static float pi = glm::radians(180.0f);
         static float twoPi = glm::radians(360.0f);
         const float eps = glm::radians(0.0001f);
 
-        if (this->_camera.yaw() < 0) {
-            this->_camera.yaw() += twoPi;
-        } else if (this->_camera.yaw() > twoPi) {
-            this->_camera.yaw() -= twoPi;
+        if (camera->yaw() < 0) {
+            camera->yaw() += twoPi;
+        } else if (camera->yaw() > twoPi) {
+            camera->yaw() -= twoPi;
         }
 
-        if (this->_camera.pitch() < 0) {
-            this->_camera.pitch() = eps;
-        } else if (this->_camera.pitch() > pi) {
-            this->_camera.pitch() = pi - eps;
+        if (camera->pitch() < 0) {
+            camera->pitch() = eps;
+        } else if (camera->pitch() > pi) {
+            camera->pitch() = pi - eps;
         }
     });
 
-    this->_meshes.push_back(this->renderer.getRenderingResourcesManager()->loadMesh(CUBE_MESH.size(),
-                                                                                    CUBE_MESH.data()));
+    MeshResource *cubeMesh = this->_resourceManager->loadMesh("cube");
+    MeshResource *skyboxMesh = this->_resourceManager->loadMesh("skybox");
+    MeshResource *suzanneMesh = this->_resourceManager->loadMesh("suzanne");
+    MeshResource *vikingRoomMesh = this->_resourceManager->loadMesh("viking_room");
 
-    Mesh *suzanneMesh = this->_resourceManager->openMesh("suzanne");
-    this->_meshes.push_back(this->renderer.getRenderingResourcesManager()->loadMesh(suzanneMesh));
-    delete suzanneMesh;
+    ImageResource *defaultTexture = this->_resourceManager->loadDefaultImage();
+    ImageResource *concreteTexture = this->_resourceManager->loadImage("concrete");
+    ImageResource *cubeTexture = this->_resourceManager->loadImage("cube_texture");
+    ImageResource *cubeSpecularTexture = this->_resourceManager->loadImage("cube_texture_specular");
+    ImageResource *vikingRoomTexture = this->_resourceManager->loadImage("viking_room_texture");
+    CubeImageResource *skyboxTexture = this->_resourceManager->loadCubeImage("skybox_texture");
 
-    Mesh *vikingRoomMesh = this->_resourceManager->openMesh("viking_room");
-    this->_meshes.push_back(this->renderer.getRenderingResourcesManager()->loadMesh(vikingRoomMesh));
-    delete vikingRoomMesh;
-
-    Texture *defaultTexture = this->_resourceManager->openTexture("default_texture");
-    this->_defaultTextureResource = this->renderer.getRenderingResourcesManager()->loadTexture(defaultTexture);
-    delete defaultTexture;
-
-    Texture *concreteTexture = this->_resourceManager->openTexture("concrete");
-    this->_textures.push_back(this->renderer.getRenderingResourcesManager()->loadTexture(concreteTexture));
-    delete concreteTexture;
-
-    Texture *cubeTexture = this->_resourceManager->openTexture("cube");
-    this->_textures.push_back(this->renderer.getRenderingResourcesManager()->loadTexture(cubeTexture));
-    delete cubeTexture;
-
-    Texture *cubeSpecularTexture = this->_resourceManager->openTexture("cube_specular");
-    this->_textures.push_back(this->renderer.getRenderingResourcesManager()->loadTexture(cubeSpecularTexture));
-    delete cubeSpecularTexture;
-
-    Texture *vikingRoomTexture = this->_resourceManager->openTexture("viking_room_texture");
-    this->_textures.push_back(this->renderer.getRenderingResourcesManager()->loadTexture(vikingRoomTexture));
-    delete vikingRoomTexture;
-
-    this->_skyboxMeshResource = this->renderer.getRenderingResourcesManager()->loadMesh(SKYBOX_MESH.size(),
-                                                                                        SKYBOX_MESH.data());
-    Texture *skyboxRightTexture = this->_resourceManager->openTexture("skybox_right");
-    Texture *skyboxLeftTexture = this->_resourceManager->openTexture("skybox_left");
-    Texture *skyboxUpTexture = this->_resourceManager->openTexture("skybox_up");
-    Texture *skyboxDownTexture = this->_resourceManager->openTexture("skybox_down");
-    Texture *skyboxFrontTexture = this->_resourceManager->openTexture("skybox_front");
-    Texture *skyboxBackTexture = this->_resourceManager->openTexture("skybox_back");
-    this->_skyboxTextureResource = this->renderer.getRenderingResourcesManager()->loadTextureCube(
-            {
-                    skyboxFrontTexture,
-                    skyboxBackTexture,
-                    skyboxUpTexture,
-                    skyboxDownTexture,
-                    skyboxRightTexture,
-                    skyboxLeftTexture,
-            });
-    delete skyboxFrontTexture;
-    delete skyboxBackTexture;
-    delete skyboxUpTexture;
-    delete skyboxDownTexture;
-    delete skyboxRightTexture;
-    delete skyboxLeftTexture;
-
-    Scene *scene = new Scene(this, new Skybox(&this->_skyboxMeshResource, &this->_skyboxTextureResource));
+    Scene *scene = new Scene(this, new Skybox(skyboxMesh, skyboxTexture));
 
     Object *object;
 
     object = new Object();
     object->position() = glm::vec3(0, 0, 2);
-    object->mesh() = &this->_meshes[2];
-    object->albedoTexture() = &this->_textures[3];
+    object->mesh() = vikingRoomMesh;
+    object->albedoTexture() = vikingRoomTexture;
     scene->addObject(object);
 
     object = new Object();
     object->position() = glm::vec3(0);
     object->scale() = glm::vec3(0.5f);
-    object->mesh() = &this->_meshes[0];
-    object->albedoTexture() = &this->_textures[1];
-    object->specTexture() = &this->_textures[2];
+    object->mesh() = cubeMesh;
+    object->albedoTexture() = cubeTexture;
+    object->specTexture() = cubeSpecularTexture;
     scene->addObject(object);
 
     object = new Object();
     object->position() = glm::vec3(0, 0, -2);
     object->scale() = glm::vec3(0.5f);
-    object->mesh() = &this->_meshes[1];
-    object->albedoTexture() = &this->_textures[0];
+    object->mesh() = suzanneMesh;
+    object->albedoTexture() = concreteTexture;
+    object->specTexture() = defaultTexture;
     scene->addObject(object);
 
     // down
@@ -183,8 +186,8 @@ void Engine::init() {
     object->position() = glm::vec3(0, -4, 0);
     object->rotation() = glm::vec3(glm::radians(270.0f), 0, 0);
     object->scale() = glm::vec3(7, 9, 0.1);
-    object->mesh() = &this->_meshes[0];
-    object->albedoTexture() = &this->_textures[0];
+    object->mesh() = cubeMesh;
+    object->albedoTexture() = concreteTexture;
     scene->addObject(object);
 
     // front
@@ -192,8 +195,8 @@ void Engine::init() {
     object->position() = glm::vec3(7, 0, 0);
     object->rotation() = glm::vec3(0, glm::radians(270.0f), 0);
     object->scale() = glm::vec3(9, 4, 0.1);
-    object->mesh() = &this->_meshes[0];
-    object->albedoTexture() = &this->_textures[0];
+    object->mesh() = cubeMesh;
+    object->albedoTexture() = concreteTexture;
     scene->addObject(object);
 
     // back
@@ -201,8 +204,8 @@ void Engine::init() {
     object->position() = glm::vec3(-7, 0, 0);
     object->rotation() = glm::vec3(0, glm::radians(90.0f), 0);
     object->scale() = glm::vec3(9, 4, 0.1);
-    object->mesh() = &this->_meshes[0];
-    object->albedoTexture() = &this->_textures[0];
+    object->mesh() = cubeMesh;
+    object->albedoTexture() = concreteTexture;
     scene->addObject(object);
 
     // left
@@ -210,8 +213,8 @@ void Engine::init() {
     object->position() = glm::vec3(0, 0, -9);
     object->rotation() = glm::vec3(0);
     object->scale() = glm::vec3(7, 4, 0.1);
-    object->mesh() = &this->_meshes[0];
-    object->albedoTexture() = &this->_textures[0];
+    object->mesh() = cubeMesh;
+    object->albedoTexture() = concreteTexture;
     scene->addObject(object);
 
     // right
@@ -219,8 +222,8 @@ void Engine::init() {
     object->position() = glm::vec3(0, 0, 9);
     object->rotation() = glm::vec3(0, glm::radians(180.0f), 0);
     object->scale() = glm::vec3(7, 4, 0.1);
-    object->mesh() = &this->_meshes[0];
-    object->albedoTexture() = &this->_textures[0];
+    object->mesh() = cubeMesh;
+    object->albedoTexture() = concreteTexture;
     scene->addObject(object);
 
     Light *light;
@@ -253,29 +256,18 @@ void Engine::init() {
 
     this->_debugUI = new DebugUI(this);
 
-    this->_camera.position() = glm::vec3(2, 2, 2);
-    this->_camera.yaw() = glm::radians(-135.0f);
-    this->_camera.pitch() = glm::radians(45.0f);
+    scene->camera()->position() = glm::vec3(2, 2, 2);
+    scene->camera()->yaw() = glm::radians(-135.0f);
+    scene->camera()->pitch() = glm::radians(45.0f);
 
     this->_sceneManager->switchScene(scene);
 }
 
 void Engine::cleanup() {
-    this->renderer.wait();
+    this->_renderer->wait();
 
-    for (TextureRenderingResource &texture: this->_textures) {
-        this->renderer.getRenderingResourcesManager()->freeTexture(texture);
-    }
-
-    for (MeshRenderingResource &mesh: this->_meshes) {
-        this->renderer.getRenderingResourcesManager()->freeMesh(mesh);
-    }
-
-    this->renderer.getRenderingResourcesManager()->freeTexture(this->_defaultTextureResource);
-    this->renderer.getRenderingResourcesManager()->freeTexture(this->_skyboxTextureResource);
-    this->renderer.getRenderingResourcesManager()->freeMesh(this->_skyboxMeshResource);
-
-    this->renderer.cleanup();
+    this->_resourceManager->unloadAll();
+    this->_renderer->cleanup();
 
     ImGui::DestroyContext();
 
@@ -285,10 +277,13 @@ void Engine::cleanup() {
 
     glfwTerminate();
 
+    delete this->_debugUI;
     delete this->_sceneManager;
     delete this->_resourceManager;
     delete this->_engineVars;
     delete this->_eventQueue;
+    delete this->_mouseInput;
+    delete this->_input;
 }
 
 void Engine::run() {
@@ -300,8 +295,8 @@ void Engine::run() {
         glfwPollEvents();
 
         this->_debugUI->render();
-        this->input.process(this->_delta);
-        this->renderer.render();
+        this->_input->process(this->_delta);
+        this->_renderer->render();
 
         this->_delta = glfwGetTime() - startTime;
     }
@@ -365,9 +360,9 @@ void Engine::keyCallback(GLFWwindow *window, int key, int scancode, int action, 
     }
 
     if (action == GLFW_PRESS) {
-        engine->input.press(key);
+        engine->_input->press(key);
     } else if (action == GLFW_RELEASE) {
-        engine->input.release(key);
+        engine->_input->release(key);
     }
 }
 
@@ -385,5 +380,5 @@ void Engine::cursorCallback(GLFWwindow *window, double xpos, double ypos) {
     double ycenter = ((double) h) / 2;
     glfwSetCursorPos(window, xcenter, ycenter);
 
-    engine->mouseInput.process(xcenter - xpos, ycenter - ypos);
+    engine->_mouseInput->process(xcenter - xpos, ycenter - ypos);
 }

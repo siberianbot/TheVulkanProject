@@ -10,14 +10,21 @@ class ImageViewObject {
 private:
     RenderingDevice *_renderingDevice;
     ImageObject *_image;
+
     VkImageView _imageView;
 
-public:
     ImageViewObject(RenderingDevice *renderingDevice, ImageObject *image, VkImageView imageView);
+
+public:
     ~ImageViewObject();
 
-    [[nodiscard]] VkImageView getHandle() const { return this->_imageView; }
     [[nodiscard]] ImageObject *getImage() const { return this->_image; }
+    [[nodiscard]] VkImageView getHandle() const { return this->_imageView; }
+
+    [[nodiscard]] static ImageViewObject *create(RenderingDevice *renderingDevice, VkImage image, VkFormat format,
+                                                 VkImageAspectFlags aspectMask);
+    [[nodiscard]] static ImageViewObject *create(RenderingDevice *renderingDevice, ImageObject *image,
+                                                 VkImageViewType imageViewType, VkImageAspectFlags aspectMask);
 };
 
 #endif // RENDERING_OBJECTS_IMAGEVIEWOBJECT_HPP

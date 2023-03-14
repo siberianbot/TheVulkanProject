@@ -7,14 +7,16 @@
   - [x] Extend renderpass builder: introduce subpasses
 
 ## Resources
-- [ ] Improve resources loading and managing
+- [x] Improve resources loading and managing
 - [ ] ...
 
 ## Lighting
-- [ ] ...
+- [x] Basic lighting
+- [x] Basic shadows
+- [ ] Fix composition shader
 
 ## Deferred rendering
-- [ ] New models required
+- [x] New models required
 - [ ] ...
 
 ## Multithreading

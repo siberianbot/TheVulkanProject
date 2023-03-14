@@ -8,8 +8,7 @@
 #include "CommandExecutor.hpp"
 #include "PhysicalDevice.hpp"
 #include "RenderingDevice.hpp"
-#include "RenderingObjectsFactory.hpp"
-#include "RenderingResourcesManager.hpp"
+#include "RendererAllocator.hpp"
 #include "Swapchain.hpp"
 #include "src/Rendering/Objects/FenceObject.hpp"
 #include "src/Rendering/Objects/SemaphoreObject.hpp"
@@ -69,35 +68,29 @@ void Renderer::init() {
 
     this->_physicalDevice = PhysicalDevice::selectSuitable(this->_instance, this->_surface);
     this->_renderingDevice = this->_physicalDevice->createRenderingDevice();
-    this->_renderingObjectsFactory = new RenderingObjectsFactory(this->_renderingDevice);
     this->_commandExecutor = new CommandExecutor(this->_renderingDevice);
-    this->_renderingResourcesManager = new RenderingResourcesManager(this->_renderingObjectsFactory,
-                                                                     this->_commandExecutor);
-    this->_swapchain = new Swapchain(this->_renderingDevice, this->_renderingObjectsFactory);
+    this->_swapchain = new Swapchain(this->_renderingDevice);
+    this->_rendererAllocator = new RendererAllocator(this->_renderingDevice, this->_commandExecutor);
 
     for (uint32_t frameIdx = 0; frameIdx < MAX_INFLIGHT_FRAMES; frameIdx++) {
         this->_syncObjectsGroups[frameIdx] = new SyncObjectsGroup{
-                .fence =  this->_renderingObjectsFactory->createFenceObject(true),
-                .imageAvailableSemaphore = this->_renderingObjectsFactory->createSemaphoreObject(),
-                .renderFinishedSemaphore = this->_renderingObjectsFactory->createSemaphoreObject()
+                .fence =  FenceObject::create(this->_renderingDevice, true),
+                .imageAvailableSemaphore = SemaphoreObject::create(this->_renderingDevice),
+                .renderFinishedSemaphore = SemaphoreObject::create(this->_renderingDevice)
         };
     }
 
     this->_swapchain->create();
 
-    RenderpassBase *shadowRenderpass = new ShadowRenderpass(this->_renderingDevice, this->_engine,
-                                                            this->_renderingObjectsFactory);
-    SceneRenderpass *sceneRenderpass = new SceneRenderpass(this->_renderingDevice, this->_swapchain,
-                                                           this->_renderingObjectsFactory, this->_engine);
+    RenderpassBase *shadowRenderpass = new ShadowRenderpass(this->_renderingDevice, this->_engine);
+    SceneRenderpass *sceneRenderpass = new SceneRenderpass(this->_renderingDevice, this->_swapchain, this->_engine);
     sceneRenderpass->addShadowRenderpass(shadowRenderpass);
 
-    RenderpassBase *imguiRenderpass = new ImguiRenderpass(this->_renderingDevice, this->_swapchain,
-                                                          this->_renderingObjectsFactory, this->_instance,
+    RenderpassBase *imguiRenderpass = new ImguiRenderpass(this->_renderingDevice, this->_swapchain, this->_instance,
                                                           this->_physicalDevice, this->_commandExecutor);
 
     SwapchainPresentRenderpass *presentRenderpass = new SwapchainPresentRenderpass(this->_renderingDevice,
-                                                                                   this->_swapchain,
-                                                                                   this->_renderingObjectsFactory);
+                                                                                   this->_swapchain);
     presentRenderpass->addInputRenderpass(sceneRenderpass);
     presentRenderpass->addInputRenderpass(imguiRenderpass);
 
@@ -138,9 +131,9 @@ void Renderer::cleanup() {
         delete this->_syncObjectsGroups[frameIdx];
     }
 
+    delete this->_rendererAllocator;
     delete this->_swapchain;
     delete this->_commandExecutor;
-    delete this->_renderingObjectsFactory;
     delete this->_renderingDevice;
     delete this->_physicalDevice;
 

@@ -4,14 +4,13 @@
 
 BufferObject::BufferObject(RenderingDevice *renderingDevice, VkDeviceSize size, VkBuffer buffer, VkDeviceMemory memory)
         : _renderingDevice(renderingDevice),
-          _size(size),
-          _buffer(buffer),
-          _memory(memory) {
+          _size(size), _buffer(buffer), _memory(memory) {
     //
 }
 
 BufferObject::~BufferObject() {
     this->unmap();
+
     this->_renderingDevice->freeMemory(this->_memory);
     this->_renderingDevice->destroyBuffer(this->_buffer);
 }
@@ -31,4 +30,15 @@ void BufferObject::unmap() {
 
     this->_renderingDevice->unmapMemory(this->_memory);
     this->_mapPtr = nullptr;
+}
+
+BufferObject *BufferObject::create(RenderingDevice *renderingDevice, VkDeviceSize size, VkBufferUsageFlags usage,
+                                   VkMemoryPropertyFlags memoryProperty) {
+    VkBuffer buffer = renderingDevice->createBuffer(size, usage);
+    VkMemoryRequirements requirements = renderingDevice->getBufferMemoryRequirements(buffer);
+    VkDeviceMemory memory = renderingDevice->allocateMemory(requirements, memoryProperty);
+
+    renderingDevice->bindBufferMemory(buffer, memory);
+
+    return new BufferObject(renderingDevice, size, buffer, memory);
 }

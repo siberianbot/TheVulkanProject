@@ -7,7 +7,6 @@
 #include "src/Rendering/RenderingDevice.hpp"
 #include "src/Rendering/Swapchain.hpp"
 #include "src/Rendering/CommandExecutor.hpp"
-#include "src/Rendering/RenderingObjectsFactory.hpp"
 #include "src/Rendering/Builders/AttachmentBuilder.hpp"
 #include "src/Rendering/Builders/DescriptorPoolBuilder.hpp"
 #include "src/Rendering/Builders/FramebufferBuilder.hpp"
@@ -16,15 +15,13 @@
 #include "src/Rendering/Objects/ImageObject.hpp"
 #include "src/Rendering/Objects/ImageViewObject.hpp"
 
-ImguiRenderpass::ImguiRenderpass(RenderingDevice *renderingDevice, Swapchain *swapchain,
-                                 RenderingObjectsFactory *renderingObjectsFactory, VkInstance instance,
+ImguiRenderpass::ImguiRenderpass(RenderingDevice *renderingDevice, Swapchain *swapchain, VkInstance instance,
                                  PhysicalDevice *physicalDevice, CommandExecutor *commandExecutor)
         : RenderpassBase(renderingDevice),
           _instance(instance),
           _physicalDevice(physicalDevice),
           _commandExecutor(commandExecutor),
-          _swapchain(swapchain),
-          _renderingObjectsFactory(renderingObjectsFactory) {
+          _swapchain(swapchain) {
     //
 }
 
@@ -117,16 +114,15 @@ void ImguiRenderpass::destroyRenderpass() {
 void ImguiRenderpass::createFramebuffers() {
     VkExtent2D extent = this->_swapchain->getSwapchainExtent();
 
-    this->_resultImage = this->_renderingObjectsFactory->createImageObject(extent.width, extent.height, 1, 0,
-                                                                           this->_physicalDevice->getColorFormat(),
-                                                                           VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT |
-                                                                           VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT |
-                                                                           VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-                                                                           VK_SAMPLE_COUNT_1_BIT,
-                                                                           VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    this->_resultImageView = this->_renderingObjectsFactory->createImageViewObject(this->_resultImage,
-                                                                                   VK_IMAGE_VIEW_TYPE_2D,
-                                                                                   VK_IMAGE_ASPECT_COLOR_BIT);
+    this->_resultImage = ImageObject::create(this->_renderingDevice, extent.width, extent.height, 1, 0,
+                                             this->_physicalDevice->getColorFormat(),
+                                             VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT |
+                                             VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT |
+                                             VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+                                             VK_SAMPLE_COUNT_1_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+    this->_resultImageView = ImageViewObject::create(this->_renderingDevice, this->_resultImage,
+                                                     VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_COLOR_BIT);
 
     FramebufferBuilder builder = FramebufferBuilder(this->_renderingDevice, this->_renderpass)
             .withExtent(extent)

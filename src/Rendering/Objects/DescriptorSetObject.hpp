@@ -3,8 +3,6 @@
 
 #include <vulkan/vulkan.hpp>
 
-#include "src/Rendering/Common.hpp"
-
 class RenderingDevice;
 
 class DescriptorSetObject {
@@ -14,12 +12,16 @@ private:
     VkDescriptorPool _descriptorPool;
     std::vector<VkDescriptorSet> _descriptorSets;
 
-public:
     DescriptorSetObject(RenderingDevice *renderingDevice, VkDescriptorPool descriptorPool,
                         const std::vector<VkDescriptorSet> &descriptorSets);
+
+public:
     ~DescriptorSetObject();
 
     [[nodiscard]] VkDescriptorSet getDescriptorSet(uint32_t idx) const { return this->_descriptorSets[idx]; }
+
+    [[nodiscard]] static DescriptorSetObject *create(RenderingDevice *renderingDevice, uint32_t count,
+                                                     VkDescriptorPool pool, VkDescriptorSetLayout layout);
 };
 
 

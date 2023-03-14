@@ -13,8 +13,6 @@ class Engine;
 class Object;
 class Swapchain;
 struct RenderData;
-struct TextureRenderingResource;
-class RenderingObjectsFactory;
 class DescriptorSetObject;
 class BufferObject;
 class ImageObject;
@@ -42,7 +40,6 @@ private:
         glm::mat4 modelRotation;
     };
 
-    RenderingObjectsFactory *_renderingObjectsFactory;
     Engine *_engine;
     Swapchain *_swapchain;
 
@@ -110,8 +107,7 @@ private:
     void destroyCompositionPipeline();
 
 public:
-    SceneRenderpass(RenderingDevice *renderingDevice, Swapchain *swapchain,
-                    RenderingObjectsFactory *renderingObjectsFactory, Engine *engine);
+    SceneRenderpass(RenderingDevice *renderingDevice, Swapchain *swapchain, Engine *engine);
     ~SceneRenderpass() override = default;
 
     void recordCommands(VkCommandBuffer commandBuffer, VkRect2D renderArea,

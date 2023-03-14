@@ -1,6 +1,6 @@
 #include "Skybox.hpp"
 
-Skybox::Skybox(MeshRenderingResource *mesh, TextureRenderingResource *texture)
+Skybox::Skybox(MeshResource *mesh, CubeImageResource *texture)
         : _mesh(mesh),
           _texture(texture) {
     //

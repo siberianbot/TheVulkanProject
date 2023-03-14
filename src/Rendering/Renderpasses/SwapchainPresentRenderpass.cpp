@@ -2,7 +2,6 @@
 
 #include "src/Rendering/PhysicalDevice.hpp"
 #include "src/Rendering/RenderingDevice.hpp"
-#include "src/Rendering/RenderingObjectsFactory.hpp"
 #include "src/Rendering/Swapchain.hpp"
 #include "src/Rendering/Builders/AttachmentBuilder.hpp"
 #include "src/Rendering/Builders/DescriptorPoolBuilder.hpp"
@@ -15,11 +14,9 @@
 #include "src/Rendering/Objects/DescriptorSetObject.hpp"
 #include "src/Rendering/Objects/ImageViewObject.hpp"
 
-SwapchainPresentRenderpass::SwapchainPresentRenderpass(RenderingDevice *renderingDevice, Swapchain *swapchain,
-                                                       RenderingObjectsFactory *renderingObjectsFactory)
+SwapchainPresentRenderpass::SwapchainPresentRenderpass(RenderingDevice *renderingDevice, Swapchain *swapchain)
         : RenderpassBase(renderingDevice),
-          _swapchain(swapchain),
-          _renderingObjectsFactory(renderingObjectsFactory) {
+          _swapchain(swapchain) {
     //
 }
 
@@ -158,9 +155,8 @@ void SwapchainPresentRenderpass::createFramebuffers() {
         this->_framebuffers[imageIdx] = builder.build();
     }
 
-    this->_descriptorSet = this->_renderingObjectsFactory->createDescriptorSetObject(this->_descriptorPool,
-                                                                                     this->_descriptorSetLayout,
-                                                                                     imagesCount);
+    this->_descriptorSet = DescriptorSetObject::create(this->_renderingDevice, imagesCount, this->_descriptorPool,
+                                                       this->_descriptorSetLayout);
 
     for (uint32_t passIdx = 0; passIdx < passesCount; passIdx++) {
 

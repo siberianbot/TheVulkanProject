@@ -10,51 +10,17 @@
 #include "src/Engine.hpp"
 #include "src/EngineVars.hpp"
 #include "src/Events/EventQueue.hpp"
+#include "src/Resources/Resource.hpp"
 #include "src/Resources/ResourceManager.hpp"
+#include "src/Resources/MeshResource.hpp"
+#include "src/Resources/ImageResource.hpp"
+#include "src/Resources/ShaderResource.hpp"
 #include "src/Objects/Light.hpp"
 #include "src/Objects/Object.hpp"
 #include "src/Scene/Scene.hpp"
 #include "src/Scene/SceneManager.hpp"
 
-void DebugUI::loadShader(const char *path) {
-    std::ifstream shader(path);
-
-    if (!shader.is_open()) {
-        return;
-    }
-
-    shader.seekg(0, std::ios::end);
-    size_t size = shader.tellg();
-
-    this->_shaderCode.resize(64 * 1024 + size);
-
-    shader.seekg(0, std::ios::beg);
-    shader.read(this->_shaderCode.data(), size);
-
-    shader.close();
-}
-
-void DebugUI::saveShader(const char *path) {
-    std::ofstream shader(path, std::ios::trunc);
-
-    if (!shader.is_open()) {
-        return;
-    }
-
-    size_t size = strnlen(this->_shaderCode.data(), this->_shaderCode.size());
-
-    shader.write(this->_shaderCode.data(), size);
-    shader.close();
-}
-
-void DebugUI::buildShader(const char *path) {
-    std::stringstream cmdBuilder;
-    cmdBuilder << "glslangValidator -gVS -V " << path << " -o " << path << ".spv";
-
-    std::string cmd = cmdBuilder.str();
-
-    this->_shaderBuildResult = system(cmd.c_str());
-}
+static constexpr const uint32_t TEXT_BUFFER_SIZE = 64 * 1024;
 
 void DebugUI::drawMainMenu() {
     if (ImGui::BeginMainMenuBar()) {
@@ -188,33 +154,94 @@ void DebugUI::drawRendererShaderEditor() {
     }
 
     if (ImGui::Begin("Shader editor")) {
-        if (ImGui::Combo("Current Shader", &this->_selectedShaderIdx, this->_shaders.data(), this->_shaders.size())) {
-            if (this->_selectedShaderIdx >= 0) {
-                this->loadShader(this->_shaders[this->_selectedShaderIdx]);
+        if (ImGui::BeginCombo("Current shader", this->_selectedShaderName.c_str())) {
+            // None
+            {
+                const bool selected = this->_selectedShaderResource == nullptr;
+
+                if (ImGui::Selectable(NONE_ITEM, selected)) {
+                    if (this->_selectedShaderResource != nullptr) {
+                        this->_selectedShaderResource->unloadCode();
+                    }
+
+                    this->_selectedShaderResource = nullptr;
+                    this->_selectedShaderName = NONE_ITEM;
+                    this->_selectedShaderCode.clear();
+                    this->_selectedShaderCode.resize(0);
+                    this->_selectedShaderStatus.clear();
+                }
+
+                if (selected) {
+                    ImGui::SetItemDefaultFocus();
+                }
+            }
+
+            for (const auto &[id, resource]: this->_engine->resourceManager()->resources()) {
+                if (resource->type() != SHADER_RESOURCE) {
+                    continue;
+                }
+
+                const bool selected = this->_selectedShaderResource == resource;
+
+                if (ImGui::Selectable(id.c_str(), selected)) {
+                    if (this->_selectedShaderResource != nullptr) {
+                        this->_selectedShaderResource->unloadCode();
+                    }
+
+                    this->_selectedShaderResource = dynamic_cast<ShaderResource *>(resource);
+
+                    try {
+                        this->_selectedShaderResource->loadCode();
+                    } catch (std::runtime_error &error) {
+                        this->_selectedShaderStatus = "Failed to load shader code";
+                        this->_selectedShaderResource = nullptr;
+                    }
+
+                    if (this->_selectedShaderResource != nullptr) {
+                        this->_selectedShaderName = id;
+
+                        uint32_t size = TEXT_BUFFER_SIZE + this->_selectedShaderResource->shaderCode().size();
+                        this->_selectedShaderCode.clear();
+                        this->_selectedShaderCode.resize(size);
+
+                        std::copy(this->_selectedShaderResource->shaderCode().begin(),
+                                  this->_selectedShaderResource->shaderCode().end(),
+                                  this->_selectedShaderCode.begin());
+
+                        this->_selectedShaderStatus.clear();
+                    }
+                }
+
+                if (selected) {
+                    ImGui::SetItemDefaultFocus();
+                }
+            }
+
+            ImGui::EndCombo();
+        }
+
+        ImGui::InputTextMultiline("Shader Code", this->_selectedShaderCode.data(), this->_selectedShaderCode.size(),
+                                  ImVec2(-1, -1));
+
+        ImGui::Text("%s", this->_selectedShaderStatus.c_str());
+
+        if (this->_selectedShaderResource != nullptr) {
+            if (ImGui::Button("Save")) {
+                try {
+                    this->_selectedShaderResource->saveCode(this->_selectedShaderCode);
+                } catch (std::runtime_error &error) {
+                    this->_selectedShaderStatus = "Failed to save shader code";
+                }
+            }
+
+            ImGui::SameLine();
+
+            if (ImGui::Button("Build")) {
+                this->_selectedShaderStatus = this->_selectedShaderResource->build()
+                                              ? "Successfully built"
+                                              : "Failed to build shader code";
             }
         }
-
-        if (ImGui::Button("Save")) {
-            if (this->_selectedShaderIdx >= 0) {
-                this->saveShader(this->_shaders[this->_selectedShaderIdx]);
-            }
-        }
-
-        ImGui::SameLine();
-
-        if (ImGui::Button("Build")) {
-            if (this->_selectedShaderIdx >= 0) {
-                this->buildShader(this->_shaders[this->_selectedShaderIdx]);
-            }
-        }
-
-        if (this->_shaderBuildResult == 0) {
-            ImGui::Text("Successfully built!");
-        } else if (this->_shaderBuildResult != -1) {
-            ImGui::Text("Failed to build!");
-        }
-
-        ImGui::InputTextMultiline("Shader Code", this->_shaderCode.data(), this->_shaderCode.size(), ImVec2(-1, -1));
     }
 
     ImGui::End();
@@ -235,58 +262,46 @@ void DebugUI::drawSceneObjectsWindow() {
         }
 
         if (ImGui::Button("Add object")) {
+            MeshResource *cubeMesh = this->_engine->resourceManager()->loadMesh("cube");
+            ImageResource *defaultImage = this->_engine->resourceManager()->loadDefaultImage();
+
             Object *object = new Object();
-            object->mesh() = &this->_engine->meshes()[0];
-            object->albedoTexture() = &this->_engine->textures()[0];
+            object->mesh() = cubeMesh;
+            object->albedoTexture() = defaultImage;
+
+            this->_selectedObjectMeshName = this->_engine->resourceManager()->getIdOf(
+                    this->_selectedObject->mesh()).value_or(NONE_ITEM);
+            this->_selectedObjectAlbedoTextureName = this->_engine->resourceManager()->getIdOf(
+                    this->_selectedObject->albedoTexture()).value_or(NONE_ITEM);
+            this->_selectedObjectSpecularTextureName = this->_engine->resourceManager()->getIdOf(
+                    this->_selectedObject->specTexture()).value_or(NONE_ITEM);
 
             currentScene->addObject(object);
-            this->_selectedObject = std::nullopt;
+
+            this->_selectedObject = object;
         }
 
         ImGui::SameLine();
 
         if (ImGui::Button("Remove all objects")) {
             currentScene->clearObjects();
-            this->_selectedObject = std::nullopt;
+            this->_selectedObject = nullptr;
         }
 
         if (ImGui::BeginListBox("#objects", ImVec2(-FLT_MIN, 10 * ImGui::GetTextLineHeightWithSpacing()))) {
-            for (auto current = currentScene->objects().begin();
-                 current != currentScene->objects().end(); ++current) {
-                const bool isSelected = (this->_selectedObject == current);
+            for (Object *object: currentScene->objects()) {
+                const bool isSelected = (this->_selectedObject == object);
 
-                std::string name = std::string("object ") + std::to_string(reinterpret_cast<long>(*current));
-
+                std::string name = std::string("object ") + std::to_string(reinterpret_cast<long>(object));
                 if (ImGui::Selectable(name.c_str(), isSelected)) {
-                    this->_selectedObject = current;
+                    this->_selectedObject = object;
 
-                    this->_selectedObjectMeshIdx = -1;
-                    for (uint32_t idx = 0; idx < this->_engine->meshes().size(); idx++) {
-                        if ((*current)->mesh() == &this->_engine->meshes()[idx]) {
-                            this->_selectedObjectMeshIdx = idx;
-                            break;
-                        }
-                    }
-
-                    this->_selectedObjectTextureIdx = -1;
-                    for (uint32_t idx = 0; idx < this->_engine->textures().size(); idx++) {
-                        if ((*current)->albedoTexture() == &this->_engine->textures()[idx]) {
-                            this->_selectedObjectTextureIdx = idx + 1;
-                            break;
-                        } else {
-                            this->_selectedObjectTextureIdx = 0;
-                        }
-                    }
-
-                    this->_selectedObjectSpecTextureIdx = -1;
-                    for (uint32_t idx = 0; idx < this->_engine->textures().size(); idx++) {
-                        if ((*current)->specTexture() == &this->_engine->textures()[idx]) {
-                            this->_selectedObjectSpecTextureIdx = idx + 1;
-                            break;
-                        } else {
-                            this->_selectedObjectSpecTextureIdx = 0;
-                        }
-                    }
+                    this->_selectedObjectMeshName = this->_engine->resourceManager()->getIdOf(
+                            this->_selectedObject->mesh()).value_or(NONE_ITEM);
+                    this->_selectedObjectAlbedoTextureName = this->_engine->resourceManager()->getIdOf(
+                            this->_selectedObject->albedoTexture()).value_or(NONE_ITEM);
+                    this->_selectedObjectSpecularTextureName = this->_engine->resourceManager()->getIdOf(
+                            this->_selectedObject->specTexture()).value_or(NONE_ITEM);
                 }
 
                 if (isSelected) {
@@ -297,44 +312,125 @@ void DebugUI::drawSceneObjectsWindow() {
             ImGui::EndListBox();
         }
 
-        if (this->_selectedObject.has_value()) {
-            Object *object = *this->_selectedObject.value();
+        if (this->_selectedObject != nullptr) {
+            ImGui::InputScalarN("Position", ImGuiDataType_Float, reinterpret_cast<float *>(
+                    &this->_selectedObject->position()), 3, &this->_floatStep, &this->_floatFastStep, "%.3f");
 
-            ImGui::InputScalarN("Position", ImGuiDataType_Float, reinterpret_cast<float *>(&object->position()),
-                                3, &this->_floatStep, &this->_floatFastStep, "%.3f");
-            ImGui::SliderAngle("Pitch", &object->rotation().x, 0, 360.0f);
-            ImGui::SliderAngle("Yaw", &object->rotation().y, 0, 360.0f);
-            ImGui::SliderAngle("Roll", &object->rotation().z, 0, 360.0f);
-            ImGui::InputScalarN("Scale", ImGuiDataType_Float, reinterpret_cast<float *>(&object->scale()),
-                                3, &this->_floatStep, &this->_floatFastStep, "%.3f");
+            ImGui::SliderAngle("Pitch", &this->_selectedObject->rotation().x, 0, 360.0f);
+            ImGui::SliderAngle("Yaw", &this->_selectedObject->rotation().y, 0, 360.0f);
+            ImGui::SliderAngle("Roll", &this->_selectedObject->rotation().z, 0, 360.0f);
 
-            if (ImGui::Combo("Mesh", &this->_selectedObjectMeshIdx, this->_meshes.data(), this->_meshes.size())) {
-                if (this->_selectedObjectMeshIdx != -1) {
-                    object->mesh() = &this->_engine->meshes()[this->_selectedObjectMeshIdx];
+            if (ImGui::BeginCombo("Mesh", this->_selectedObjectMeshName.c_str())) {
+                // None
+                {
+                    const bool selected = this->_selectedObject->mesh() == nullptr;
+
+                    if (ImGui::Selectable(NONE_ITEM, selected)) {
+                        this->_selectedObject->mesh() = nullptr;
+                        this->_selectedObjectMeshName = NONE_ITEM;
+                    }
+
+                    if (selected) {
+                        ImGui::SetItemDefaultFocus();
+                    }
                 }
+
+                for (const auto &[id, resource]: this->_engine->resourceManager()->resources()) {
+                    if (resource->type() != MESH_RESOURCE) {
+                        continue;
+                    }
+
+                    const bool selected = this->_selectedObject->mesh() == resource;
+
+                    if (ImGui::Selectable(id.c_str(), selected)) {
+                        this->_selectedObject->mesh() = dynamic_cast<MeshResource *>(resource);
+                        this->_selectedObjectMeshName = id;
+                    }
+
+                    if (selected) {
+                        ImGui::SetItemDefaultFocus();
+                    }
+                }
+
+                ImGui::EndCombo();
             }
 
-            if (ImGui::Combo("Texture", &this->_selectedObjectTextureIdx, this->_textures.data(),
-                             this->_textures.size())) {
-                if (this->_selectedObjectTextureIdx - 1 != -1) {
-                    object->albedoTexture() = &this->_engine->textures()[this->_selectedObjectTextureIdx - 1];
-                } else {
-                    object->albedoTexture() = nullptr;
+            if (ImGui::BeginCombo("Albedo texture", this->_selectedObjectAlbedoTextureName.c_str())) {
+                // None
+                {
+                    const bool selected = this->_selectedObject->albedoTexture() == nullptr;
+
+                    if (ImGui::Selectable(NONE_ITEM, selected)) {
+                        this->_selectedObject->albedoTexture() = nullptr;
+                        this->_selectedObjectAlbedoTextureName = NONE_ITEM;
+                    }
+
+                    if (selected) {
+                        ImGui::SetItemDefaultFocus();
+                    }
                 }
+
+                for (const auto &[id, resource]: this->_engine->resourceManager()->resources()) {
+                    if (resource->type() != IMAGE_RESOURCE) {
+                        continue;
+                    }
+
+                    const bool selected = this->_selectedObject->albedoTexture() == resource;
+
+                    if (ImGui::Selectable(id.c_str(), selected)) {
+                        this->_selectedObject->albedoTexture() = dynamic_cast<ImageResource *>(resource);
+                        this->_selectedObjectAlbedoTextureName = id;
+                    }
+
+                    if (selected) {
+                        ImGui::SetItemDefaultFocus();
+                    }
+                }
+
+                ImGui::EndCombo();
             }
 
-            if (ImGui::Combo("Specular", &this->_selectedObjectSpecTextureIdx, this->_textures.data(),
-                             this->_textures.size())) {
-                if (this->_selectedObjectSpecTextureIdx - 1 != -1) {
-                    object->specTexture() = &this->_engine->textures()[this->_selectedObjectSpecTextureIdx - 1];
-                } else {
-                    object->specTexture() = nullptr;
+            if (ImGui::BeginCombo("Specular texture", this->_selectedObjectSpecularTextureName.c_str())) {
+                // None
+                {
+                    const bool selected = this->_selectedObject->specTexture() == nullptr;
+
+                    if (ImGui::Selectable(NONE_ITEM, selected)) {
+                        this->_selectedObject->specTexture() = nullptr;
+                        this->_selectedObjectSpecularTextureName = NONE_ITEM;
+                    }
+
+                    if (selected) {
+                        ImGui::SetItemDefaultFocus();
+                    }
                 }
+
+                for (const auto &[id, resource]: this->_engine->resourceManager()->resources()) {
+                    if (resource->type() != IMAGE_RESOURCE) {
+                        continue;
+                    }
+
+                    const bool selected = this->_selectedObject->specTexture() == resource;
+
+                    if (ImGui::Selectable(id.c_str(), selected)) {
+                        this->_selectedObject->specTexture() = dynamic_cast<ImageResource *>(resource);
+                        this->_selectedObjectSpecularTextureName = id;
+                    }
+
+                    if (selected) {
+                        ImGui::SetItemDefaultFocus();
+                    }
+                }
+
+                ImGui::EndCombo();
             }
 
             if (ImGui::Button("Delete object")) {
-                currentScene->removeObject(object);
-                this->_selectedObject = std::nullopt;
+                currentScene->removeObject(this->_selectedObject);
+                this->_selectedObject = nullptr;
+                this->_selectedObjectMeshName = NONE_ITEM;
+                this->_selectedObjectAlbedoTextureName = NONE_ITEM;
+                this->_selectedObjectSpecularTextureName = NONE_ITEM;
             }
         }
     }
@@ -440,9 +536,10 @@ void DebugUI::drawResourcesListWindow() {
 
 
     if (ImGui::Begin("Resources list")) {
-        if (ImGui::BeginTable("#resources", 3, 0, ImVec2(-1, -1))) {
+        if (ImGui::BeginTable("#resources", 4, 0, ImVec2(-1, -1))) {
             ImGui::TableSetupColumn("Id");
             ImGui::TableSetupColumn("Type");
+            ImGui::TableSetupColumn("Loaded");
             ImGui::TableSetupColumn("Path");
             ImGui::TableHeadersRow();
 
@@ -453,28 +550,16 @@ void DebugUI::drawResourcesListWindow() {
                 ImGui::Text("%s", id.c_str());
 
                 ImGui::TableNextColumn();
-                std::string type;
-                switch (resource.type) {
-                    case MODEL_OBJ_RESOURCE:
-                        type = "model-obj";
-                        break;
-
-                    case SHADER_CODE_RESOURCE:
-                        type = "shader-code";
-                        break;
-
-                    case SHADER_SPV_RESOURCE:
-                        type = "shader-spv";
-                        break;
-
-                    case IMAGE_RESOURCE:
-                        type = "image";
-                        break;
-                }
+                std::string type = toString(resource->type());
                 ImGui::Text("%s", type.c_str());
 
                 ImGui::TableNextColumn();
-                ImGui::Text("%s", resource.path.c_str());
+                ImGui::Text("%s", resource->isLoaded() ? "yes" : "no");
+
+                ImGui::TableNextColumn();
+                for (auto &path: resource->paths()) {
+                    ImGui::Text("%s", path.c_str());
+                }
             }
 
             ImGui::EndTable();
@@ -486,35 +571,7 @@ void DebugUI::drawResourcesListWindow() {
 
 DebugUI::DebugUI(Engine *engine)
         : _engine(engine) {
-    this->_shaders.push_back("data/shaders/composition.frag");
-    this->_shaders.push_back("data/shaders/composition.vert");
-    this->_shaders.push_back("data/shaders/default.frag");
-    this->_shaders.push_back("data/shaders/default.vert");
-    this->_shaders.push_back("data/shaders/scene_composition.frag");
-    this->_shaders.push_back("data/shaders/shadow.frag");
-    this->_shaders.push_back("data/shaders/shadow.vert");
-    this->_shaders.push_back("data/shaders/skybox.frag");
-
-    for (uint32_t idx = 0; idx < this->_engine->meshes().size(); idx++) {
-        std::string name = std::string("mesh ") + std::to_string(reinterpret_cast<long>(&this->_engine->meshes()[idx]));
-        char *ptr = new char[name.size()];
-
-        memcpy(ptr, name.data(), name.size());
-
-        this->_meshes.push_back(ptr);
-    }
-
-    this->_textures.push_back("none");
-
-    for (uint32_t idx = 0; idx < this->_engine->textures().size(); idx++) {
-        std::string name = std::string("texture ") +
-                           std::to_string(reinterpret_cast<long>(&this->_engine->textures()[idx]));
-        char *ptr = new char[name.size()];
-
-        memcpy(ptr, name.data(), name.size());
-
-        this->_textures.push_back(ptr);
-    }
+    //
 }
 
 void DebugUI::render() {

@@ -5,8 +5,6 @@
 
 #include <vulkan/vulkan.hpp>
 
-#include "Common.hpp"
-
 class PhysicalDevice;
 
 class RenderingDevice {

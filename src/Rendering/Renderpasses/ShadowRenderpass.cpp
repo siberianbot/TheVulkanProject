@@ -1,10 +1,9 @@
 #include "ShadowRenderpass.hpp"
 
 #include "src/Engine.hpp"
-#include "src/Resources/Vertex.hpp"
+#include "src/Types/Vertex.hpp"
 #include "src/Rendering/PhysicalDevice.hpp"
 #include "src/Rendering/RenderingDevice.hpp"
-#include "src/Rendering/RenderingObjectsFactory.hpp"
 #include "src/Rendering/Builders/RenderpassBuilder.hpp"
 #include "src/Rendering/Builders/AttachmentBuilder.hpp"
 #include "src/Rendering/Builders/SubpassBuilder.hpp"
@@ -14,6 +13,8 @@
 #include "src/Rendering/Objects/BufferObject.hpp"
 #include "src/Rendering/Objects/ImageObject.hpp"
 #include "src/Rendering/Objects/ImageViewObject.hpp"
+#include "src/Resources/MeshResource.hpp"
+#include "src/Objects/Camera.hpp"
 #include "src/Objects/Light.hpp"
 #include "src/Objects/Object.hpp"
 #include "src/Scene/Scene.hpp"
@@ -21,17 +22,14 @@
 
 static constexpr const uint32_t SIZE = 1024;
 
-ShadowRenderpass::ShadowRenderpass(RenderingDevice *renderingDevice, Engine *engine,
-                                   RenderingObjectsFactory *renderingObjectsFactory)
+ShadowRenderpass::ShadowRenderpass(RenderingDevice *renderingDevice, Engine *engine)
         : RenderpassBase(renderingDevice),
-          _engine(engine),
-          _renderingObjectsFactory(renderingObjectsFactory) {
+          _engine(engine) {
     //
 }
 
 void ShadowRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D renderArea, uint32_t frameIdx,
                                       uint32_t imageIdx) {
-    glm::vec3 cameraPosition = this->_engine->camera().position();
     Scene *currentScene = this->_engine->sceneManager()->currentScene();
 
     std::vector<LightData> lightData;
@@ -39,7 +37,7 @@ void ShadowRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D re
         for (uint32_t idx = 0; idx < currentScene->lights().size(); idx++) {
             Light *light = currentScene->lights()[idx];
 
-            if (!light->enabled() || glm::distance(cameraPosition, light->position()) > 100) {
+            if (!light->enabled() || glm::distance(currentScene->camera()->position(), light->position()) > 100) {
                 continue;
             }
 
@@ -111,6 +109,10 @@ void ShadowRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D re
 
         uint32_t idx = 0;
         for (Object *object: currentScene->objects()) {
+            if (object->mesh() == nullptr) {
+                continue;
+            }
+
             glm::mat4 model = object->getModelMatrix(false);
             MeshConstants constants = {
                     .matrix = datum.projection * datum.view * model,
@@ -118,18 +120,11 @@ void ShadowRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D re
             vkCmdPushConstants(commandBuffer, this->_pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
                                sizeof(MeshConstants), &constants);
 
-            VkBuffer vertexBuffer = object->mesh()->vertices->getHandle();
+            VkBuffer vertexBuffer = object->mesh()->vertexBuffer()->getHandle();
             vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer, &offset);
+            vkCmdBindIndexBuffer(commandBuffer, object->mesh()->indexBuffer()->getHandle(), 0, VK_INDEX_TYPE_UINT32);
 
-            if (object->mesh()->indices != nullptr) {
-                vkCmdBindIndexBuffer(commandBuffer, object->mesh()->indices->getHandle(), 0, VK_INDEX_TYPE_UINT32);
-            }
-
-            if (object->mesh()->indices != nullptr) {
-                vkCmdDrawIndexed(commandBuffer, object->mesh()->count, 1, 0, 0, idx++);
-            } else {
-                vkCmdDraw(commandBuffer, object->mesh()->vertices->getSize(), 1, 0, 0);
-            }
+            vkCmdDrawIndexed(commandBuffer, object->mesh()->count(), 1, 0, 0, idx++);
         }
 
         vkCmdEndRenderPass(commandBuffer);
@@ -173,15 +168,15 @@ void ShadowRenderpass::initRenderpass() {
             .build();
 
     for (uint32_t idx = 0; idx < MAX_NUM_LIGHTS; idx++) {
-        this->_depthImages[idx] = this->_renderingObjectsFactory->createImageObject(SIZE, SIZE, 1, 0,
-                                                                                    this->_renderingDevice->getPhysicalDevice()->getDepthFormat(),
-                                                                                    VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT |
-                                                                                    VK_IMAGE_USAGE_SAMPLED_BIT,
-                                                                                    VK_SAMPLE_COUNT_1_BIT,
-                                                                                    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-        this->_depthImageViews[idx] = this->_renderingObjectsFactory->createImageViewObject(this->_depthImages[idx],
-                                                                                            VK_IMAGE_VIEW_TYPE_2D,
-                                                                                            VK_IMAGE_ASPECT_DEPTH_BIT);
+        this->_depthImages[idx] = ImageObject::create(this->_renderingDevice, SIZE, SIZE, 1, 0,
+                                                      this->_renderingDevice->getPhysicalDevice()->getDepthFormat(),
+                                                      VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT |
+                                                      VK_IMAGE_USAGE_SAMPLED_BIT,
+                                                      VK_SAMPLE_COUNT_1_BIT,
+                                                      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+        this->_depthImageViews[idx] = ImageViewObject::create(this->_renderingDevice, this->_depthImages[idx],
+                                                              VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_DEPTH_BIT);
     }
 }
 
