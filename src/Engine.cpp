@@ -59,6 +59,8 @@ void Engine::init() {
     this->_resourceManager = new ResourceManager(this->_renderer->rendererAllocator());
     this->_resourceManager->addDataDir("data");
 
+    this->_renderer->initRenderpasses();
+
     this->_input->addReleaseHandler(GLFW_KEY_ESCAPE, [this](float delta) {
         if (this->_state != Focused) {
             return;

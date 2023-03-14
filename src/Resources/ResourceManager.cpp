@@ -33,6 +33,10 @@ ResourceManager::ResourceManager(RendererAllocator *rendererAllocator)
 
 ResourceManager::~ResourceManager() {
     this->unloadAll();
+
+    for (const auto &[id, resource]: this->_resources) {
+        delete resource;
+    }
 }
 
 void ResourceManager::addDataDir(const std::filesystem::path &path) {

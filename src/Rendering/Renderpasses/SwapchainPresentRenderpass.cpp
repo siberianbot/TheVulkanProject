@@ -1,5 +1,6 @@
 #include "SwapchainPresentRenderpass.hpp"
 
+#include "src/Engine.hpp"
 #include "src/Rendering/PhysicalDevice.hpp"
 #include "src/Rendering/RenderingDevice.hpp"
 #include "src/Rendering/Swapchain.hpp"
@@ -13,10 +14,14 @@
 #include "src/Rendering/Builders/SubpassBuilder.hpp"
 #include "src/Rendering/Objects/DescriptorSetObject.hpp"
 #include "src/Rendering/Objects/ImageViewObject.hpp"
+#include "src/Resources/ResourceManager.hpp"
+#include "src/Resources/ShaderResource.hpp"
 
-SwapchainPresentRenderpass::SwapchainPresentRenderpass(RenderingDevice *renderingDevice, Swapchain *swapchain)
+SwapchainPresentRenderpass::SwapchainPresentRenderpass(RenderingDevice *renderingDevice, Swapchain *swapchain,
+                                                       Engine *engine)
         : RenderpassBase(renderingDevice),
-          _swapchain(swapchain) {
+          _swapchain(swapchain),
+          _engine(engine) {
     //
 }
 
@@ -121,9 +126,12 @@ void SwapchainPresentRenderpass::initRenderpass() {
             .withDescriptorSetLayout(this->_descriptorSetLayout)
             .build();
 
+    ShaderResource *vertexShader = this->_engine->resourceManager()->loadShader("composition_vert");
+    ShaderResource *fragmentShader = this->_engine->resourceManager()->loadShader("composition_frag");
+
     this->_pipeline = PipelineBuilder(this->_renderingDevice, this->_renderpass, this->_pipelineLayout)
-            .addVertexShader("data/shaders/composition.vert.spv")
-            .addFragmentShader("data/shaders/composition.frag.spv")
+            .addVertexShader(vertexShader->shader())
+            .addFragmentShader(fragmentShader->shader())
             .withCullMode(VK_CULL_MODE_FRONT_BIT)
             .build();
 }

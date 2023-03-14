@@ -30,6 +30,7 @@
 #include "src/Resources/CubeImageResource.hpp"
 #include "src/Resources/ImageResource.hpp"
 #include "src/Resources/MeshResource.hpp"
+#include "src/Resources/ShaderResource.hpp"
 
 RenderData *SceneRenderpass::getRenderData(Object *object) {
     auto it = std::find_if(object->data().begin(), object->data().end(), [](IData *data) {
@@ -120,9 +121,12 @@ void SceneRenderpass::initSkyboxPipeline() {
             .withPushConstant(VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshConstants))
             .build();
 
+    ShaderResource *vertexShader = this->_engine->resourceManager()->loadShader("default_vert");
+    ShaderResource *fragmentShader = this->_engine->resourceManager()->loadShader("skybox_frag");
+
     this->_skyboxPipeline = PipelineBuilder(this->_renderingDevice, this->_renderpass, this->_skyboxPipelineLayout)
-            .addVertexShader(DEFAULT_VERTEX_SHADER)
-            .addFragmentShader(SKYBOX_FRAGMENT_SHADER)
+            .addVertexShader(vertexShader->shader())
+            .addFragmentShader(fragmentShader->shader())
             .addBinding(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
             .addAttribute(0, 0, offsetof(Vertex, pos), VK_FORMAT_R32G32B32_SFLOAT)
             .addAttribute(0, 1, offsetof(Vertex, normal), VK_FORMAT_R32G32B32_SFLOAT)
@@ -164,9 +168,12 @@ void SceneRenderpass::initScenePipeline() {
             .withPushConstant(VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshConstants))
             .build();
 
+    ShaderResource *vertexShader = this->_engine->resourceManager()->loadShader("default_vert");
+    ShaderResource *fragmentShader = this->_engine->resourceManager()->loadShader("default_frag");
+
     this->_scenePipeline = PipelineBuilder(this->_renderingDevice, this->_renderpass, this->_scenePipelineLayout)
-            .addVertexShader(DEFAULT_VERTEX_SHADER)
-            .addFragmentShader(DEFAULT_FRAGMENT_SHADER)
+            .addVertexShader(vertexShader->shader())
+            .addFragmentShader(fragmentShader->shader())
             .addBinding(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
             .addAttribute(0, 0, offsetof(Vertex, pos), VK_FORMAT_R32G32B32_SFLOAT)
             .addAttribute(0, 1, offsetof(Vertex, normal), VK_FORMAT_R32G32B32_SFLOAT)
@@ -265,10 +272,13 @@ void SceneRenderpass::initCompositionPipeline() {
             .withDescriptorSetLayout(this->_compositionSceneDataDescriptorSetLayout)
             .build();
 
+    ShaderResource *vertexShader = this->_engine->resourceManager()->loadShader("composition_vert");
+    ShaderResource *fragmentShader = this->_engine->resourceManager()->loadShader("scene_composition_frag");
+
     this->_compositionPipeline = PipelineBuilder(this->_renderingDevice, this->_renderpass,
                                                  this->_compositionPipelineLayout)
-            .addVertexShader("data/shaders/composition.vert.spv")
-            .addFragmentShader("data/shaders/scene_composition.frag.spv")
+            .addVertexShader(vertexShader->shader())
+            .addFragmentShader(fragmentShader->shader())
             .withRasterizationSamples(this->_renderingDevice->getPhysicalDevice()->getMsaaSamples())
             .withCullMode(VK_CULL_MODE_FRONT_BIT)
             .forSubpass(2)

@@ -16,10 +16,6 @@ static constexpr std::array<const char *, 1> DEVICE_EXTENSIONS = {
 
 static constexpr const uint32_t MAX_INFLIGHT_FRAMES = 2;
 
-static constexpr const char *DEFAULT_VERTEX_SHADER = "data/shaders/default.vert.spv";
-static constexpr const char *DEFAULT_FRAGMENT_SHADER = "data/shaders/default.frag.spv";
-static constexpr const char *SKYBOX_FRAGMENT_SHADER = "data/shaders/skybox.frag.spv";
-
 static constexpr const int MAX_NUM_LIGHTS = 32;
 static constexpr std::array<glm::vec3, 6> POINT_LIGHT_DIRECTIONS = {
         glm::vec3(1, 0, 0),

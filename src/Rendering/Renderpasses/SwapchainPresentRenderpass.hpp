@@ -7,10 +7,12 @@
 
 class Swapchain;
 class DescriptorSetObject;
+class Engine;
 
 class SwapchainPresentRenderpass : public RenderpassBase {
 private:
     Swapchain *_swapchain;
+    Engine *_engine;
 
     std::vector<RenderpassBase *> _inputRenderpasses;
 
@@ -21,7 +23,7 @@ private:
     DescriptorSetObject *_descriptorSet;
 
 public:
-    SwapchainPresentRenderpass(RenderingDevice *renderingDevice, Swapchain *swapchain);
+    SwapchainPresentRenderpass(RenderingDevice *renderingDevice, Swapchain *swapchain, Engine *engine);
     ~SwapchainPresentRenderpass() override = default;
 
     void recordCommands(VkCommandBuffer commandBuffer, VkRect2D renderArea,

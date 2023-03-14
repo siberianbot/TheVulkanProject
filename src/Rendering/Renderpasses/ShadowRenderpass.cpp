@@ -13,7 +13,9 @@
 #include "src/Rendering/Objects/BufferObject.hpp"
 #include "src/Rendering/Objects/ImageObject.hpp"
 #include "src/Rendering/Objects/ImageViewObject.hpp"
+#include "src/Resources/ResourceManager.hpp"
 #include "src/Resources/MeshResource.hpp"
+#include "src/Resources/ShaderResource.hpp"
 #include "src/Objects/Camera.hpp"
 #include "src/Objects/Light.hpp"
 #include "src/Objects/Object.hpp"
@@ -158,9 +160,12 @@ void ShadowRenderpass::initRenderpass() {
             .withPushConstant(VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshConstants))
             .build();
 
+    ShaderResource *vertexShader = this->_engine->resourceManager()->loadShader("shadow_vert");
+    ShaderResource *fragmentShader = this->_engine->resourceManager()->loadShader("shadow_frag");
+
     this->_pipeline = PipelineBuilder(this->_renderingDevice, this->_renderpass, this->_pipelineLayout)
-            .addVertexShader("data/shaders/shadow.vert.spv")
-            .addFragmentShader("data/shaders/shadow.frag.spv")
+            .addVertexShader(vertexShader->shader())
+            .addFragmentShader(fragmentShader->shader())
             .addBinding(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
             .addAttribute(0, 0, offsetof(Vertex, pos), VK_FORMAT_R32G32B32_SFLOAT)
             .withCullMode(VK_CULL_MODE_NONE)

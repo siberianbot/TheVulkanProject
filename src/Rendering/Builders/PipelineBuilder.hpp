@@ -9,6 +9,7 @@
 
 class RenderingDevice;
 class SpecializationInfoBuilder;
+class ShaderObject;
 
 using ShaderSpecializationFunc = std::function<void(SpecializationInfoBuilder &)>;
 
@@ -18,8 +19,8 @@ private:
     VkRenderPass _renderpass;
     VkPipelineLayout _pipelineLayout;
 
-    VkShaderModule _vertexShader = VK_NULL_HANDLE;
-    VkShaderModule _fragmentShader = VK_NULL_HANDLE;
+    ShaderObject *_vertexShader = nullptr;
+    ShaderObject *_fragmentShader = nullptr;
     std::vector<VkVertexInputBindingDescription> _bindings;
     std::vector<VkVertexInputAttributeDescription> _attributes;
     std::optional<VkSpecializationInfo> _vertexShaderSpecialization;
@@ -30,14 +31,11 @@ private:
     bool _depthBiasEnabled = false;
     uint32_t _subpassIdx = 0;
 
-    VkShaderModule createShaderModule(const std::string &path);
-
 public:
     PipelineBuilder(RenderingDevice *renderingDevice, VkRenderPass renderpass, VkPipelineLayout pipelineLayout);
-    ~PipelineBuilder();
 
-    PipelineBuilder &addVertexShader(const std::string &path);
-    PipelineBuilder &addFragmentShader(const std::string &path);
+    PipelineBuilder &addVertexShader(ShaderObject *shader);
+    PipelineBuilder &addFragmentShader(ShaderObject *shader);
 
     PipelineBuilder &addBinding(uint32_t bindingIdx, uint32_t stride, VkVertexInputRate inputRate);
     PipelineBuilder &addAttribute(uint32_t bindingIdx, uint32_t locationIdx,

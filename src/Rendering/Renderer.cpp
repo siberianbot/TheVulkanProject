@@ -90,7 +90,7 @@ void Renderer::init() {
                                                           this->_physicalDevice, this->_commandExecutor);
 
     SwapchainPresentRenderpass *presentRenderpass = new SwapchainPresentRenderpass(this->_renderingDevice,
-                                                                                   this->_swapchain);
+                                                                                   this->_swapchain, this->_engine);
     presentRenderpass->addInputRenderpass(sceneRenderpass);
     presentRenderpass->addInputRenderpass(imguiRenderpass);
 
@@ -98,8 +98,6 @@ void Renderer::init() {
     this->_renderpasses.push_back(sceneRenderpass);
     this->_renderpasses.push_back(imguiRenderpass);
     this->_renderpasses.push_back(presentRenderpass);
-
-    this->initRenderpasses();
 
     this->_engine->eventQueue()->addHandler([this](const Event &event) {
         switch (event.type) {

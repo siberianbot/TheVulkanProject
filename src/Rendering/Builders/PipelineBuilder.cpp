@@ -2,25 +2,9 @@
 
 #include <fstream>
 
-#include "src/Rendering/Common.hpp"
 #include "src/Rendering/RenderingDevice.hpp"
 #include "src/Rendering/Builders/SpecializationInfoBuilder.hpp"
-
-VkShaderModule PipelineBuilder::createShaderModule(const std::string &path) {
-    std::ifstream file(path, std::ios::ate | std::ios::binary);
-    if (!file.is_open()) {
-        throw std::runtime_error("shader file read failure");
-    }
-
-    size_t size = file.tellg();
-    std::vector<char> buffer(size);
-
-    file.seekg(0);
-    file.read(buffer.data(), size);
-    file.close();
-
-    return this->_renderingDevice->createShaderModule(buffer);
-}
+#include "src/Rendering/Objects/ShaderObject.hpp"
 
 PipelineBuilder::PipelineBuilder(RenderingDevice *renderingDevice,
                                  VkRenderPass renderpass, VkPipelineLayout pipelineLayout)
@@ -30,24 +14,14 @@ PipelineBuilder::PipelineBuilder(RenderingDevice *renderingDevice,
     //
 }
 
-PipelineBuilder::~PipelineBuilder() {
-    if (this->_vertexShader != VK_NULL_HANDLE) {
-        this->_renderingDevice->destroyShaderModule(this->_vertexShader);
-    }
-
-    if (this->_fragmentShader != VK_NULL_HANDLE) {
-        this->_renderingDevice->destroyShaderModule(this->_fragmentShader);
-    }
-}
-
-PipelineBuilder &PipelineBuilder::addVertexShader(const std::string &path) {
-    this->_vertexShader = createShaderModule(path);
+PipelineBuilder &PipelineBuilder::addVertexShader(ShaderObject *shader) {
+    this->_vertexShader = shader;
 
     return *this;
 }
 
-PipelineBuilder &PipelineBuilder::addFragmentShader(const std::string &path) {
-    this->_fragmentShader = createShaderModule(path);
+PipelineBuilder &PipelineBuilder::addFragmentShader(ShaderObject *shader) {
+    this->_fragmentShader = shader;
 
     return *this;
 }
@@ -136,7 +110,7 @@ VkPipeline PipelineBuilder::build() {
                     .pNext = nullptr,
                     .flags = 0,
                     .stage = VK_SHADER_STAGE_VERTEX_BIT,
-                    .module = this->_vertexShader,
+                    .module = this->_vertexShader->getHandle(),
                     .pName = "main",
                     .pSpecializationInfo = this->_vertexShaderSpecialization.has_value()
                     ? &this->_vertexShaderSpecialization.value()
@@ -147,7 +121,7 @@ VkPipeline PipelineBuilder::build() {
                     .pNext = nullptr,
                     .flags = 0,
                     .stage = VK_SHADER_STAGE_FRAGMENT_BIT,
-                    .module = this->_fragmentShader,
+                    .module = this->_fragmentShader->getHandle(),
                     .pName = "main",
                     .pSpecializationInfo = this->_fragmentShaderSpecialization.has_value()
                     ? &this->_fragmentShaderSpecialization.value()
