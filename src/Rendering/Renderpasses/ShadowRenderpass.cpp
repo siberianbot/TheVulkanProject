@@ -172,6 +172,9 @@ void ShadowRenderpass::initRenderpass() {
             .withDepthBias()
             .build();
 
+    vertexShader->unload();
+    fragmentShader->unload();
+
     for (uint32_t idx = 0; idx < MAX_NUM_LIGHTS; idx++) {
         this->_depthImages[idx] = ImageObject::create(this->_renderingDevice, SIZE, SIZE, 1, 0,
                                                       this->_renderingDevice->getPhysicalDevice()->getDepthFormat(),

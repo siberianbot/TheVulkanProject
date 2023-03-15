@@ -136,6 +136,9 @@ void SceneRenderpass::initSkyboxPipeline() {
             .forSubpass(0)
             .build();
 
+    vertexShader->unload();
+    fragmentShader->unload();
+
     this->_skyboxDescriptorSet = DescriptorSetObject::create(this->_renderingDevice, MAX_INFLIGHT_FRAMES,
                                                              this->_descriptorPool, this->_objectDescriptorSetLayout);
 
@@ -183,6 +186,9 @@ void SceneRenderpass::initScenePipeline() {
             .withColorBlendAttachmentCount(4)
             .forSubpass(1)
             .build();
+
+    vertexShader->unload();
+    fragmentShader->unload();
 }
 
 void SceneRenderpass::destroyScenePipeline() {
@@ -283,6 +289,9 @@ void SceneRenderpass::initCompositionPipeline() {
             .withCullMode(VK_CULL_MODE_FRONT_BIT)
             .forSubpass(2)
             .build();
+
+    vertexShader->unload();
+    fragmentShader->unload();
 }
 
 void SceneRenderpass::destroyCompositionPipeline() {

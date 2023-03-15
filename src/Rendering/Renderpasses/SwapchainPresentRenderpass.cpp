@@ -134,6 +134,9 @@ void SwapchainPresentRenderpass::initRenderpass() {
             .addFragmentShader(fragmentShader->shader())
             .withCullMode(VK_CULL_MODE_FRONT_BIT)
             .build();
+
+    vertexShader->unload();
+    fragmentShader->unload();
 }
 
 void SwapchainPresentRenderpass::destroyRenderpass() {
