@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-#include "src/Engine.hpp"
+#include "src/Engine/Engine.hpp"
 #include "src/Events/EventQueue.hpp"
 #include "src/Objects/Camera.hpp"
 #include "src/Objects/Light.hpp"

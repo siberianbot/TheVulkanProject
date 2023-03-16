@@ -1,7 +1,7 @@
 #include "SceneRenderpass.hpp"
 
-#include "src/Engine.hpp"
-#include "src/EngineVars.hpp"
+#include "src/Engine/Engine.hpp"
+#include "src/Engine/EngineVars.hpp"
 #include "src/Events/EventQueue.hpp"
 #include "src/Objects/Camera.hpp"
 #include "src/Objects/Light.hpp"

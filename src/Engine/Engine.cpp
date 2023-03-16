@@ -2,12 +2,12 @@
 
 #include <GLFW/glfw3.h>
 #include <glm/vec3.hpp>
-#include <imgui.h>
-#include <imgui_impl_glfw.h>
+#include "subprojects/imgui-1.89.2/imgui.h"
+#include "subprojects/imgui-1.89.2/backends/imgui_impl_glfw.h"
 
-#include "Constants.hpp"
-#include "EngineVars.hpp"
-#include "Input.hpp"
+#include "src/Constants.hpp"
+#include "src/Engine/EngineVars.hpp"
+#include "src/Input/Input.hpp"
 #include "src/Events/EventQueue.hpp"
 #include "src/Rendering/Renderer.hpp"
 #include "src/Resources/MeshResource.hpp"

@@ -16,12 +16,16 @@ deps = [
 
 src = [
     'src/Main.cpp',
-    'src/Engine.cpp',
-    'src/EngineVars.cpp',
-    'src/Input.cpp',
+
+    # Engine
+    'src/Engine/Engine.cpp',
+    'src/Engine/EngineVars.cpp',
 
     # Events
     'src/Events/EventQueue.cpp',
+
+    # Input
+    'src/Input/Input.cpp',
 
     # Rendering
     'src/Rendering/Renderer.cpp',

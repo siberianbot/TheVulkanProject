@@ -7,8 +7,8 @@
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_vulkan.h>
 
-#include "src/Engine.hpp"
-#include "src/EngineVars.hpp"
+#include "src/Engine/Engine.hpp"
+#include "src/Engine/EngineVars.hpp"
 #include "src/Events/EventQueue.hpp"
 #include "src/Resources/Resource.hpp"
 #include "src/Resources/ResourceManager.hpp"

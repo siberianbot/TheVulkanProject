@@ -2,7 +2,7 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 
-#include "src/Math.hpp"
+#include "src/Math/Math.hpp"
 
 glm::vec3 Camera::getForwardVector() {
     return forward(this->_yaw, this->_pitch);
