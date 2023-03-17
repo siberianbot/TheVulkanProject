@@ -22,6 +22,7 @@ struct Var {
     };
 };
 
+// TODO: better name required
 class EngineVars {
 private:
     std::map<std::string, Var *> _vars;
@@ -40,6 +41,10 @@ public:
 
     static EngineVars *defaults();
 };
+
+static constexpr const char *WINDOW_TITLE_VAR = "Window.Title";
+static constexpr const char *WINDOW_WIDTH_VAR = "Window.Width";
+static constexpr const char *WINDOW_HEIGHT_VAR = "Window.Height";
 
 static constexpr const char *RENDERER_SKYBOX_ENABLED_VAR = "RENDERER_SKYBOX_ENABLED_VAR";
 

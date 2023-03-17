@@ -16,6 +16,7 @@
 #include "src/Rendering/Renderpasses/SceneRenderpass.hpp"
 #include "src/Rendering/Renderpasses/ShadowRenderpass.hpp"
 #include "src/Rendering/Renderpasses/SwapchainPresentRenderpass.hpp"
+#include "src/System/Window.hpp"
 
 Renderer::SyncObjectsGroup::~SyncObjectsGroup() {
     delete this->fence;
@@ -64,7 +65,7 @@ Renderer::Renderer(Engine *engine) : _engine(engine) {
 
 void Renderer::init() {
     this->_instance = createInstance();
-    this->_surface = createSurface(this->_engine->window());
+    this->_surface = createSurface(this->_engine->window()->handle());
 
     this->_physicalDevice = PhysicalDevice::selectSuitable(this->_instance, this->_surface);
     this->_renderingDevice = this->_physicalDevice->createRenderingDevice();
@@ -106,7 +107,7 @@ void Renderer::init() {
                 this->initRenderpasses();
                 break;
 
-            case VIEWPORT_RESIZED_EVENT:
+            case RESIZE_WINDOW_EVENT:
                 this->handleResize();
                 break;
 

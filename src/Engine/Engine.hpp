@@ -1,19 +1,19 @@
 #ifndef ENGINE_HPP
 #define ENGINE_HPP
 
-#include <cstdint>
+#include <memory>
 #include <vector>
 
-struct GLFWwindow;
+class EventQueue;
 class EngineVars;
+class InputProcessor;
+class Window;
+
 class DebugUI;
 class Scene;
-class EventQueue;
 class ResourceManager;
 class SceneManager;
 class Renderer;
-class Input;
-class MouseInput;
 
 enum CameraControlState {
     NotFocused,
@@ -22,29 +22,25 @@ enum CameraControlState {
 
 class Engine {
 private:
-    GLFWwindow *_window = nullptr;
+    std::shared_ptr<EngineVars> _engineVars;
+    std::shared_ptr<EventQueue> _eventQueue;
+    std::shared_ptr<InputProcessor> _inputProcessor;
+    std::shared_ptr<Window> _window;
 
     Renderer *_renderer;
-    Input *_input;
-    MouseInput *_mouseInput;
-    EventQueue *_eventQueue;
-    EngineVars *_engineVars;
     ResourceManager *_resourceManager;
     SceneManager *_sceneManager;
     DebugUI *_debugUI;
 
-    int _windowWidth = 1280;
-    int _windowHeight = 720;
+    bool _work = false;
     float _delta = 0;
     CameraControlState _state = NotFocused;
-
-    void initGlfw();
-    void initWindow();
-
-    static void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
-    static void framebufferResizeCallback(GLFWwindow *window, int width, int height);
-    static void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods);
-    static void cursorCallback(GLFWwindow *window, double xpos, double ypos);
+    double _x = 0;
+    double _y = 0;
+    bool _moveForward = false;
+    bool _moveBackward = false;
+    bool _strafeLeft = false;
+    bool _strafeRight = false;
 
 public:
     Engine();
@@ -54,16 +50,15 @@ public:
 
     void run();
 
-    [[nodiscard]] GLFWwindow *window() { return this->_window; }
+    [[nodiscard]] std::shared_ptr<EngineVars> engineVars() const { return this->_engineVars; }
+    [[nodiscard]] std::shared_ptr<EventQueue> eventQueue() const { return this->_eventQueue; }
+    [[nodiscard]] std::shared_ptr<InputProcessor> inputProcessor() const { return this->_inputProcessor; }
+    [[nodiscard]] std::shared_ptr<Window> window() const { return this->_window; }
 
     [[nodiscard]] Renderer *renderer() { return this->_renderer; }
-    [[nodiscard]] EventQueue *eventQueue() { return this->_eventQueue; }
-    [[nodiscard]] EngineVars *engineVars() { return this->_engineVars; }
     [[nodiscard]] ResourceManager *resourceManager() { return this->_resourceManager; }
     [[nodiscard]] SceneManager *sceneManager() { return this->_sceneManager; }
 
-    [[nodiscard]] uint32_t windowWidth() { return this->_windowWidth; }
-    [[nodiscard]] uint32_t windowHeight() { return this->_windowHeight; }
     [[nodiscard]] float delta() { return this->_delta; }
 };
 

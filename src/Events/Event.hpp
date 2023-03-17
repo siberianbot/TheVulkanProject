@@ -10,15 +10,31 @@ class Scene;
 enum EventType {
     CLOSE_REQUESTED_EVENT,
     RENDERER_RELOADING_REQUESTED_EVENT,
-    VIEWPORT_RESIZED_EVENT,
     OBJECT_CREATED_EVENT,
     OBJECT_DESTROYED_EVENT,
     LIGHT_CREATED_EVENT,
     LIGHT_DESTROYED_EVENT,
-    SCENE_TRANSITION_EVENT
+    SCENE_TRANSITION_EVENT,
+
+    // *_WINDOW_EVENT
+    RESIZE_WINDOW_EVENT,
+
+    // *_INPUT_EVENT
+    KEYBOARD_PRESS_INPUT_EVENT,
+    KEYBOARD_RELEASE_INPUT_EVENT,
+    MOUSE_PRESS_INPUT_EVENT,
+    MOUSE_RELEASE_INPUT_EVENT,
+    CURSOR_MOVE_INPUT_EVENT,
 };
 
-struct ViewportEvent {
+struct InputData {
+    int keyboardKey;
+    int mouseButton;
+    double cursorHorizontal;
+    double cursorVertical;
+};
+
+struct WindowData {
     uint32_t width;
     uint32_t height;
 };
@@ -30,10 +46,13 @@ struct Event {
         Object *object;
         // LIGHT_CREATED, LIGHT_DESTROYED
         Light *light;
-        // VIEWPORT_RESIZED_EVENT
-        ViewportEvent viewport;
         // SCENE_TRANSITION_EVENT
         Scene *scene;
+
+        // *_WINDOW_EVENT
+        WindowData window;
+        // *_INPUT_EVENT
+        InputData input;
     };
 };
 

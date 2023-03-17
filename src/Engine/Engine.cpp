@@ -3,12 +3,12 @@
 #include <GLFW/glfw3.h>
 #include <glm/vec3.hpp>
 #include "subprojects/imgui-1.89.2/imgui.h"
-#include "subprojects/imgui-1.89.2/backends/imgui_impl_glfw.h"
 
-#include "src/Constants.hpp"
 #include "src/Engine/EngineVars.hpp"
-#include "src/Input/Input.hpp"
 #include "src/Events/EventQueue.hpp"
+#include "src/Engine/InputProcessor.hpp"
+#include "src/System/Window.hpp"
+
 #include "src/Rendering/Renderer.hpp"
 #include "src/Resources/MeshResource.hpp"
 #include "src/Resources/ImageResource.hpp"
@@ -22,36 +22,32 @@
 #include "src/Scene/SceneManager.hpp"
 
 Engine::Engine()
-        : _renderer(new Renderer(this)),
-          _input(new Input()),
-          _mouseInput(new MouseInput()),
-          _eventQueue(new EventQueue()),
-          _engineVars(EngineVars::defaults()),
+        : _engineVars(std::make_shared<EngineVars>()),
+          _eventQueue(std::make_shared<EventQueue>()),
+          _inputProcessor(std::make_shared<InputProcessor>(this->_eventQueue)),
+          _window(std::make_shared<Window>(this->_engineVars, this->_eventQueue)),
+          _renderer(new Renderer(this)),
           _resourceManager(nullptr),
-          _sceneManager(new SceneManager(this->_eventQueue)) {
+          _sceneManager(new SceneManager(this->_eventQueue.get())) {
     //
 }
 
 void Engine::init() {
-    initGlfw();
-    initWindow();
-
-    glfwSetWindowUserPointer(this->_window, this);
-    glfwSetFramebufferSizeCallback(_window, framebufferResizeCallback);
-    glfwSetKeyCallback(_window, keyCallback);
-    glfwSetMouseButtonCallback(_window, mouseButtonCallback);
-    glfwSetCursorPosCallback(_window, cursorCallback);
+    if (glfwInit() != GLFW_TRUE) {
+        throw std::runtime_error("Failed to initilalize GLFW");
+    }
 
     ImGui::CreateContext();
     ImGui::StyleColorsDark();
-    ImGui_ImplGlfw_InitForVulkan(this->_window, true);
+
+    this->_window->create();
 
     this->_eventQueue->addHandler([this](const Event &event) {
         if (event.type != CLOSE_REQUESTED_EVENT) {
             return;
         }
 
-        glfwSetWindowShouldClose(this->_window, GLFW_TRUE);
+        this->_work = false;
     });
 
     this->_renderer->init();
@@ -61,61 +57,49 @@ void Engine::init() {
 
     this->_renderer->initRenderpasses();
 
-    this->_input->addReleaseHandler(GLFW_KEY_ESCAPE, [this](float delta) {
-        if (this->_state != Focused) {
+    this->_inputProcessor->addKeyboardPressHandler(GLFW_KEY_W, [this]() { this->_moveForward = true; });
+    this->_inputProcessor->addKeyboardReleaseHandler(GLFW_KEY_W, [this]() { this->_moveForward = false; });
+
+    this->_inputProcessor->addKeyboardPressHandler(GLFW_KEY_S, [this]() { this->_moveBackward = true; });
+    this->_inputProcessor->addKeyboardReleaseHandler(GLFW_KEY_S, [this]() { this->_moveBackward = false; });
+
+    this->_inputProcessor->addKeyboardPressHandler(GLFW_KEY_A, [this]() { this->_strafeLeft = true; });
+    this->_inputProcessor->addKeyboardReleaseHandler(GLFW_KEY_A, [this]() { this->_strafeLeft = false; });
+
+    this->_inputProcessor->addKeyboardPressHandler(GLFW_KEY_D, [this]() { this->_strafeRight = true; });
+    this->_inputProcessor->addKeyboardReleaseHandler(GLFW_KEY_D, [this]() { this->_strafeRight = false; });
+
+    this->_inputProcessor->addKeyboardReleaseHandler(GLFW_KEY_ESCAPE, [this]() {
+        if (this->_state == NotFocused) {
             return;
         }
 
         this->_state = NotFocused;
-        glfwSetInputMode(this->_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        this->_window->showCursor();
     });
 
-    this->_input->addPressHandler(GLFW_KEY_W, [this](float delta) {
-        Camera *camera = this->_sceneManager->currentScene() != nullptr
-                         ? this->_sceneManager->currentScene()->camera()
-                         : nullptr;
-
-        if (camera == nullptr) {
+    this->_inputProcessor->addMouseReleaseHandler(GLFW_MOUSE_BUTTON_1, [this]() {
+        if (this->_state == Focused) {
             return;
         }
 
-        camera->position() += 5 * delta * camera->getForwardVector();
+        this->_state = Focused;
+        this->_window->hideCursor();
     });
-    this->_input->addPressHandler(GLFW_KEY_S, [this](float delta) {
-        Camera *camera = this->_sceneManager->currentScene() != nullptr
-                         ? this->_sceneManager->currentScene()->camera()
-                         : nullptr;
 
-        if (camera == nullptr) {
+    this->_x = this->_window->cursorX();
+    this->_y = this->_window->cursorY();
+    this->_inputProcessor->addCursorMoveHandler([this](double x, double y) {
+        double dx = this->_x - x;
+        double dy = this->_y - y;
+
+        this->_x = x;
+        this->_y = y;
+
+        if (this->_state != Focused) {
             return;
         }
 
-        camera->position() -= 5 * delta * camera->getForwardVector();
-    });
-    this->_input->addPressHandler(GLFW_KEY_A, [this](float delta) {
-        Camera *camera = this->_sceneManager->currentScene() != nullptr
-                         ? this->_sceneManager->currentScene()->camera()
-                         : nullptr;
-
-        if (camera == nullptr) {
-            return;
-        }
-
-        camera->position() -= 5 * delta * camera->getSideVector();
-    });
-    this->_input->addPressHandler(GLFW_KEY_D, [this](float delta) {
-        Camera *camera = this->_sceneManager->currentScene() != nullptr
-                         ? this->_sceneManager->currentScene()->camera()
-                         : nullptr;
-
-        if (camera == nullptr) {
-            return;
-        }
-
-        camera->position() += 5 * delta * camera->getSideVector();
-    });
-
-    this->_mouseInput->addHandler([this](double dx, double dy) {
         Camera *camera = this->_sceneManager->currentScene() != nullptr
                          ? this->_sceneManager->currentScene()->camera()
                          : nullptr;
@@ -273,114 +257,51 @@ void Engine::cleanup() {
 
     ImGui::DestroyContext();
 
-    if (this->_window) {
-        glfwDestroyWindow(this->_window);
-    }
+    this->_window->destroy();
 
     glfwTerminate();
 
     delete this->_debugUI;
     delete this->_sceneManager;
     delete this->_resourceManager;
-    delete this->_engineVars;
-    delete this->_eventQueue;
-    delete this->_mouseInput;
-    delete this->_input;
 }
 
 void Engine::run() {
-    while (!glfwWindowShouldClose(this->_window)) {
-        double startTime = glfwGetTime();
+    this->_work = true;
 
-        this->_eventQueue->process();
+    while (this->_work) {
+        double startTime = glfwGetTime();
 
         glfwPollEvents();
 
+        this->_eventQueue->process();
+
+        if (this->sceneManager()->currentScene() != nullptr) {
+            auto camera = this->sceneManager()->currentScene()->camera();
+
+            auto forward = camera->getForwardVector();
+            auto side = camera->getSideVector();
+
+            if (this->_moveForward) {
+                camera->position() += 5 * this->_delta * forward;
+            }
+
+            if (this->_moveBackward) {
+                camera->position() -= 5 * this->_delta * forward;
+            }
+
+            if (this->_strafeLeft) {
+                camera->position() -= 5 * this->_delta * side;
+            }
+
+            if (this->_strafeRight) {
+                camera->position() += 5 * this->_delta * side;
+            }
+        }
+
         this->_debugUI->render();
-        this->_input->process(this->_delta);
         this->_renderer->render();
 
         this->_delta = glfwGetTime() - startTime;
     }
-}
-
-void Engine::initGlfw() {
-    if (glfwInit() != GLFW_TRUE) {
-        throw std::runtime_error("glfwInit() failure");
-    }
-}
-
-void Engine::initWindow() {
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-
-    this->_window = glfwCreateWindow(this->_windowWidth, this->_windowHeight, NAME, nullptr, nullptr);
-    if (!this->_window) {
-        throw std::runtime_error("glfwCreateWindow() returned nullptr");
-    }
-}
-
-void Engine::mouseButtonCallback(GLFWwindow *window, int button, int action, int mods) {
-    auto engine = reinterpret_cast<Engine *>(glfwGetWindowUserPointer(window));
-
-    if (ImGui::GetIO().WantCaptureMouse) {
-        return;
-    }
-
-    if (engine->_state == NotFocused && action == GLFW_RELEASE) {
-        engine->_state = Focused;
-        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-
-        int w, h;
-        glfwGetWindowSize(engine->_window, &w, &h);
-
-        double xcenter = ((double) w) / 2;
-        double ycenter = ((double) h) / 2;
-        glfwSetCursorPos(engine->_window, xcenter, ycenter);
-    }
-}
-
-void Engine::framebufferResizeCallback(GLFWwindow *window, int width, int height) {
-    auto engine = reinterpret_cast<Engine *>(glfwGetWindowUserPointer(window));
-
-    engine->_windowWidth = width;
-    engine->_windowHeight = height;
-
-    engine->_eventQueue->pushEvent(Event{
-            .type = VIEWPORT_RESIZED_EVENT,
-            .viewport = {
-                    .width = static_cast<uint32_t>(width),
-                    .height = static_cast<uint32_t>(height)
-            }
-    });
-}
-
-void Engine::keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods) {
-    auto engine = reinterpret_cast<Engine *>(glfwGetWindowUserPointer(window));
-
-    if (ImGui::GetIO().WantCaptureKeyboard) {
-        return;
-    }
-
-    if (action == GLFW_PRESS) {
-        engine->_input->press(key);
-    } else if (action == GLFW_RELEASE) {
-        engine->_input->release(key);
-    }
-}
-
-void Engine::cursorCallback(GLFWwindow *window, double xpos, double ypos) {
-    auto engine = reinterpret_cast<Engine *>(glfwGetWindowUserPointer(window));
-
-    if (engine->_state == NotFocused) {
-        return;
-    }
-
-    int w, h;
-    glfwGetWindowSize(window, &w, &h);
-
-    double xcenter = ((double) w) / 2;
-    double ycenter = ((double) h) / 2;
-    glfwSetCursorPos(window, xcenter, ycenter);
-
-    engine->_mouseInput->process(xcenter - xpos, ycenter - ypos);
 }

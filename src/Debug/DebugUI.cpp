@@ -19,6 +19,7 @@
 #include "src/Objects/Object.hpp"
 #include "src/Scene/Scene.hpp"
 #include "src/Scene/SceneManager.hpp"
+#include "src/System/Window.hpp"
 
 static constexpr const uint32_t TEXT_BUFFER_SIZE = 64 * 1024;
 
@@ -87,8 +88,8 @@ void DebugUI::drawEngineFpsWindow() {
 
     int offset = 10;
     ImVec2 size = ImVec2(200, 4 * ImGui::GetTextLineHeightWithSpacing());
-    ImVec2 pos = ImVec2(this->_engine->windowWidth() - size.x - offset,
-                        this->_engine->windowHeight() - size.y - offset);
+    ImVec2 pos = ImVec2(this->_engine->window()->width() - size.x - offset,
+                        this->_engine->window()->height() - size.y - offset);
 
     ImGui::SetNextWindowSize(size);
     ImGui::SetNextWindowPos(pos);

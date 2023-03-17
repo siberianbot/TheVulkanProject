@@ -20,12 +20,10 @@ src = [
     # Engine
     'src/Engine/Engine.cpp',
     'src/Engine/EngineVars.cpp',
+    'src/Engine/InputProcessor.cpp',
 
     # Events
     'src/Events/EventQueue.cpp',
-
-    # Input
-    'src/Input/Input.cpp',
 
     # Rendering
     'src/Rendering/Renderer.cpp',
@@ -84,6 +82,9 @@ src = [
 
     # Types
     'src/Types/ResourceType.cpp',
+
+    # System
+    'src/System/Window.cpp',
 ]
 
 # shaders compilation
