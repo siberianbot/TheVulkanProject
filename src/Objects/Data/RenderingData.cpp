@@ -1,7 +1,7 @@
-#include "RenderData.hpp"
+#include "RenderingData.hpp"
 
 #include "src/Rendering/Objects/DescriptorSetObject.hpp"
 
-RenderData::~RenderData() {
+RenderingData::~RenderingData() {
     delete descriptorSet;
 }

@@ -71,7 +71,7 @@ src = [
     'src/Objects/Light.cpp',
     'src/Objects/Object.cpp',
     'src/Objects/Skybox.cpp',
-    'src/Objects/Data/RenderData.cpp',
+    'src/Objects/Data/RenderingData.cpp',
 
     # Scene
     'src/Scene/Scene.cpp',

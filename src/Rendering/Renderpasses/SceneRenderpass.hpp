@@ -2,6 +2,7 @@
 #define RENDERING_RENDERPASSES_SCENERENDERPASS_HPP
 
 #include <map>
+#include <memory>
 
 #include <glm/vec3.hpp>
 #include <glm/mat4x4.hpp>
@@ -12,7 +13,7 @@
 class Engine;
 class Object;
 class Swapchain;
-struct RenderData;
+struct RenderingData;
 class DescriptorSetObject;
 class BufferObject;
 class ImageObject;
@@ -91,7 +92,7 @@ private:
 
     std::vector<RenderpassBase *> _shadowRenderpasses;
 
-    RenderData *getRenderData(Object *object);
+    std::shared_ptr<RenderingData> getRenderData(Object *object);
     ImageViewObject *getImageView(ImageObject *image);
 
     void updateDescriptorSetWithImage(DescriptorSetObject *descriptorSetObject, ImageViewObject *imageViewObject,

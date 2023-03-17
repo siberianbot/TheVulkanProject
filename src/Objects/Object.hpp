@@ -1,10 +1,13 @@
 #ifndef OBJECTS_OBJECT_HPP
 #define OBJECTS_OBJECT_HPP
 
-#include <vector>
+#include <map>
+#include <memory>
 
 #include <glm/vec3.hpp>
 #include <glm/mat4x4.hpp>
+
+#include "src/Objects/Data/DataType.hpp"
 
 struct IData;
 class MeshResource;
@@ -18,11 +21,10 @@ private:
     MeshResource *_mesh = nullptr;
     ImageResource *_albedoTexture = nullptr;
     ImageResource *_specTexture = nullptr;
-    std::vector<IData *> _data;
+    // TODO: weak_ptr
+    std::map<DataType, std::shared_ptr<IData>> _data;
 
 public:
-    ~Object();
-
     glm::mat4 getModelMatrix(bool rotationOnly);
 
     glm::vec3 &position() { return this->_position; }
@@ -31,7 +33,7 @@ public:
     MeshResource *&mesh() { return this->_mesh; }
     ImageResource *&albedoTexture() { return this->_albedoTexture; }
     ImageResource *&specTexture() { return this->_specTexture; }
-    std::vector<IData *> &data() { return this->_data; }
+    std::map<DataType, std::shared_ptr<IData>> &data() { return this->_data; }
 };
 
 #endif // OBJECTS_OBJECT_HPP

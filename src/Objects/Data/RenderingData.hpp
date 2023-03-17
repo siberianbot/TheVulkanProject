@@ -6,9 +6,9 @@
 class DescriptorSetObject;
 class ImageViewObject;
 
-struct RenderData : public IData {
-    RenderData() = default;
-    ~RenderData() override;
+struct RenderingData : public IData {
+    RenderingData() = default;
+    ~RenderingData() override;
 
     DescriptorSetObject *descriptorSet = nullptr;
     ImageViewObject *albedoTextureView = nullptr;

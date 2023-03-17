@@ -9,7 +9,7 @@
 #include "src/Scene/Scene.hpp"
 #include "src/Scene/SceneManager.hpp"
 #include "src/Objects/Skybox.hpp"
-#include "src/Objects/Data/RenderData.hpp"
+#include "src/Objects/Data/RenderingData.hpp"
 #include "src/Types/Vertex.hpp"
 #include "src/Rendering/PhysicalDevice.hpp"
 #include "src/Rendering/RenderingDevice.hpp"
@@ -32,22 +32,20 @@
 #include "src/Resources/MeshResource.hpp"
 #include "src/Resources/ShaderResource.hpp"
 
-RenderData *SceneRenderpass::getRenderData(Object *object) {
-    auto it = std::find_if(object->data().begin(), object->data().end(), [](IData *data) {
-        return dynamic_cast<RenderData *>(data) != nullptr;
-    });
+std::shared_ptr<RenderingData> SceneRenderpass::getRenderData(Object *object) {
+    auto it = object->data().find(RENDERING_DATA_TYPE);
 
-    RenderData *renderData;
+    std::shared_ptr<RenderingData> renderData;
 
     if (it != object->data().end()) {
-        renderData = dynamic_cast<RenderData *>(*it);
+        renderData = std::dynamic_pointer_cast<RenderingData>(it->second);
     } else {
-        renderData = new RenderData();
+        renderData = std::make_shared<RenderingData>();
         renderData->descriptorSet = DescriptorSetObject::create(this->_renderingDevice, MAX_INFLIGHT_FRAMES,
                                                                 this->_descriptorPool,
                                                                 this->_objectDescriptorSetLayout);
 
-        object->data().push_back(renderData);
+        object->data()[RENDERING_DATA_TYPE] = renderData;
     }
 
     ImageObject *albedoTexture = object->albedoTexture() == nullptr
@@ -633,16 +631,7 @@ void SceneRenderpass::destroyRenderpass() {
 
     if (this->_engine->sceneManager()->currentScene() != nullptr) {
         for (Object *object: this->_engine->sceneManager()->currentScene()->objects()) {
-            auto it = std::find_if(object->data().begin(), object->data().end(), [](IData *data) {
-                return dynamic_cast<RenderData *>(data) != nullptr;
-            });
-
-            if (it != object->data().end()) {
-                RenderData *data = dynamic_cast<RenderData *>(*it);
-                delete data;
-
-                object->data().erase(it);
-            }
+            object->data()[RENDERING_DATA_TYPE] = nullptr;
         }
     }
 

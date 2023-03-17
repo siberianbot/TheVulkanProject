@@ -3,14 +3,6 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/quaternion.hpp>
 
-#include "src/Objects/Data/IData.hpp"
-
-Object::~Object() {
-    for (IData *data: this->_data) {
-        delete data;
-    }
-}
-
 glm::mat4 Object::getModelMatrix(bool rotationOnly) {
     glm::mat4 r = toMat4(glm::quat(this->_rotation));
 
