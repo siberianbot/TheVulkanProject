@@ -220,7 +220,7 @@ PhysicalDevice *PhysicalDevice::selectSuitable(VkInstance instance, VkSurfaceKHR
     throw std::runtime_error("No supported physical device available");
 }
 
-RenderingDevice *PhysicalDevice::createRenderingDevice() {
+std::shared_ptr<RenderingDevice> PhysicalDevice::createRenderingDevice() {
     const float queuePriority = 1.0f;
 
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
@@ -266,5 +266,5 @@ RenderingDevice *PhysicalDevice::createRenderingDevice() {
     vkGetDeviceQueue(device, this->_graphicsQueueFamilyIdx, 0, &graphicsQueue);
     vkGetDeviceQueue(device, this->_presentQueueFamilyIdx, 0, &presentQueue);
 
-    return new RenderingDevice(this, device, graphicsQueue, presentQueue);
+    return std::make_shared<RenderingDevice>(this, device, graphicsQueue, presentQueue);
 }

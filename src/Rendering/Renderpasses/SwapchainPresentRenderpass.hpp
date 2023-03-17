@@ -23,7 +23,7 @@ private:
     DescriptorSetObject *_descriptorSet;
 
 public:
-    SwapchainPresentRenderpass(RenderingDevice *renderingDevice, Swapchain *swapchain, Engine *engine);
+    SwapchainPresentRenderpass(const std::shared_ptr<RenderingDevice> &renderingDevice, Swapchain *swapchain, Engine *engine);
     ~SwapchainPresentRenderpass() override = default;
 
     void recordCommands(VkCommandBuffer commandBuffer, VkRect2D renderArea,

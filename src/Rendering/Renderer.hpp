@@ -2,6 +2,7 @@
 #define RENDERING_RENDERER_HPP
 
 #include <array>
+#include <memory>
 #include <optional>
 #include <vector>
 
@@ -37,7 +38,7 @@ private:
     VkInstance _instance = VK_NULL_HANDLE;
     VkSurfaceKHR _surface = VK_NULL_HANDLE;
     PhysicalDevice *_physicalDevice;
-    RenderingDevice *_renderingDevice;
+    std::shared_ptr<RenderingDevice> _renderingDevice;
     CommandExecutor *_commandExecutor;
     Swapchain *_swapchain;
     RendererAllocator *_rendererAllocator;

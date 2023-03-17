@@ -108,7 +108,7 @@ private:
     void destroyCompositionPipeline();
 
 public:
-    SceneRenderpass(RenderingDevice *renderingDevice, Swapchain *swapchain, Engine *engine);
+    SceneRenderpass(const std::shared_ptr<RenderingDevice> &renderingDevice, Swapchain *swapchain, Engine *engine);
     ~SceneRenderpass() override = default;
 
     void recordCommands(VkCommandBuffer commandBuffer, VkRect2D renderArea,

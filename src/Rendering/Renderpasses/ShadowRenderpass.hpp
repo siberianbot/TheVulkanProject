@@ -31,7 +31,7 @@ private:
     std::array<ImageViewObject *, MAX_NUM_LIGHTS> _depthImageViews;
 
 public:
-    ShadowRenderpass(RenderingDevice *renderingDevice, Engine *engine);
+    ShadowRenderpass(const std::shared_ptr<RenderingDevice> &renderingDevice, Engine *engine);
     ~ShadowRenderpass() override = default;
 
     void recordCommands(VkCommandBuffer commandBuffer, VkRect2D renderArea,

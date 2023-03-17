@@ -1,6 +1,7 @@
 #ifndef RENDERING_RENDERPASSES_RENDERPASSBASE_HPP
 #define RENDERING_RENDERPASSES_RENDERPASSBASE_HPP
 
+#include <memory>
 #include <vector>
 
 #include <vulkan/vulkan.hpp>
@@ -10,13 +11,13 @@ class ImageViewObject;
 
 class RenderpassBase {
 protected:
-    RenderingDevice *_renderingDevice;
+    std::shared_ptr<RenderingDevice> _renderingDevice;
 
     VkRenderPass _renderpass = VK_NULL_HANDLE;
     std::vector<VkFramebuffer> _framebuffers;
 
 public:
-    explicit RenderpassBase(RenderingDevice *renderingDevice);
+    explicit RenderpassBase(const std::shared_ptr<RenderingDevice> &renderingDevice);
     virtual ~RenderpassBase() = default;
 
     virtual void recordCommands(VkCommandBuffer commandBuffer, VkRect2D renderArea,

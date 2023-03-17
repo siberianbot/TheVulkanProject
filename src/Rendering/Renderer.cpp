@@ -69,15 +69,15 @@ void Renderer::init() {
 
     this->_physicalDevice = PhysicalDevice::selectSuitable(this->_instance, this->_surface);
     this->_renderingDevice = this->_physicalDevice->createRenderingDevice();
-    this->_commandExecutor = new CommandExecutor(this->_renderingDevice);
-    this->_swapchain = new Swapchain(this->_renderingDevice);
-    this->_rendererAllocator = new RendererAllocator(this->_renderingDevice, this->_commandExecutor);
+    this->_commandExecutor = new CommandExecutor(this->_renderingDevice.get());
+    this->_swapchain = new Swapchain(this->_renderingDevice.get());
+    this->_rendererAllocator = new RendererAllocator(this->_renderingDevice.get(), this->_commandExecutor);
 
     for (uint32_t frameIdx = 0; frameIdx < MAX_INFLIGHT_FRAMES; frameIdx++) {
         this->_syncObjectsGroups[frameIdx] = new SyncObjectsGroup{
-                .fence =  FenceObject::create(this->_renderingDevice, true),
-                .imageAvailableSemaphore = SemaphoreObject::create(this->_renderingDevice),
-                .renderFinishedSemaphore = SemaphoreObject::create(this->_renderingDevice)
+                .fence =  FenceObject::create(this->_renderingDevice.get(), true),
+                .imageAvailableSemaphore = SemaphoreObject::create(this->_renderingDevice.get()),
+                .renderFinishedSemaphore = SemaphoreObject::create(this->_renderingDevice.get())
         };
     }
 
@@ -133,7 +133,7 @@ void Renderer::cleanup() {
     delete this->_rendererAllocator;
     delete this->_swapchain;
     delete this->_commandExecutor;
-    delete this->_renderingDevice;
+    this->_renderingDevice = nullptr; // TODO
     delete this->_physicalDevice;
 
     vkDestroySurfaceKHR(this->_instance, this->_surface, nullptr);

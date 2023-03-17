@@ -1,6 +1,7 @@
 #ifndef RENDERING_PHYSICALDEVICE_HPP
 #define RENDERING_PHYSICALDEVICE_HPP
 
+#include <memory>
 #include <optional>
 
 #include <vulkan/vulkan.hpp>
@@ -51,7 +52,7 @@ public:
 
     uint32_t getSuitableMemoryType(uint32_t memoryTypeBits, VkMemoryPropertyFlags memoryProperty);
 
-    RenderingDevice *createRenderingDevice();
+    std::shared_ptr<RenderingDevice> createRenderingDevice();
 
     static PhysicalDevice *selectSuitable(VkInstance instance, VkSurfaceKHR surface);
 };

@@ -17,7 +17,7 @@
 #include "src/Resources/ResourceManager.hpp"
 #include "src/Resources/ShaderResource.hpp"
 
-SwapchainPresentRenderpass::SwapchainPresentRenderpass(RenderingDevice *renderingDevice, Swapchain *swapchain,
+SwapchainPresentRenderpass::SwapchainPresentRenderpass(const std::shared_ptr<RenderingDevice> &renderingDevice, Swapchain *swapchain,
                                                        Engine *engine)
         : RenderpassBase(renderingDevice),
           _swapchain(swapchain),
@@ -77,10 +77,10 @@ void SwapchainPresentRenderpass::addInputRenderpass(RenderpassBase *renderpass) 
 void SwapchainPresentRenderpass::initRenderpass() {
     VkFormat colorFormat = this->_renderingDevice->getPhysicalDevice()->getColorFormat();
 
-    DescriptorPoolBuilder descriptorPoolBuilder = DescriptorPoolBuilder(this->_renderingDevice);
-    DescriptorSetLayoutBuilder descriptorSetLayoutBuilder = DescriptorSetLayoutBuilder(this->_renderingDevice);
+    DescriptorPoolBuilder descriptorPoolBuilder = DescriptorPoolBuilder(this->_renderingDevice.get());
+    DescriptorSetLayoutBuilder descriptorSetLayoutBuilder = DescriptorSetLayoutBuilder(this->_renderingDevice.get());
     // TODO: destructor problem, cleanses subpass data before actual build
-    RenderpassBuilder renderpassBuilder = RenderpassBuilder(this->_renderingDevice);
+    RenderpassBuilder renderpassBuilder = RenderpassBuilder(this->_renderingDevice.get());
 
     renderpassBuilder.addAttachment([&](AttachmentBuilder &builder) {
                 builder
@@ -122,14 +122,14 @@ void SwapchainPresentRenderpass::initRenderpass() {
     this->_descriptorPool = descriptorPoolBuilder.build();
     this->_descriptorSetLayout = descriptorSetLayoutBuilder.build();
 
-    this->_pipelineLayout = PipelineLayoutBuilder(this->_renderingDevice)
+    this->_pipelineLayout = PipelineLayoutBuilder(this->_renderingDevice.get())
             .withDescriptorSetLayout(this->_descriptorSetLayout)
             .build();
 
     ShaderResource *vertexShader = this->_engine->resourceManager()->loadShader("composition_vert");
     ShaderResource *fragmentShader = this->_engine->resourceManager()->loadShader("composition_frag");
 
-    this->_pipeline = PipelineBuilder(this->_renderingDevice, this->_renderpass, this->_pipelineLayout)
+    this->_pipeline = PipelineBuilder(this->_renderingDevice.get(), this->_renderpass, this->_pipelineLayout)
             .addVertexShader(vertexShader->shader())
             .addFragmentShader(fragmentShader->shader())
             .withCullMode(VK_CULL_MODE_FRONT_BIT)
@@ -155,7 +155,7 @@ void SwapchainPresentRenderpass::createFramebuffers() {
 
     this->_framebuffers.resize(imagesCount);
     for (uint32_t imageIdx = 0; imageIdx < imagesCount; imageIdx++) {
-        FramebufferBuilder builder = FramebufferBuilder(this->_renderingDevice, this->_renderpass)
+        FramebufferBuilder builder = FramebufferBuilder(this->_renderingDevice.get(), this->_renderpass)
                 .withExtent(extent)
                 .addAttachment(this->_swapchain->getSwapchainImageView(imageIdx)->getHandle());
 
@@ -166,7 +166,7 @@ void SwapchainPresentRenderpass::createFramebuffers() {
         this->_framebuffers[imageIdx] = builder.build();
     }
 
-    this->_descriptorSet = DescriptorSetObject::create(this->_renderingDevice, imagesCount, this->_descriptorPool,
+    this->_descriptorSet = DescriptorSetObject::create(this->_renderingDevice.get(), imagesCount, this->_descriptorPool,
                                                        this->_descriptorSetLayout);
 
     for (uint32_t passIdx = 0; passIdx < passesCount; passIdx++) {

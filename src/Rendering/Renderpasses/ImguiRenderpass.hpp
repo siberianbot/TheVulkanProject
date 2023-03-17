@@ -21,7 +21,7 @@ private:
     ImageViewObject *_resultImageView;
 
 public:
-    ImguiRenderpass(RenderingDevice *renderingDevice, Swapchain *swapchain, VkInstance instance,
+    ImguiRenderpass(const std::shared_ptr<RenderingDevice> &renderingDevice, Swapchain *swapchain, VkInstance instance,
                     PhysicalDevice *physicalDevice, CommandExecutor *commandExecutor);
     ~ImguiRenderpass() override = default;
 

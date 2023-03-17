@@ -24,7 +24,7 @@
 
 static constexpr const uint32_t SIZE = 1024;
 
-ShadowRenderpass::ShadowRenderpass(RenderingDevice *renderingDevice, Engine *engine)
+ShadowRenderpass::ShadowRenderpass(const std::shared_ptr<RenderingDevice> &renderingDevice, Engine *engine)
         : RenderpassBase(renderingDevice),
           _engine(engine) {
     //
@@ -134,7 +134,7 @@ void ShadowRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D re
 }
 
 void ShadowRenderpass::initRenderpass() {
-    this->_renderpass = RenderpassBuilder(this->_renderingDevice)
+    this->_renderpass = RenderpassBuilder(this->_renderingDevice.get())
             .addAttachment([&](AttachmentBuilder &builder) {
                 builder
                         .clear()
@@ -156,14 +156,14 @@ void ShadowRenderpass::initRenderpass() {
                                   VK_ACCESS_SHADER_READ_BIT)
             .build();
 
-    this->_pipelineLayout = PipelineLayoutBuilder(this->_renderingDevice)
+    this->_pipelineLayout = PipelineLayoutBuilder(this->_renderingDevice.get())
             .withPushConstant(VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshConstants))
             .build();
 
     ShaderResource *vertexShader = this->_engine->resourceManager()->loadShader("shadow_vert");
     ShaderResource *fragmentShader = this->_engine->resourceManager()->loadShader("shadow_frag");
 
-    this->_pipeline = PipelineBuilder(this->_renderingDevice, this->_renderpass, this->_pipelineLayout)
+    this->_pipeline = PipelineBuilder(this->_renderingDevice.get(), this->_renderpass, this->_pipelineLayout)
             .addVertexShader(vertexShader->shader())
             .addFragmentShader(fragmentShader->shader())
             .addBinding(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
@@ -176,14 +176,14 @@ void ShadowRenderpass::initRenderpass() {
     fragmentShader->unload();
 
     for (uint32_t idx = 0; idx < MAX_NUM_LIGHTS; idx++) {
-        this->_depthImages[idx] = ImageObject::create(this->_renderingDevice, SIZE, SIZE, 1, 0,
+        this->_depthImages[idx] = ImageObject::create(this->_renderingDevice.get(), SIZE, SIZE, 1, 0,
                                                       this->_renderingDevice->getPhysicalDevice()->getDepthFormat(),
                                                       VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT |
                                                       VK_IMAGE_USAGE_SAMPLED_BIT,
                                                       VK_SAMPLE_COUNT_1_BIT,
                                                       VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-        this->_depthImageViews[idx] = ImageViewObject::create(this->_renderingDevice, this->_depthImages[idx],
+        this->_depthImageViews[idx] = ImageViewObject::create(this->_renderingDevice.get(), this->_depthImages[idx],
                                                               VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_DEPTH_BIT);
     }
 }
@@ -206,7 +206,7 @@ void ShadowRenderpass::createFramebuffers() {
     this->_framebuffers.resize(MAX_NUM_LIGHTS);
 
     for (uint32_t idx = 0; idx < MAX_NUM_LIGHTS; idx++) {
-        this->_framebuffers[idx] = FramebufferBuilder(this->_renderingDevice, this->_renderpass)
+        this->_framebuffers[idx] = FramebufferBuilder(this->_renderingDevice.get(), this->_renderpass)
                 .withExtent(extent)
                 .addAttachment(this->_depthImageViews[idx]->getHandle())
                 .build();

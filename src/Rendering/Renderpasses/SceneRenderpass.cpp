@@ -22,6 +22,7 @@
 #include "src/Rendering/Builders/DescriptorPoolBuilder.hpp"
 #include "src/Rendering/Builders/DescriptorSetLayoutBuilder.hpp"
 #include "src/Rendering/Builders/PipelineLayoutBuilder.hpp"
+#include "src/Rendering/Builders/SamplerBuilder.hpp"
 #include "src/Rendering/Objects/BufferObject.hpp"
 #include "src/Rendering/Objects/ImageObject.hpp"
 #include "src/Rendering/Objects/ImageViewObject.hpp"
@@ -41,7 +42,7 @@ std::shared_ptr<RenderingData> SceneRenderpass::getRenderData(Object *object) {
         renderData = std::dynamic_pointer_cast<RenderingData>(it->second);
     } else {
         renderData = std::make_shared<RenderingData>();
-        renderData->descriptorSet = DescriptorSetObject::create(this->_renderingDevice, MAX_INFLIGHT_FRAMES,
+        renderData->descriptorSet = DescriptorSetObject::create(this->_renderingDevice.get(), MAX_INFLIGHT_FRAMES,
                                                                 this->_descriptorPool,
                                                                 this->_objectDescriptorSetLayout);
 
@@ -78,7 +79,7 @@ ImageViewObject *SceneRenderpass::getImageView(ImageObject *image) {
         return it->second;
     }
 
-    ImageViewObject *imageView = ImageViewObject::create(this->_renderingDevice, image, VK_IMAGE_VIEW_TYPE_2D,
+    ImageViewObject *imageView = ImageViewObject::create(this->_renderingDevice.get(), image, VK_IMAGE_VIEW_TYPE_2D,
                                                          VK_IMAGE_ASPECT_COLOR_BIT);
 
     this->_imageViews[image] = imageView;
@@ -110,11 +111,11 @@ void SceneRenderpass::updateDescriptorSetWithImage(DescriptorSetObject *descript
         });
     }
 
-    this->_renderingDevice->updateDescriptorSets(writes);
+    this->_renderingDevice.get()->updateDescriptorSets(writes);
 }
 
 void SceneRenderpass::initSkyboxPipeline() {
-    this->_skyboxPipelineLayout = PipelineLayoutBuilder(this->_renderingDevice)
+    this->_skyboxPipelineLayout = PipelineLayoutBuilder(this->_renderingDevice.get())
             .withDescriptorSetLayout(this->_objectDescriptorSetLayout)
             .withPushConstant(VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshConstants))
             .build();
@@ -122,7 +123,7 @@ void SceneRenderpass::initSkyboxPipeline() {
     ShaderResource *vertexShader = this->_engine->resourceManager()->loadShader("default_vert");
     ShaderResource *fragmentShader = this->_engine->resourceManager()->loadShader("skybox_frag");
 
-    this->_skyboxPipeline = PipelineBuilder(this->_renderingDevice, this->_renderpass, this->_skyboxPipelineLayout)
+    this->_skyboxPipeline = PipelineBuilder(this->_renderingDevice.get(), this->_renderpass, this->_skyboxPipelineLayout)
             .addVertexShader(vertexShader->shader())
             .addFragmentShader(fragmentShader->shader())
             .addBinding(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
@@ -130,19 +131,19 @@ void SceneRenderpass::initSkyboxPipeline() {
             .addAttribute(0, 1, offsetof(Vertex, normal), VK_FORMAT_R32G32B32_SFLOAT)
             .addAttribute(0, 2, offsetof(Vertex, color), VK_FORMAT_R32G32B32_SFLOAT)
             .addAttribute(0, 3, offsetof(Vertex, uv), VK_FORMAT_R32G32_SFLOAT)
-            .withRasterizationSamples(this->_renderingDevice->getPhysicalDevice()->getMsaaSamples())
+            .withRasterizationSamples(this->_renderingDevice.get()->getPhysicalDevice()->getMsaaSamples())
             .forSubpass(0)
             .build();
 
     vertexShader->unload();
     fragmentShader->unload();
 
-    this->_skyboxDescriptorSet = DescriptorSetObject::create(this->_renderingDevice, MAX_INFLIGHT_FRAMES,
+    this->_skyboxDescriptorSet = DescriptorSetObject::create(this->_renderingDevice.get(), MAX_INFLIGHT_FRAMES,
                                                              this->_descriptorPool, this->_objectDescriptorSetLayout);
 
     Scene *currentScene = this->_engine->sceneManager()->currentScene();
     if (currentScene != nullptr) {
-        this->_skyboxTextureView = ImageViewObject::create(this->_renderingDevice,
+        this->_skyboxTextureView = ImageViewObject::create(this->_renderingDevice.get(),
                                                            currentScene->skybox()->texture()->image(),
                                                            VK_IMAGE_VIEW_TYPE_CUBE,
                                                            VK_IMAGE_ASPECT_COLOR_BIT);
@@ -159,12 +160,12 @@ void SceneRenderpass::destroySkyboxPipeline() {
         this->_skyboxTextureView = nullptr;
     }
 
-    this->_renderingDevice->destroyPipeline(this->_skyboxPipeline);
-    this->_renderingDevice->destroyPipelineLayout(this->_skyboxPipelineLayout);
+    this->_renderingDevice.get()->destroyPipeline(this->_skyboxPipeline);
+    this->_renderingDevice.get()->destroyPipelineLayout(this->_skyboxPipelineLayout);
 }
 
 void SceneRenderpass::initScenePipeline() {
-    this->_scenePipelineLayout = PipelineLayoutBuilder(this->_renderingDevice)
+    this->_scenePipelineLayout = PipelineLayoutBuilder(this->_renderingDevice.get())
             .withDescriptorSetLayout(this->_objectDescriptorSetLayout)
             .withPushConstant(VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshConstants))
             .build();
@@ -172,7 +173,7 @@ void SceneRenderpass::initScenePipeline() {
     ShaderResource *vertexShader = this->_engine->resourceManager()->loadShader("default_vert");
     ShaderResource *fragmentShader = this->_engine->resourceManager()->loadShader("default_frag");
 
-    this->_scenePipeline = PipelineBuilder(this->_renderingDevice, this->_renderpass, this->_scenePipelineLayout)
+    this->_scenePipeline = PipelineBuilder(this->_renderingDevice.get(), this->_renderpass, this->_scenePipelineLayout)
             .addVertexShader(vertexShader->shader())
             .addFragmentShader(fragmentShader->shader())
             .addBinding(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
@@ -180,7 +181,7 @@ void SceneRenderpass::initScenePipeline() {
             .addAttribute(0, 1, offsetof(Vertex, normal), VK_FORMAT_R32G32B32_SFLOAT)
             .addAttribute(0, 2, offsetof(Vertex, color), VK_FORMAT_R32G32B32_SFLOAT)
             .addAttribute(0, 3, offsetof(Vertex, uv), VK_FORMAT_R32G32_SFLOAT)
-            .withRasterizationSamples(this->_renderingDevice->getPhysicalDevice()->getMsaaSamples())
+            .withRasterizationSamples(this->_renderingDevice.get()->getPhysicalDevice()->getMsaaSamples())
             .withColorBlendAttachmentCount(4)
             .forSubpass(1)
             .build();
@@ -196,12 +197,12 @@ void SceneRenderpass::destroyScenePipeline() {
 
     this->_imageViews.clear();
 
-    this->_renderingDevice->destroyPipeline(this->_scenePipeline);
-    this->_renderingDevice->destroyPipelineLayout(this->_scenePipelineLayout);
+    this->_renderingDevice.get()->destroyPipeline(this->_scenePipeline);
+    this->_renderingDevice.get()->destroyPipelineLayout(this->_scenePipelineLayout);
 }
 
 void SceneRenderpass::initCompositionPipeline() {
-    this->_compositionGBufferDescriptorSetLayout = DescriptorSetLayoutBuilder(this->_renderingDevice)
+    this->_compositionGBufferDescriptorSetLayout = DescriptorSetLayoutBuilder(this->_renderingDevice.get())
             .withBinding(0, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, VK_SHADER_STAGE_FRAGMENT_BIT)
             .withBinding(1, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, VK_SHADER_STAGE_FRAGMENT_BIT)
             .withBinding(2, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, VK_SHADER_STAGE_FRAGMENT_BIT)
@@ -209,19 +210,19 @@ void SceneRenderpass::initCompositionPipeline() {
             .withBinding(4, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, VK_SHADER_STAGE_FRAGMENT_BIT)
             .build();
 
-    this->_compositionSceneDataDescriptorSetLayout = DescriptorSetLayoutBuilder(this->_renderingDevice)
+    this->_compositionSceneDataDescriptorSetLayout = DescriptorSetLayoutBuilder(this->_renderingDevice.get())
             .withBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT)
             .withBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, MAX_NUM_LIGHTS)
             .build();
 
-    this->_compositionSceneDataBuffer = BufferObject::create(this->_renderingDevice, sizeof(SceneData),
+    this->_compositionSceneDataBuffer = BufferObject::create(this->_renderingDevice.get(), sizeof(SceneData),
                                                              VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                                                              VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
                                                              VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
     this->_compositionSceneData = reinterpret_cast<SceneData *>(this->_compositionSceneDataBuffer->map());
 
-    this->_compositionSceneDataDescriptorSet = DescriptorSetObject::create(this->_renderingDevice, MAX_INFLIGHT_FRAMES,
+    this->_compositionSceneDataDescriptorSet = DescriptorSetObject::create(this->_renderingDevice.get(), MAX_INFLIGHT_FRAMES,
                                                                            this->_descriptorPool,
                                                                            this->_compositionSceneDataDescriptorSetLayout);
 
@@ -268,10 +269,10 @@ void SceneRenderpass::initCompositionPipeline() {
                 }
         };
 
-        this->_renderingDevice->updateDescriptorSets(writes);
+        this->_renderingDevice.get()->updateDescriptorSets(writes);
     }
 
-    this->_compositionPipelineLayout = PipelineLayoutBuilder(this->_renderingDevice)
+    this->_compositionPipelineLayout = PipelineLayoutBuilder(this->_renderingDevice.get())
             .withDescriptorSetLayout(this->_compositionGBufferDescriptorSetLayout)
             .withDescriptorSetLayout(this->_compositionSceneDataDescriptorSetLayout)
             .build();
@@ -279,11 +280,11 @@ void SceneRenderpass::initCompositionPipeline() {
     ShaderResource *vertexShader = this->_engine->resourceManager()->loadShader("composition_vert");
     ShaderResource *fragmentShader = this->_engine->resourceManager()->loadShader("scene_composition_frag");
 
-    this->_compositionPipeline = PipelineBuilder(this->_renderingDevice, this->_renderpass,
+    this->_compositionPipeline = PipelineBuilder(this->_renderingDevice.get(), this->_renderpass,
                                                  this->_compositionPipelineLayout)
             .addVertexShader(vertexShader->shader())
             .addFragmentShader(fragmentShader->shader())
-            .withRasterizationSamples(this->_renderingDevice->getPhysicalDevice()->getMsaaSamples())
+            .withRasterizationSamples(this->_renderingDevice.get()->getPhysicalDevice()->getMsaaSamples())
             .withCullMode(VK_CULL_MODE_FRONT_BIT)
             .forSubpass(2)
             .build();
@@ -293,15 +294,15 @@ void SceneRenderpass::initCompositionPipeline() {
 }
 
 void SceneRenderpass::destroyCompositionPipeline() {
-    this->_renderingDevice->destroyPipeline(this->_compositionPipeline);
-    this->_renderingDevice->destroyPipelineLayout(this->_compositionPipelineLayout);
-    this->_renderingDevice->destroyDescriptorSetLayout(this->_compositionSceneDataDescriptorSetLayout);
-    this->_renderingDevice->destroyDescriptorSetLayout(this->_compositionGBufferDescriptorSetLayout);
+    this->_renderingDevice.get()->destroyPipeline(this->_compositionPipeline);
+    this->_renderingDevice.get()->destroyPipelineLayout(this->_compositionPipelineLayout);
+    this->_renderingDevice.get()->destroyDescriptorSetLayout(this->_compositionSceneDataDescriptorSetLayout);
+    this->_renderingDevice.get()->destroyDescriptorSetLayout(this->_compositionGBufferDescriptorSetLayout);
     delete this->_compositionSceneDataDescriptorSet;
     delete this->_compositionSceneDataBuffer;
 }
 
-SceneRenderpass::SceneRenderpass(RenderingDevice *renderingDevice, Swapchain *swapchain, Engine *engine)
+SceneRenderpass::SceneRenderpass(const std::shared_ptr<RenderingDevice> &renderingDevice, Swapchain *swapchain, Engine *engine)
         : RenderpassBase(renderingDevice),
           _engine(engine),
           _swapchain(swapchain) {
@@ -314,7 +315,7 @@ SceneRenderpass::SceneRenderpass(RenderingDevice *renderingDevice, Swapchain *sw
             delete this->_skyboxTextureView;
         }
 
-        this->_skyboxTextureView = ImageViewObject::create(this->_renderingDevice,
+        this->_skyboxTextureView = ImageViewObject::create(this->_renderingDevice.get(),
                                                            event.scene->skybox()->texture()->image(),
                                                            VK_IMAGE_VIEW_TYPE_CUBE,
                                                            VK_IMAGE_ASPECT_COLOR_BIT);
@@ -503,9 +504,9 @@ void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D ren
 }
 
 void SceneRenderpass::initRenderpass() {
-    VkFormat format = this->_renderingDevice->getPhysicalDevice()->getColorFormat();
-    VkSampleCountFlagBits samples = this->_renderingDevice->getPhysicalDevice()->getMsaaSamples();
-    this->_renderpass = RenderpassBuilder(this->_renderingDevice)
+    VkFormat format = this->_renderingDevice.get()->getPhysicalDevice()->getColorFormat();
+    VkSampleCountFlagBits samples = this->_renderingDevice.get()->getPhysicalDevice()->getMsaaSamples();
+    this->_renderpass = RenderpassBuilder(this->_renderingDevice.get())
             .addAttachment([&](AttachmentBuilder &builder) {
                 // 0: skybox
                 builder
@@ -550,7 +551,7 @@ void SceneRenderpass::initRenderpass() {
                 // 5: scene depth
                 builder
                         .clear()
-                        .withFormat(this->_renderingDevice->getPhysicalDevice()->getDepthFormat())
+                        .withFormat(this->_renderingDevice.get()->getPhysicalDevice()->getDepthFormat())
                         .withSamples(samples)
                         .withFinalLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
             })
@@ -607,17 +608,21 @@ void SceneRenderpass::initRenderpass() {
                                   VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT)
             .build();
 
-    this->_descriptorPool = DescriptorPoolBuilder(this->_renderingDevice)
+    this->_descriptorPool = DescriptorPoolBuilder(this->_renderingDevice.get())
             .forType(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
             .forType(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
             .build();
 
-    this->_objectDescriptorSetLayout = DescriptorSetLayoutBuilder(this->_renderingDevice)
+    this->_objectDescriptorSetLayout = DescriptorSetLayoutBuilder(this->_renderingDevice.get())
             .withBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
             .withBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
             .build();
 
-    this->_textureSampler = this->_renderingDevice->createSampler();
+    this->_textureSampler = SamplerBuilder(this->_renderingDevice)
+            .withAddressMode(VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER)
+            .withBorderColor(VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE)
+            .enableAnisotropy(this->_renderingDevice.get()->getPhysicalDevice()->getMaxSamplerAnisotropy())
+            .build();
 
     this->initSkyboxPipeline();
     this->initScenePipeline();
@@ -635,104 +640,104 @@ void SceneRenderpass::destroyRenderpass() {
         }
     }
 
-    this->_renderingDevice->destroyDescriptorSetLayout(this->_objectDescriptorSetLayout);
-    this->_renderingDevice->destroyDescriptorPool(this->_descriptorPool);
-    this->_renderingDevice->destroySampler(this->_textureSampler);
+    this->_renderingDevice.get()->destroyDescriptorSetLayout(this->_objectDescriptorSetLayout);
+    this->_renderingDevice.get()->destroyDescriptorPool(this->_descriptorPool);
+    this->_renderingDevice.get()->destroySampler(this->_textureSampler);
 
     RenderpassBase::destroyRenderpass();
 }
 
 void SceneRenderpass::createFramebuffers() {
     VkExtent2D extent = this->_swapchain->getSwapchainExtent();
-    VkSampleCountFlagBits samples = this->_renderingDevice->getPhysicalDevice()->getMsaaSamples();
-    VkFormat colorFormat = this->_renderingDevice->getPhysicalDevice()->getColorFormat();
+    VkSampleCountFlagBits samples = this->_renderingDevice.get()->getPhysicalDevice()->getMsaaSamples();
+    VkFormat colorFormat = this->_renderingDevice.get()->getPhysicalDevice()->getColorFormat();
 
-    this->_skyboxImage = ImageObject::create(this->_renderingDevice, extent.width, extent.height, 1, 0,
+    this->_skyboxImage = ImageObject::create(this->_renderingDevice.get(), extent.width, extent.height, 1, 0,
                                              colorFormat,
                                              VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT |
                                              VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT |
                                              VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
                                              samples,
                                              VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    this->_skyboxImageView = ImageViewObject::create(this->_renderingDevice, this->_skyboxImage,
+    this->_skyboxImageView = ImageViewObject::create(this->_renderingDevice.get(), this->_skyboxImage,
                                                      VK_IMAGE_VIEW_TYPE_2D,
                                                      VK_IMAGE_ASPECT_COLOR_BIT);
 
-    this->_albedoImage = ImageObject::create(this->_renderingDevice, extent.width, extent.height, 1, 0,
+    this->_albedoImage = ImageObject::create(this->_renderingDevice.get(), extent.width, extent.height, 1, 0,
                                              VK_FORMAT_R8G8B8A8_UNORM,
                                              VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT |
                                              VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT |
                                              VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
                                              samples,
                                              VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    this->_albedoImageView = ImageViewObject::create(this->_renderingDevice, this->_albedoImage,
+    this->_albedoImageView = ImageViewObject::create(this->_renderingDevice.get(), this->_albedoImage,
                                                      VK_IMAGE_VIEW_TYPE_2D,
                                                      VK_IMAGE_ASPECT_COLOR_BIT);
 
-    this->_positionImage = ImageObject::create(this->_renderingDevice, extent.width, extent.height, 1, 0,
+    this->_positionImage = ImageObject::create(this->_renderingDevice.get(), extent.width, extent.height, 1, 0,
                                                VK_FORMAT_R16G16B16A16_SFLOAT,
                                                VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT |
                                                VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT |
                                                VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
                                                samples,
                                                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    this->_positionImageView = ImageViewObject::create(this->_renderingDevice, this->_positionImage,
+    this->_positionImageView = ImageViewObject::create(this->_renderingDevice.get(), this->_positionImage,
                                                        VK_IMAGE_VIEW_TYPE_2D,
                                                        VK_IMAGE_ASPECT_COLOR_BIT);
 
-    this->_normalImage = ImageObject::create(this->_renderingDevice, extent.width, extent.height, 1, 0,
+    this->_normalImage = ImageObject::create(this->_renderingDevice.get(), extent.width, extent.height, 1, 0,
                                              VK_FORMAT_R16G16B16A16_SFLOAT,
                                              VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT |
                                              VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT |
                                              VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
                                              samples,
                                              VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    this->_normalImageView = ImageViewObject::create(this->_renderingDevice, this->_normalImage,
+    this->_normalImageView = ImageViewObject::create(this->_renderingDevice.get(), this->_normalImage,
                                                      VK_IMAGE_VIEW_TYPE_2D,
                                                      VK_IMAGE_ASPECT_COLOR_BIT);
 
-    this->_specularImage = ImageObject::create(this->_renderingDevice, extent.width, extent.height, 1, 0,
+    this->_specularImage = ImageObject::create(this->_renderingDevice.get(), extent.width, extent.height, 1, 0,
                                                VK_FORMAT_R8G8B8A8_UNORM,
                                                VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT |
                                                VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT |
                                                VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
                                                samples,
                                                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    this->_specularImageView = ImageViewObject::create(this->_renderingDevice, this->_specularImage,
+    this->_specularImageView = ImageViewObject::create(this->_renderingDevice.get(), this->_specularImage,
                                                        VK_IMAGE_VIEW_TYPE_2D,
                                                        VK_IMAGE_ASPECT_COLOR_BIT);
 
-    this->_depthImage = ImageObject::create(this->_renderingDevice, extent.width, extent.height, 1, 0,
+    this->_depthImage = ImageObject::create(this->_renderingDevice.get(), extent.width, extent.height, 1, 0,
                                             this->_renderingDevice->getPhysicalDevice()->getDepthFormat(),
                                             VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
                                             samples,
                                             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    this->_depthImageView = ImageViewObject::create(this->_renderingDevice, this->_depthImage,
+    this->_depthImageView = ImageViewObject::create(this->_renderingDevice.get(), this->_depthImage,
                                                     VK_IMAGE_VIEW_TYPE_2D,
                                                     VK_IMAGE_ASPECT_DEPTH_BIT);
 
-    this->_compositionImage = ImageObject::create(this->_renderingDevice, extent.width, extent.height, 1, 0,
+    this->_compositionImage = ImageObject::create(this->_renderingDevice.get(), extent.width, extent.height, 1, 0,
                                                   colorFormat,
                                                   VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT |
                                                   VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
                                                   samples,
                                                   VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    this->_compositionImageView = ImageViewObject::create(this->_renderingDevice, this->_compositionImage,
+    this->_compositionImageView = ImageViewObject::create(this->_renderingDevice.get(), this->_compositionImage,
                                                           VK_IMAGE_VIEW_TYPE_2D,
                                                           VK_IMAGE_ASPECT_COLOR_BIT);
 
-    this->_resultImage = ImageObject::create(this->_renderingDevice, extent.width, extent.height, 1, 0,
+    this->_resultImage = ImageObject::create(this->_renderingDevice.get(), extent.width, extent.height, 1, 0,
                                              colorFormat,
                                              VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT |
                                              VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT |
                                              VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
                                              VK_SAMPLE_COUNT_1_BIT,
                                              VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    this->_resultImageView = ImageViewObject::create(this->_renderingDevice, this->_resultImage,
+    this->_resultImageView = ImageViewObject::create(this->_renderingDevice.get(), this->_resultImage,
                                                      VK_IMAGE_VIEW_TYPE_2D,
                                                      VK_IMAGE_ASPECT_COLOR_BIT);
 
-    this->_compositionGBufferDescriptorSet = DescriptorSetObject::create(this->_renderingDevice, MAX_INFLIGHT_FRAMES,
+    this->_compositionGBufferDescriptorSet = DescriptorSetObject::create(this->_renderingDevice.get(), MAX_INFLIGHT_FRAMES,
                                                                          this->_descriptorPool,
                                                                          this->_compositionGBufferDescriptorSetLayout);
 
@@ -771,7 +776,7 @@ void SceneRenderpass::createFramebuffers() {
         }
     }
 
-    FramebufferBuilder builder = FramebufferBuilder(this->_renderingDevice, this->_renderpass)
+    FramebufferBuilder builder = FramebufferBuilder(this->_renderingDevice.get(), this->_renderpass)
             .withExtent(extent)
             .addAttachment(this->_skyboxImageView->getHandle())
             .addAttachment(this->_albedoImageView->getHandle())

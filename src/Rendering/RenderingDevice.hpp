@@ -66,7 +66,7 @@ public:
     VkSemaphore createSemaphore();
     void destroySemaphore(VkSemaphore semaphore);
 
-    VkSampler createSampler();
+    VkSampler createSampler(const VkSamplerCreateInfo &createInfo);
     void destroySampler(VkSampler sampler);
 
     VkDescriptorPool createDescriptorPool(const std::vector<VkDescriptorPoolSize> &sizes, uint32_t maxSets);

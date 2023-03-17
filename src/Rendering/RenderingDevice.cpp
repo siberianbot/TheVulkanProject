@@ -297,28 +297,7 @@ std::optional<uint32_t> RenderingDevice::acquireNextSwapchainImageIdx(VkSwapchai
     throw std::runtime_error("Vulkan runtime error");
 }
 
-VkSampler RenderingDevice::createSampler() {
-    VkSamplerCreateInfo createInfo = {
-            .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
-            .pNext = nullptr,
-            .flags = 0,
-            .magFilter = VK_FILTER_LINEAR,
-            .minFilter = VK_FILTER_LINEAR,
-            .mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
-            .addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
-            .addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
-            .addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
-            .mipLodBias = 0,
-            .anisotropyEnable = VK_TRUE,
-            .maxAnisotropy = this->_physicalDevice->getMaxSamplerAnisotropy(),
-            .compareEnable = VK_FALSE,
-            .compareOp = VK_COMPARE_OP_ALWAYS,
-            .minLod = 0,
-            .maxLod = 1,
-            .borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE,
-            .unnormalizedCoordinates = VK_FALSE
-    };
-
+VkSampler RenderingDevice::createSampler(const VkSamplerCreateInfo &createInfo) {
     VkSampler sampler;
     vkEnsure(vkCreateSampler(this->_device, &createInfo, nullptr, &sampler));
 

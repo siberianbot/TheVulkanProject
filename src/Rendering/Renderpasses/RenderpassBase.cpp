@@ -2,7 +2,7 @@
 
 #include "src/Rendering/RenderingDevice.hpp"
 
-RenderpassBase::RenderpassBase(RenderingDevice *renderingDevice)
+RenderpassBase::RenderpassBase(const std::shared_ptr<RenderingDevice> &renderingDevice)
         : _renderingDevice(renderingDevice) {
     //
 }
