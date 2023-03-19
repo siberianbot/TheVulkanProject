@@ -32,7 +32,7 @@ RenderpassBuilder::~RenderpassBuilder() {
 }
 
 RenderpassBuilder &RenderpassBuilder::addAttachment(AddAttachmentFunc func) {
-    AttachmentBuilder builder(this->_renderingDevice->getPhysicalDevice());
+    AttachmentBuilder builder(this->_renderingDevice->getPhysicalDevice().get());
 
     func(builder);
 

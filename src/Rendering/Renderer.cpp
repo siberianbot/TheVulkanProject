@@ -68,7 +68,7 @@ void Renderer::init() {
     this->_surface = createSurface(this->_engine->window()->handle());
 
     this->_physicalDevice = PhysicalDevice::selectSuitable(this->_instance, this->_surface);
-    this->_renderingDevice = this->_physicalDevice->createRenderingDevice();
+    this->_renderingDevice = RenderingDevice::fromPhysicalDevice(this->_physicalDevice);
     this->_commandExecutor = new CommandExecutor(this->_renderingDevice.get());
     this->_swapchain = new Swapchain(this->_renderingDevice.get());
     this->_rendererAllocator = new RendererAllocator(this->_renderingDevice.get(), this->_commandExecutor);
@@ -88,7 +88,7 @@ void Renderer::init() {
     sceneRenderpass->addShadowRenderpass(shadowRenderpass);
 
     RenderpassBase *imguiRenderpass = new ImguiRenderpass(this->_renderingDevice, this->_swapchain, this->_instance,
-                                                          this->_physicalDevice, this->_commandExecutor);
+                                                          this->_physicalDevice.get(), this->_commandExecutor);
 
     SwapchainPresentRenderpass *presentRenderpass = new SwapchainPresentRenderpass(this->_renderingDevice,
                                                                                    this->_swapchain, this->_engine);
@@ -133,8 +133,7 @@ void Renderer::cleanup() {
     delete this->_rendererAllocator;
     delete this->_swapchain;
     delete this->_commandExecutor;
-    this->_renderingDevice = nullptr; // TODO
-    delete this->_physicalDevice;
+    this->_renderingDevice->destroy();
 
     vkDestroySurfaceKHR(this->_instance, this->_surface, nullptr);
     vkDestroyInstance(this->_instance, nullptr);

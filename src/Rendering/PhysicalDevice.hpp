@@ -24,13 +24,13 @@ private:
     uint32_t _graphicsQueueFamilyIdx;
     uint32_t _presentQueueFamilyIdx;
 
-    explicit PhysicalDevice(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface,
-                            uint32_t graphicsQueueFamilyIdx, uint32_t presentQueueFamilyIdx);
-
     static QueueFamilies getQueueFamilies(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface);
     static std::vector<std::string> getExtensions(VkPhysicalDevice physicalDevice);
 
 public:
+    PhysicalDevice(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface,
+                   uint32_t graphicsQueueFamilyIdx, uint32_t presentQueueFamilyIdx);
+
     [[nodiscard]] VkPhysicalDevice getHandle() const { return this->_physicalDevice; }
     [[nodiscard]] VkSurfaceKHR getSurface() const { return this->_surface; }
 
@@ -52,9 +52,7 @@ public:
 
     uint32_t getSuitableMemoryType(uint32_t memoryTypeBits, VkMemoryPropertyFlags memoryProperty);
 
-    std::shared_ptr<RenderingDevice> createRenderingDevice();
-
-    static PhysicalDevice *selectSuitable(VkInstance instance, VkSurfaceKHR surface);
+    static std::shared_ptr<PhysicalDevice> selectSuitable(VkInstance instance, VkSurfaceKHR surface);
 };
 
 #endif // RENDERING_PHYSICALDEVICE_HPP

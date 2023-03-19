@@ -1,6 +1,7 @@
 #ifndef RENDERING_RENDERINGDEVICE_HPP
 #define RENDERING_RENDERINGDEVICE_HPP
 
+#include <memory>
 #include <optional>
 
 #include <vulkan/vulkan.hpp>
@@ -9,24 +10,27 @@ class PhysicalDevice;
 
 class RenderingDevice {
 private:
-    PhysicalDevice *_physicalDevice;
+    std::shared_ptr<PhysicalDevice> _physicalDevice;
     VkDevice _device;
     VkQueue _graphicsQueue;
     VkQueue _presentQueue;
 
 public:
-    RenderingDevice(PhysicalDevice *physicalDevice, VkDevice device,
+    RenderingDevice(const std::shared_ptr<PhysicalDevice> &physicalDevice, VkDevice device,
                     VkQueue graphicsQueue, VkQueue presentQueue);
-    ~RenderingDevice();
 
     [[nodiscard]] VkDevice getHandle() const { return this->_device; }
 
-    [[nodiscard]] PhysicalDevice *getPhysicalDevice() const { return this->_physicalDevice; }
+    [[deprecated]]
+    [[nodiscard]] std::shared_ptr<PhysicalDevice> getPhysicalDevice() const { return this->_physicalDevice; }
 
     [[nodiscard]] VkQueue getGraphicsQueue() const { return this->_graphicsQueue; }
     [[nodiscard]] VkQueue getPresentQueue() const { return this->_presentQueue; }
 
+    void destroy();
     void waitIdle();
+
+#pragma region OBSOLETE
 
     VkDeviceMemory allocateMemory(VkMemoryRequirements requirements, VkMemoryPropertyFlags memoryProperty);
     void *mapMemory(VkDeviceMemory memory, VkDeviceSize size);
@@ -101,6 +105,10 @@ public:
 
     std::vector<VkCommandBuffer> allocateCommandBuffers(VkCommandPool commandPool, uint32_t count);
     void freeCommandBuffers(VkCommandPool commandPool, uint32_t count, const VkCommandBuffer *ptr);
+
+#pragma endregion
+
+    static std::shared_ptr<RenderingDevice> fromPhysicalDevice(const std::shared_ptr<PhysicalDevice> &physicalDevice);
 };
 
 #endif // RENDERING_RENDERINGDEVICE_HPP

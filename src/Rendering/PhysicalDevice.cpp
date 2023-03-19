@@ -184,7 +184,7 @@ uint32_t PhysicalDevice::getSuitableMemoryType(uint32_t memoryTypeBits, VkMemory
     throw std::runtime_error("No suitable memory type available");
 }
 
-PhysicalDevice *PhysicalDevice::selectSuitable(VkInstance instance, VkSurfaceKHR surface) {
+std::shared_ptr<PhysicalDevice> PhysicalDevice::selectSuitable(VkInstance instance, VkSurfaceKHR surface) {
     uint32_t count;
     vkEnsure(vkEnumeratePhysicalDevices(instance, &count, nullptr));
 
@@ -213,58 +213,9 @@ PhysicalDevice *PhysicalDevice::selectSuitable(VkInstance instance, VkSurfaceKHR
             continue;
         }
 
-        return new PhysicalDevice(physicalDevice, surface,
-                                  queueFamilies.graphicsIdx.value(), queueFamilies.presentIdx.value());
+        return std::make_shared<PhysicalDevice>(physicalDevice, surface, queueFamilies.graphicsIdx.value(),
+                                                queueFamilies.presentIdx.value());
     }
 
     throw std::runtime_error("No supported physical device available");
-}
-
-std::shared_ptr<RenderingDevice> PhysicalDevice::createRenderingDevice() {
-    const float queuePriority = 1.0f;
-
-    std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-    std::set<uint32_t> familyIndices = {
-            this->_graphicsQueueFamilyIdx,
-            this->_presentQueueFamilyIdx
-    };
-
-    for (uint32_t familyIdx: familyIndices) {
-        VkDeviceQueueCreateInfo queueCreateInfo = {
-                .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-                .pNext = nullptr,
-                .flags = 0,
-                .queueFamilyIndex = familyIdx,
-                .queueCount = 1,
-                .pQueuePriorities = &queuePriority
-        };
-
-        queueCreateInfos.push_back(queueCreateInfo);
-    }
-
-    VkPhysicalDeviceFeatures physicalDeviceFeatures = {
-            .samplerAnisotropy = VK_TRUE
-    };
-
-    VkDeviceCreateInfo deviceCreateInfo = {
-            .sType = VkStructureType::VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-            .pNext = nullptr,
-            .flags = 0,
-            .queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size()),
-            .pQueueCreateInfos = queueCreateInfos.data(),
-            .enabledLayerCount = static_cast<uint32_t>(VALIDATION_LAYERS.size()),
-            .ppEnabledLayerNames = VALIDATION_LAYERS.data(),
-            .enabledExtensionCount = static_cast<uint32_t>(DEVICE_EXTENSIONS.size()),
-            .ppEnabledExtensionNames = DEVICE_EXTENSIONS.data(),
-            .pEnabledFeatures = &physicalDeviceFeatures
-    };
-
-    VkDevice device;
-    vkEnsure(vkCreateDevice(this->_physicalDevice, &deviceCreateInfo, nullptr, &device));
-
-    VkQueue graphicsQueue, presentQueue;
-    vkGetDeviceQueue(device, this->_graphicsQueueFamilyIdx, 0, &graphicsQueue);
-    vkGetDeviceQueue(device, this->_presentQueueFamilyIdx, 0, &presentQueue);
-
-    return std::make_shared<RenderingDevice>(this, device, graphicsQueue, presentQueue);
 }

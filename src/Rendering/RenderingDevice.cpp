@@ -1,9 +1,11 @@
 #include "RenderingDevice.hpp"
 
+#include <set>
+
 #include "Common.hpp"
 #include "PhysicalDevice.hpp"
 
-RenderingDevice::RenderingDevice(PhysicalDevice *physicalDevice, VkDevice device,
+RenderingDevice::RenderingDevice(const std::shared_ptr<PhysicalDevice> &physicalDevice, VkDevice device,
                                  VkQueue graphicsQueue, VkQueue presentQueue)
         : _physicalDevice(physicalDevice),
           _device(device),
@@ -12,7 +14,7 @@ RenderingDevice::RenderingDevice(PhysicalDevice *physicalDevice, VkDevice device
     //
 }
 
-RenderingDevice::~RenderingDevice() {
+void RenderingDevice::destroy() {
     vkDestroyDevice(this->_device, nullptr);
 }
 
@@ -487,4 +489,54 @@ std::vector<VkCommandBuffer> RenderingDevice::allocateCommandBuffers(VkCommandPo
 
 void RenderingDevice::freeCommandBuffers(VkCommandPool commandPool, uint32_t count, const VkCommandBuffer *ptr) {
     vkFreeCommandBuffers(this->_device, commandPool, count, ptr);
+}
+
+std::shared_ptr<RenderingDevice> RenderingDevice::fromPhysicalDevice(
+        const std::shared_ptr<PhysicalDevice> &physicalDevice) {
+    const float queuePriority = 1.0f;
+
+    std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+    std::set<uint32_t> familyIndices = {
+            physicalDevice->getGraphicsQueueFamilyIdx(),
+            physicalDevice->getPresentQueueFamilyIdx()
+    };
+
+    for (uint32_t familyIdx: familyIndices) {
+        VkDeviceQueueCreateInfo queueCreateInfo = {
+                .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+                .pNext = nullptr,
+                .flags = 0,
+                .queueFamilyIndex = familyIdx,
+                .queueCount = 1,
+                .pQueuePriorities = &queuePriority
+        };
+
+        queueCreateInfos.push_back(queueCreateInfo);
+    }
+
+    VkPhysicalDeviceFeatures physicalDeviceFeatures = {
+            .samplerAnisotropy = VK_TRUE
+    };
+
+    VkDeviceCreateInfo deviceCreateInfo = {
+            .sType = VkStructureType::VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0,
+            .queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size()),
+            .pQueueCreateInfos = queueCreateInfos.data(),
+            .enabledLayerCount = static_cast<uint32_t>(VALIDATION_LAYERS.size()),
+            .ppEnabledLayerNames = VALIDATION_LAYERS.data(),
+            .enabledExtensionCount = static_cast<uint32_t>(DEVICE_EXTENSIONS.size()),
+            .ppEnabledExtensionNames = DEVICE_EXTENSIONS.data(),
+            .pEnabledFeatures = &physicalDeviceFeatures
+    };
+
+    VkDevice device;
+    vkEnsure(vkCreateDevice(physicalDevice->getHandle(), &deviceCreateInfo, nullptr, &device));
+
+    VkQueue graphicsQueue, presentQueue;
+    vkGetDeviceQueue(device, physicalDevice->getGraphicsQueueFamilyIdx(), 0, &graphicsQueue);
+    vkGetDeviceQueue(device, physicalDevice->getPresentQueueFamilyIdx(), 0, &presentQueue);
+
+    return std::make_shared<RenderingDevice>(physicalDevice, device, graphicsQueue, presentQueue);
 }
