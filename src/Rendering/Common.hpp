@@ -6,6 +6,8 @@
 #include <glm/vec3.hpp>
 #include <vulkan/vulkan.hpp>
 
+#include "Constants.hpp"
+
 static constexpr std::array<const char *, 1> VALIDATION_LAYERS = {
         "VK_LAYER_KHRONOS_validation"
 };
@@ -13,8 +15,6 @@ static constexpr std::array<const char *, 1> VALIDATION_LAYERS = {
 static constexpr std::array<const char *, 1> DEVICE_EXTENSIONS = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
-
-static constexpr const uint32_t MAX_INFLIGHT_FRAMES = 2;
 
 static constexpr const int MAX_NUM_LIGHTS = 32;
 static constexpr std::array<glm::vec3, 6> POINT_LIGHT_DIRECTIONS = {

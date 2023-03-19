@@ -1,0 +1,6 @@
+#ifndef RENDERING_CONSTANTS_HPP
+#define RENDERING_CONSTANTS_HPP
+
+static constexpr const uint32_t MAX_INFLIGHT_FRAMES = 2;
+
+#endif // RENDERING_CONSTANTS_HPP

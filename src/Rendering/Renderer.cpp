@@ -5,6 +5,7 @@
 #include "src/Constants.hpp"
 #include "src/Engine/Engine.hpp"
 #include "src/Events/EventQueue.hpp"
+#include "CommandExecution.hpp"
 #include "CommandExecutor.hpp"
 #include "PhysicalDevice.hpp"
 #include "RenderingDevice.hpp"
@@ -69,9 +70,9 @@ void Renderer::init() {
 
     this->_physicalDevice = PhysicalDevice::selectSuitable(this->_instance, this->_surface);
     this->_renderingDevice = RenderingDevice::fromPhysicalDevice(this->_physicalDevice);
-    this->_commandExecutor = new CommandExecutor(this->_renderingDevice.get());
+    this->_commandExecutor = CommandExecutor::create(this->_physicalDevice, this->_renderingDevice);
     this->_swapchain = new Swapchain(this->_renderingDevice.get());
-    this->_rendererAllocator = new RendererAllocator(this->_renderingDevice.get(), this->_commandExecutor);
+    this->_rendererAllocator = new RendererAllocator(this->_renderingDevice.get(), this->_commandExecutor.get());
 
     for (uint32_t frameIdx = 0; frameIdx < MAX_INFLIGHT_FRAMES; frameIdx++) {
         this->_syncObjectsGroups[frameIdx] = new SyncObjectsGroup{
@@ -88,7 +89,7 @@ void Renderer::init() {
     sceneRenderpass->addShadowRenderpass(shadowRenderpass);
 
     RenderpassBase *imguiRenderpass = new ImguiRenderpass(this->_renderingDevice, this->_swapchain, this->_instance,
-                                                          this->_physicalDevice.get(), this->_commandExecutor);
+                                                          this->_physicalDevice.get(), this->_commandExecutor.get());
 
     SwapchainPresentRenderpass *presentRenderpass = new SwapchainPresentRenderpass(this->_renderingDevice,
                                                                                    this->_swapchain, this->_engine);
@@ -132,7 +133,7 @@ void Renderer::cleanup() {
 
     delete this->_rendererAllocator;
     delete this->_swapchain;
-    delete this->_commandExecutor;
+    this->_commandExecutor->destroy();
     this->_renderingDevice->destroy();
 
     vkDestroySurfaceKHR(this->_instance, this->_surface, nullptr);

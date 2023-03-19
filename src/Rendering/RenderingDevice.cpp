@@ -454,43 +454,6 @@ void RenderingDevice::destroyPipeline(VkPipeline pipeline) {
     vkDestroyPipeline(this->_device, pipeline, nullptr);
 }
 
-VkCommandPool RenderingDevice::createCommandPool(uint32_t queueFamilyIdx) {
-    VkCommandPoolCreateInfo createInfo = {
-            .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-            .pNext = nullptr,
-            .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-            .queueFamilyIndex = queueFamilyIdx
-    };
-
-    VkCommandPool commandPool;
-    vkEnsure(vkCreateCommandPool(this->_device, &createInfo, nullptr, &commandPool));
-
-    return commandPool;
-}
-
-void RenderingDevice::destroyCommandPool(VkCommandPool commandPool) {
-    vkDestroyCommandPool(this->_device, commandPool, nullptr);
-}
-
-std::vector<VkCommandBuffer> RenderingDevice::allocateCommandBuffers(VkCommandPool commandPool, uint32_t count) {
-    VkCommandBufferAllocateInfo allocateInfo = {
-            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-            .pNext = nullptr,
-            .commandPool = commandPool,
-            .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-            .commandBufferCount = count
-    };
-
-    std::vector<VkCommandBuffer> buffers(count);
-    vkEnsure(vkAllocateCommandBuffers(this->_device, &allocateInfo, buffers.data()));
-
-    return buffers;
-}
-
-void RenderingDevice::freeCommandBuffers(VkCommandPool commandPool, uint32_t count, const VkCommandBuffer *ptr) {
-    vkFreeCommandBuffers(this->_device, commandPool, count, ptr);
-}
-
 std::shared_ptr<RenderingDevice> RenderingDevice::fromPhysicalDevice(
         const std::shared_ptr<PhysicalDevice> &physicalDevice) {
     const float queuePriority = 1.0f;

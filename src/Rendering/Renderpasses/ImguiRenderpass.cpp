@@ -3,9 +3,11 @@
 #include <imgui.h>
 #include <imgui_impl_vulkan.h>
 
+#include "src/Rendering/Common.hpp"
 #include "src/Rendering/PhysicalDevice.hpp"
 #include "src/Rendering/RenderingDevice.hpp"
 #include "src/Rendering/Swapchain.hpp"
+#include "src/Rendering/CommandExecution.hpp"
 #include "src/Rendering/CommandExecutor.hpp"
 #include "src/Rendering/Builders/AttachmentBuilder.hpp"
 #include "src/Rendering/Builders/DescriptorPoolBuilder.hpp"

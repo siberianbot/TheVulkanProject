@@ -1,5 +1,6 @@
 #include "RendererAllocator.hpp"
 
+#include "src/Rendering/CommandExecution.hpp"
 #include "src/Rendering/CommandExecutor.hpp"
 #include "src/Rendering/Objects/BufferObject.hpp"
 #include "src/Rendering/Objects/ImageObject.hpp"

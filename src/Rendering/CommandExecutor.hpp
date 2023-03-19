@@ -1,58 +1,33 @@
 #ifndef RENDERING_COMMANDEXECUTOR_HPP
 #define RENDERING_COMMANDEXECUTOR_HPP
 
-#include <functional>
+#include <memory>
 #include <optional>
 
-#include "Common.hpp"
+#include "src/Rendering/Types/Command.hpp"
+#include "Constants.hpp"
 
-using Command = std::function<void(VkCommandBuffer cmdBuffer)>;
-
+class PhysicalDevice;
 class RenderingDevice;
-class FenceObject;
-class SemaphoreObject;
-
-class CommandExecution {
-private:
-    Command _command;
-    RenderingDevice *_renderingDevice;
-    VkCommandPool _commandPool;
-    VkCommandBuffer _commandBuffer;
-    bool _oneTimeBuffer;
-
-    FenceObject *_fence = nullptr;
-    std::vector<VkSemaphore> _waitSemaphores;
-    std::vector<VkSemaphore> _signalSemaphores;
-    std::optional<VkPipelineStageFlags> _waitDstStageMask;
-
-public:
-    CommandExecution(Command command,
-                     RenderingDevice *renderingDevice,
-                     VkCommandPool commandPool,
-                     VkCommandBuffer commandBuffer,
-                     bool oneTimeBuffer);
-    ~CommandExecution();
-
-    CommandExecution &withFence(FenceObject *fence);
-    CommandExecution &withWaitSemaphore(SemaphoreObject *semaphore);
-    CommandExecution &withSignalSemaphore(SemaphoreObject *semaphore);
-    CommandExecution &withWaitDstStageMask(VkPipelineStageFlags waitDstStageMask);
-
-    void submit(bool waitQueueIdle);
-};
+class CommandExecution;
 
 class CommandExecutor {
 private:
-    RenderingDevice *_renderingDevice;
+    std::shared_ptr<RenderingDevice> _renderingDevice;
     VkCommandPool _commandPool;
     std::array<VkCommandBuffer, MAX_INFLIGHT_FRAMES> _mainBuffers;
 
 public:
-    explicit CommandExecutor(RenderingDevice *renderingDevice);
-    ~CommandExecutor();
+    CommandExecutor(const std::shared_ptr<RenderingDevice> &renderingDevice,
+                    VkCommandPool commandPool, const std::array<VkCommandBuffer, MAX_INFLIGHT_FRAMES> &mainBuffers);
+
+    void destroy();
 
     CommandExecution beginMainExecution(uint32_t frameIdx, Command command);
     CommandExecution beginOneTimeExecution(Command command);
+
+    static std::shared_ptr<CommandExecutor> create(const std::shared_ptr<PhysicalDevice> &physicalDevice,
+                                                   const std::shared_ptr<RenderingDevice> &renderingDevice);
 };
 
 #endif // RENDERING_COMMANDEXECUTOR_HPP

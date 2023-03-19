@@ -29,6 +29,7 @@ src = [
     'src/Rendering/Renderer.cpp',
     'src/Rendering/PhysicalDevice.cpp',
     'src/Rendering/RenderingDevice.cpp',
+    'src/Rendering/CommandExecution.cpp',
     'src/Rendering/CommandExecutor.cpp',
     'src/Rendering/Swapchain.cpp',
     'src/Rendering/RendererAllocator.cpp',

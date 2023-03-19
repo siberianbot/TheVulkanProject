@@ -39,7 +39,7 @@ private:
     VkSurfaceKHR _surface = VK_NULL_HANDLE;
     std::shared_ptr<PhysicalDevice> _physicalDevice;
     std::shared_ptr<RenderingDevice> _renderingDevice;
-    CommandExecutor *_commandExecutor;
+    std::shared_ptr<CommandExecutor> _commandExecutor;
     Swapchain *_swapchain;
     RendererAllocator *_rendererAllocator;
 

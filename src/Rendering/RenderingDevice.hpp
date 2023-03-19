@@ -100,12 +100,6 @@ public:
     VkPipeline createPipeline(const VkGraphicsPipelineCreateInfo *pipelineInfo);
     void destroyPipeline(VkPipeline pipeline);
 
-    VkCommandPool createCommandPool(uint32_t queueFamilyIdx);
-    void destroyCommandPool(VkCommandPool commandPool);
-
-    std::vector<VkCommandBuffer> allocateCommandBuffers(VkCommandPool commandPool, uint32_t count);
-    void freeCommandBuffers(VkCommandPool commandPool, uint32_t count, const VkCommandBuffer *ptr);
-
 #pragma endregion
 
     static std::shared_ptr<RenderingDevice> fromPhysicalDevice(const std::shared_ptr<PhysicalDevice> &physicalDevice);
