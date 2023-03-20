@@ -178,13 +178,6 @@ std::shared_ptr<ImageObject> RendererAllocator::uploadCubeImage(uint32_t width, 
     return image;
 }
 
-ShaderObject *RendererAllocator::uploadShaderBinary(const std::vector<char> &binary) {
-    return ShaderObject::create(this->_renderingDevice.get(), binary);
-}
-
-std::shared_ptr<RendererAllocator> RendererAllocator::create(
-        const std::shared_ptr<RenderingDevice> &renderingDevice,
-        const std::shared_ptr<VulkanObjectsAllocator> &vulkanObjectsAllocator,
-        const std::shared_ptr<CommandExecutor> &commandExecutor) {
-    return std::make_shared<RendererAllocator>(renderingDevice, vulkanObjectsAllocator, commandExecutor);
+std::shared_ptr<ShaderObject> RendererAllocator::uploadShaderBinary(const std::vector<char> &binary) {
+    return ShaderObject::create(this->_vulkanObjectsAllocator, binary);
 }

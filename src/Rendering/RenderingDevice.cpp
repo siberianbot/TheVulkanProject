@@ -22,35 +22,6 @@ void RenderingDevice::waitIdle() {
     vkEnsure(vkDeviceWaitIdle(this->_device));
 }
 
-VkImageView RenderingDevice::createImageView(VkImage image, uint32_t layers, VkImageViewType imageViewType,
-                                             VkFormat format, VkImageAspectFlags aspectMask) {
-    VkImageViewCreateInfo imageViewCreateInfo = {
-            .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-            .pNext = nullptr,
-            .flags = 0,
-            .image = image,
-            .viewType = imageViewType,
-            .format = format,
-            .components = {},
-            .subresourceRange = {
-                    .aspectMask = aspectMask,
-                    .baseMipLevel = 0,
-                    .levelCount = 1,
-                    .baseArrayLayer = 0,
-                    .layerCount = layers
-            }
-    };
-
-    VkImageView imageView;
-    vkEnsure(vkCreateImageView(this->_device, &imageViewCreateInfo, nullptr, &imageView));
-
-    return imageView;
-}
-
-void RenderingDevice::destroyImageView(VkImageView imageView) {
-    vkDestroyImageView(this->_device, imageView, nullptr);
-}
-
 VkSwapchainKHR RenderingDevice::createSwapchain(VkExtent2D extent, uint32_t minImageCount) {
     VkSurfaceFormatKHR surfaceFormat = this->_physicalDevice->getPreferredSurfaceFormat();
     VkPresentModeKHR presentMode = this->_physicalDevice->getPreferredPresentMode();
@@ -131,48 +102,6 @@ VkFramebuffer RenderingDevice::createFramebuffer(VkRenderPass renderpass, VkExte
 
 void RenderingDevice::destroyFramebuffer(VkFramebuffer framebuffer) {
     vkDestroyFramebuffer(this->_device, framebuffer, nullptr);
-}
-
-VkFence RenderingDevice::createFence(bool signaled) {
-    VkFenceCreateInfo createInfo = {
-            .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
-            .pNext = nullptr,
-            .flags = signaled ? VK_FENCE_CREATE_SIGNALED_BIT : (VkFenceCreateFlags) 0
-    };
-
-    VkFence fence;
-    vkEnsure(vkCreateFence(this->_device, &createInfo, nullptr, &fence));
-
-    return fence;
-}
-
-void RenderingDevice::waitForFence(VkFence fence, uint64_t timeout) {
-    vkEnsure(vkWaitForFences(this->_device, 1, &fence, VK_TRUE, timeout));
-}
-
-void RenderingDevice::resetFence(VkFence fence) {
-    vkEnsure(vkResetFences(this->_device, 1, &fence));
-}
-
-void RenderingDevice::destroyFence(VkFence fence) {
-    vkDestroyFence(this->_device, fence, nullptr);
-}
-
-VkSemaphore RenderingDevice::createSemaphore() {
-    VkSemaphoreCreateInfo createInfo = {
-            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
-            .pNext = nullptr,
-            .flags = 0
-    };
-
-    VkSemaphore semaphore;
-    vkEnsure(vkCreateSemaphore(this->_device, &createInfo, nullptr, &semaphore));
-
-    return semaphore;
-}
-
-void RenderingDevice::destroySemaphore(VkSemaphore semaphore) {
-    vkDestroySemaphore(this->_device, semaphore, nullptr);
 }
 
 std::optional<uint32_t> RenderingDevice::acquireNextSwapchainImageIdx(VkSwapchainKHR swapchain, uint64_t timeout,
@@ -313,25 +242,6 @@ VkRenderPass RenderingDevice::createRenderpass(const std::vector<VkAttachmentDes
 
 void RenderingDevice::destroyRenderpass(VkRenderPass renderpass) {
     vkDestroyRenderPass(this->_device, renderpass, nullptr);
-}
-
-VkShaderModule RenderingDevice::createShaderModule(const std::vector<char> &content) {
-    VkShaderModuleCreateInfo createInfo = {
-            .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-            .pNext = nullptr,
-            .flags = 0,
-            .codeSize = content.size(),
-            .pCode = reinterpret_cast<const uint32_t *>(content.data())
-    };
-
-    VkShaderModule shaderModule;
-    vkEnsure(vkCreateShaderModule(this->_device, &createInfo, nullptr, &shaderModule));
-
-    return shaderModule;
-}
-
-void RenderingDevice::destroyShaderModule(VkShaderModule shaderModule) {
-    vkDestroyShaderModule(this->_device, shaderModule, nullptr);
 }
 
 VkPipeline RenderingDevice::createPipeline(const VkGraphicsPipelineCreateInfo *pipelineInfo) {

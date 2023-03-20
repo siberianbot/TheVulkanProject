@@ -1,6 +1,8 @@
 #ifndef RESOURCES_SHADERRESOURCE_HPP
 #define RESOURCES_SHADERRESOURCE_HPP
 
+#include <memory>
+
 #include "Resource.hpp"
 
 class RendererAllocator;
@@ -10,7 +12,7 @@ class ShaderResource : public Resource {
 private:
     std::shared_ptr<RendererAllocator> _rendererAllocator;
 
-    ShaderObject *_shader = nullptr;
+    std::shared_ptr<ShaderObject> _shader = nullptr;
     std::vector<char> _shaderCode;
 
     std::vector<char> readContent(const std::filesystem::path &path);
@@ -30,7 +32,7 @@ public:
 
     [[nodiscard]] ResourceType type() const override { return SHADER_RESOURCE; }
 
-    [[nodiscard]] ShaderObject *shader() const { return this->_shader; }
+    [[nodiscard]] std::shared_ptr<ShaderObject> shader() const { return this->_shader; }
     [[nodiscard]] const std::vector<char> &shaderCode() const { return this->_shaderCode; }
 
     bool build();

@@ -5,21 +5,23 @@
 
 #include <vulkan/vulkan.hpp>
 
-class RenderingDevice;
+class VulkanObjectsAllocator;
 
 class SemaphoreObject {
 private:
-    RenderingDevice *_renderingDevice;
+    std::shared_ptr<VulkanObjectsAllocator> _vulkanObjectsAllocator;
 
     VkSemaphore _semaphore;
 
 public:
-    SemaphoreObject(RenderingDevice *renderingDevice, VkSemaphore semaphore);
-    ~SemaphoreObject();
+    SemaphoreObject(const std::shared_ptr<VulkanObjectsAllocator> &vulkanObjectsAllocator, VkSemaphore semaphore);
 
     [[nodiscard]] VkSemaphore getHandle() const { return this->_semaphore; }
 
-    [[nodiscard]] static std::shared_ptr<SemaphoreObject> create(RenderingDevice *renderingDevice);
+    void destroy();
+
+    [[nodiscard]] static std::shared_ptr<SemaphoreObject> create(
+            const std::shared_ptr<VulkanObjectsAllocator> &vulkanObjectsAllocator);
 };
 
 #endif // RENDERING_OBJECTS_SEMAPHOREOBJECT_HPP

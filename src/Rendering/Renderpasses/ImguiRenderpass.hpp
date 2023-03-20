@@ -21,7 +21,7 @@ private:
     VkDescriptorPool _descriptorPool;
 
     std::shared_ptr<ImageObject> _resultImage;
-    ImageViewObject *_resultImageView;
+    std::shared_ptr<ImageViewObject> _resultImageView;
 
 public:
     ImguiRenderpass(const std::shared_ptr<RenderingDevice> &renderingDevice,
@@ -39,7 +39,7 @@ public:
     void createFramebuffers() override;
     void destroyFramebuffers() override;
 
-    ImageViewObject *getResultImageView(uint32_t imageIdx) override { return this->_resultImageView; }
+    std::shared_ptr<ImageViewObject> getResultImageView(uint32_t imageIdx) override { return this->_resultImageView; }
 };
 
 #endif // RENDERING_RENDERPASSES_IMGUIRENDERPASS_HPP

@@ -49,33 +49,33 @@ private:
     Swapchain *_swapchain;
 
     VkSampler _textureSampler;
-    std::map<std::shared_ptr<ImageObject>, ImageViewObject *> _imageViews;
+    std::map<std::shared_ptr<ImageObject>, std::shared_ptr<ImageViewObject>> _imageViews;
     DescriptorSetObject *_skyboxDescriptorSet;
-    ImageViewObject *_skyboxTextureView = nullptr;
+    std::shared_ptr<ImageViewObject> _skyboxTextureView = nullptr;
 
     std::shared_ptr<ImageObject> _skyboxImage;
-    ImageViewObject *_skyboxImageView;
+    std::shared_ptr<ImageViewObject> _skyboxImageView;
 
     std::shared_ptr<ImageObject> _albedoImage;
-    ImageViewObject *_albedoImageView;
+    std::shared_ptr<ImageViewObject> _albedoImageView;
 
     std::shared_ptr<ImageObject> _positionImage;
-    ImageViewObject *_positionImageView;
+    std::shared_ptr<ImageViewObject> _positionImageView;
 
     std::shared_ptr<ImageObject> _normalImage;
-    ImageViewObject *_normalImageView;
+    std::shared_ptr<ImageViewObject> _normalImageView;
 
     std::shared_ptr<ImageObject> _specularImage;
-    ImageViewObject *_specularImageView;
+    std::shared_ptr<ImageViewObject> _specularImageView;
 
     std::shared_ptr<ImageObject> _depthImage;
-    ImageViewObject *_depthImageView;
+    std::shared_ptr<ImageViewObject> _depthImageView;
 
     std::shared_ptr<ImageObject> _compositionImage;
-    ImageViewObject *_compositionImageView;
+    std::shared_ptr<ImageViewObject> _compositionImageView;
 
     std::shared_ptr<ImageObject> _resultImage;
-    ImageViewObject *_resultImageView;
+    std::shared_ptr<ImageViewObject> _resultImageView;
 
     VkDescriptorPool _descriptorPool;
 
@@ -97,9 +97,10 @@ private:
     std::vector<RenderpassBase *> _shadowRenderpasses;
 
     std::shared_ptr<RenderingData> getRenderData(Object *object);
-    ImageViewObject *getImageView(const std::shared_ptr<ImageObject> &image);
+    std::shared_ptr<ImageViewObject> getImageView(const std::shared_ptr<ImageObject> &image);
 
-    void updateDescriptorSetWithImage(DescriptorSetObject *descriptorSetObject, ImageViewObject *imageViewObject,
+    void updateDescriptorSetWithImage(DescriptorSetObject *descriptorSetObject,
+                                      const std::shared_ptr<ImageViewObject> &imageViewObject,
                                       uint32_t binding);
 
     void initSkyboxPipeline();
@@ -127,7 +128,7 @@ public:
     void createFramebuffers() override;
     void destroyFramebuffers() override;
 
-    ImageViewObject *getResultImageView(uint32_t imageIdx) override { return this->_resultImageView; }
+    std::shared_ptr<ImageViewObject> getResultImageView(uint32_t imageIdx) override { return this->_resultImageView; }
 
     // TODO: very stupid way
     void addShadowRenderpass(RenderpassBase *renderpass);

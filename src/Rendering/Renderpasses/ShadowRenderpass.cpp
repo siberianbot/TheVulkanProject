@@ -7,6 +7,7 @@
 #include "src/Rendering/Builders/RenderpassBuilder.hpp"
 #include "src/Rendering/Builders/AttachmentBuilder.hpp"
 #include "src/Rendering/Builders/ImageObjectBuilder.hpp"
+#include "src/Rendering/Builders/ImageViewObjectBuilder.hpp"
 #include "src/Rendering/Builders/SubpassBuilder.hpp"
 #include "src/Rendering/Builders/PipelineLayoutBuilder.hpp"
 #include "src/Rendering/Builders/PipelineBuilder.hpp"
@@ -188,15 +189,16 @@ void ShadowRenderpass::initRenderpass() {
                 .withUsage(VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT)
                 .build();
 
-        this->_depthImageViews[idx] = ImageViewObject::create(this->_renderingDevice.get(),
-                                                              this->_depthImages[idx].get(),
-                                                              VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_DEPTH_BIT);
+        this->_depthImageViews[idx] = ImageViewObjectBuilder(this->_vulkanObjectsAllocator)
+                .fromImageObject(this->_depthImages[idx])
+                .withAspectFlags(VK_IMAGE_ASPECT_DEPTH_BIT)
+                .build();
     }
 }
 
 void ShadowRenderpass::destroyRenderpass() {
     for (uint32_t idx = 0; idx < MAX_NUM_LIGHTS; idx++) {
-        delete this->_depthImageViews[idx];
+        this->_depthImageViews[idx]->destroy();
         this->_depthImages[idx]->destroy();
     }
 

@@ -41,6 +41,7 @@ src = [
     'src/Rendering/Builders/DescriptorSetLayoutBuilder.cpp',
     'src/Rendering/Builders/FramebufferBuilder.cpp',
     'src/Rendering/Builders/ImageObjectBuilder.cpp',
+    'src/Rendering/Builders/ImageViewObjectBuilder.cpp',
     'src/Rendering/Builders/PipelineBuilder.cpp',
     'src/Rendering/Builders/PipelineLayoutBuilder.cpp',
     'src/Rendering/Builders/RenderpassBuilder.cpp',

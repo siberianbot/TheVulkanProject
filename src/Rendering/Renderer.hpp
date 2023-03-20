@@ -42,8 +42,7 @@ private:
     std::shared_ptr<VulkanObjectsAllocator> _vulkanObjectsAllocator;
     std::shared_ptr<CommandExecutor> _commandExecutor;
     std::shared_ptr<RendererAllocator> _rendererAllocator;
-
-    Swapchain *_swapchain;
+    std::shared_ptr<Swapchain> _swapchain;
 
     std::array<SyncObjectsGroup *, MAX_INFLIGHT_FRAMES> _syncObjectsGroups;
     std::vector<RenderpassBase *> _renderpasses;

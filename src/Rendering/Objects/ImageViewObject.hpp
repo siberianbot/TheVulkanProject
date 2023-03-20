@@ -1,30 +1,27 @@
 #ifndef RENDERING_OBJECTS_IMAGEVIEWOBJECT_HPP
 #define RENDERING_OBJECTS_IMAGEVIEWOBJECT_HPP
 
+#include <memory>
+
 #include <vulkan/vulkan.hpp>
 
-class RenderingDevice;
-class ImageObject;
+class VulkanObjectsAllocator;
 
 class ImageViewObject {
 private:
-    RenderingDevice *_renderingDevice;
-    ImageObject *_image;
+    std::shared_ptr<VulkanObjectsAllocator> _vulkanObjectsAllocator;
 
+    VkImage _image;
     VkImageView _imageView;
 
-    ImageViewObject(RenderingDevice *renderingDevice, ImageObject *image, VkImageView imageView);
-
 public:
-    ~ImageViewObject();
+    ImageViewObject(const std::shared_ptr<VulkanObjectsAllocator> &vulkanObjectsAllocator,
+                    VkImage image, VkImageView imageView);
 
-    [[nodiscard]] ImageObject *getImage() const { return this->_image; }
+    [[nodiscard]] VkImage getImage() const { return this->_image; }
     [[nodiscard]] VkImageView getHandle() const { return this->_imageView; }
 
-    [[nodiscard]] static ImageViewObject *create(RenderingDevice *renderingDevice, VkImage image, VkFormat format,
-                                                 VkImageAspectFlags aspectMask);
-    [[nodiscard]] static ImageViewObject *create(RenderingDevice *renderingDevice, ImageObject *image,
-                                                 VkImageViewType imageViewType, VkImageAspectFlags aspectMask);
+    void destroy();
 };
 
 #endif // RENDERING_OBJECTS_IMAGEVIEWOBJECT_HPP

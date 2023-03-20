@@ -1,16 +1,18 @@
 #include "Swapchain.hpp"
 
-#include "PhysicalDevice.hpp"
-#include "RenderingDevice.hpp"
+#include "src/Rendering/PhysicalDevice.hpp"
+#include "src/Rendering/RenderingDevice.hpp"
+#include "src/Rendering/VulkanObjectsAllocator.hpp"
+#include "src/Rendering/Builders/ImageViewObjectBuilder.hpp"
 #include "src/Rendering/Objects/ImageViewObject.hpp"
 
-Swapchain::Swapchain(RenderingDevice *renderingDevice)
-        : _renderingDevice(renderingDevice) {
+Swapchain::Swapchain(const std::shared_ptr<PhysicalDevice> &physicalDevice,
+                     const std::shared_ptr<RenderingDevice> &renderingDevice,
+                     const std::shared_ptr<VulkanObjectsAllocator> &vulkanObjectsAllocator)
+        : _physicalDevice(physicalDevice),
+          _renderingDevice(renderingDevice),
+          _vulkanObjectsAllocator(vulkanObjectsAllocator) {
     //
-}
-
-Swapchain::~Swapchain() {
-    this->destroy();
 }
 
 void Swapchain::create() {
@@ -18,7 +20,7 @@ void Swapchain::create() {
         destroy();
     }
 
-    VkSurfaceCapabilitiesKHR capabilities = this->_renderingDevice->getPhysicalDevice()->getSurfaceCapabilities();
+    VkSurfaceCapabilitiesKHR capabilities = this->_physicalDevice->getSurfaceCapabilities();
 
     // TODO:
     //  capabilities.currentExtent may be not available on certain platform;
@@ -34,11 +36,14 @@ void Swapchain::create() {
     this->_swapchainImages = this->_renderingDevice->getSwapchainImages(this->_swapchain);
     this->_swapchainImageViews.resize(this->_swapchainImages.size());
 
-    VkFormat colorFormat = this->_renderingDevice->getPhysicalDevice()->getColorFormat();
+    VkFormat colorFormat = this->_physicalDevice->getColorFormat();
 
     for (uint32_t idx = 0; idx < this->_swapchainImages.size(); idx++) {
-        this->_swapchainImageViews[idx] = ImageViewObject::create(this->_renderingDevice, this->_swapchainImages[idx],
-                                                                  colorFormat, VK_IMAGE_ASPECT_COLOR_BIT);
+        this->_swapchainImageViews[idx] = ImageViewObjectBuilder(this->_vulkanObjectsAllocator)
+                .withImage(this->_swapchainImages[idx])
+                .withFormat(colorFormat)
+                .withAspectFlags(VK_IMAGE_ASPECT_COLOR_BIT)
+                .build();
     }
 }
 
@@ -47,9 +52,11 @@ void Swapchain::destroy() {
         return;
     }
 
-    for (ImageViewObject *imageView: this->_swapchainImageViews) {
-        delete imageView;
+    for (std::shared_ptr<ImageViewObject> imageView: this->_swapchainImageViews) {
+        imageView->destroy();
     }
+
+    this->_swapchainImageViews.clear();
 
     this->_renderingDevice->destroySwapchain(this->_swapchain);
     this->_swapchain = VK_NULL_HANDLE;

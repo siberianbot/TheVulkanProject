@@ -32,10 +32,6 @@ public:
 
 #pragma region OBSOLETE
 
-    VkImageView createImageView(VkImage image, uint32_t layers, VkImageViewType imageViewType,
-                                VkFormat format, VkImageAspectFlags aspectMask);
-    void destroyImageView(VkImageView imageView);
-
     VkSwapchainKHR createSwapchain(VkExtent2D extent, uint32_t minImageCount);
     std::vector<VkImage> getSwapchainImages(VkSwapchainKHR swapchain);
     std::optional<uint32_t> acquireNextSwapchainImageIdx(VkSwapchainKHR swapchain, uint64_t timeout,
@@ -45,14 +41,6 @@ public:
     VkFramebuffer createFramebuffer(VkRenderPass renderpass, VkExtent2D extent,
                                     const std::vector<VkImageView> &attachments);
     void destroyFramebuffer(VkFramebuffer framebuffer);
-
-    VkFence createFence(bool signaled);
-    void waitForFence(VkFence fence, uint64_t timeout);
-    void resetFence(VkFence fence);
-    void destroyFence(VkFence fence);
-
-    VkSemaphore createSemaphore();
-    void destroySemaphore(VkSemaphore semaphore);
 
     VkSampler createSampler(const VkSamplerCreateInfo &createInfo);
     void destroySampler(VkSampler sampler);
@@ -77,9 +65,6 @@ public:
                                   const std::vector<VkSubpassDescription> &subpasses,
                                   const std::vector<VkSubpassDependency> &dependencies);
     void destroyRenderpass(VkRenderPass renderpass);
-
-    VkShaderModule createShaderModule(const std::vector<char> &content);
-    void destroyShaderModule(VkShaderModule shaderModule);
 
     VkPipeline createPipeline(const VkGraphicsPipelineCreateInfo *pipelineInfo);
     void destroyPipeline(VkPipeline pipeline);

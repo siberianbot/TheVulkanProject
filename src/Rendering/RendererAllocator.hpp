@@ -40,12 +40,7 @@ public:
     std::shared_ptr<ImageObject> uploadCubeImage(uint32_t width, uint32_t height, uint32_t size,
                                                  const std::array<void *, 6> &data);
 
-    ShaderObject *uploadShaderBinary(const std::vector<char> &binary);
-
-    static std::shared_ptr<RendererAllocator> create(
-            const std::shared_ptr<RenderingDevice> &renderingDevice,
-            const std::shared_ptr<VulkanObjectsAllocator> &vulkanObjectsAllocator,
-            const std::shared_ptr<CommandExecutor> &commandExecutor);
+    std::shared_ptr<ShaderObject> uploadShaderBinary(const std::vector<char> &binary);
 };
 
 #endif // RENDERING_RENDERERALLOCATOR_HPP

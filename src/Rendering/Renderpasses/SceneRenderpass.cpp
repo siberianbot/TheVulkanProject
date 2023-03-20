@@ -34,15 +34,13 @@
 #include "src/Resources/ImageResource.hpp"
 #include "src/Resources/MeshResource.hpp"
 #include "src/Resources/ShaderResource.hpp"
+#include "src/Rendering/Builders/ImageViewObjectBuilder.hpp"
 
 std::shared_ptr<RenderingData> SceneRenderpass::getRenderData(Object *object) {
-    auto it = object->data().find(RENDERING_DATA_TYPE);
+    std::shared_ptr<RenderingData> renderData = std::dynamic_pointer_cast<RenderingData>(
+            object->data()[RENDERING_DATA_TYPE]);
 
-    std::shared_ptr<RenderingData> renderData;
-
-    if (it != object->data().end()) {
-        renderData = std::dynamic_pointer_cast<RenderingData>(it->second);
-    } else {
+    if (renderData == nullptr) {
         renderData = std::make_shared<RenderingData>();
         renderData->descriptorSet = DescriptorSetObject::create(this->_renderingDevice.get(), MAX_INFLIGHT_FRAMES,
                                                                 this->_descriptorPool,
@@ -55,7 +53,8 @@ std::shared_ptr<RenderingData> SceneRenderpass::getRenderData(Object *object) {
                                                  ? this->_engine->resourceManager()->loadDefaultImage()->image()
                                                  : object->albedoTexture()->image();
 
-    if (renderData->albedoTextureView == nullptr || albedoTexture.get() != renderData->albedoTextureView->getImage()) {
+    if (renderData->albedoTextureView == nullptr ||
+        albedoTexture->getHandle() != renderData->albedoTextureView->getImage()) {
         renderData->albedoTextureView = getImageView(albedoTexture);
 
         updateDescriptorSetWithImage(renderData->descriptorSet, renderData->albedoTextureView, 0);
@@ -65,7 +64,8 @@ std::shared_ptr<RenderingData> SceneRenderpass::getRenderData(Object *object) {
                                                ? this->_engine->resourceManager()->loadDefaultImage()->image()
                                                : object->specTexture()->image();
 
-    if (renderData->specTextureView == nullptr || specTexture.get() != renderData->specTextureView->getImage()) {
+    if (renderData->specTextureView == nullptr ||
+        specTexture->getHandle() != renderData->specTextureView->getImage()) {
         renderData->specTextureView = getImageView(specTexture);
 
         updateDescriptorSetWithImage(renderData->descriptorSet, renderData->specTextureView, 1);
@@ -74,15 +74,17 @@ std::shared_ptr<RenderingData> SceneRenderpass::getRenderData(Object *object) {
     return renderData;
 }
 
-ImageViewObject *SceneRenderpass::getImageView(const std::shared_ptr<ImageObject> &image) {
+std::shared_ptr<ImageViewObject> SceneRenderpass::getImageView(const std::shared_ptr<ImageObject> &image) {
     auto it = this->_imageViews.find(image);
 
     if (it != this->_imageViews.end()) {
         return it->second;
     }
 
-    ImageViewObject *imageView = ImageViewObject::create(this->_renderingDevice.get(), image.get(),
-                                                         VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_COLOR_BIT);
+    std::shared_ptr<ImageViewObject> imageView = ImageViewObjectBuilder(this->_vulkanObjectsAllocator)
+            .fromImageObject(image)
+            .withAspectFlags(VK_IMAGE_ASPECT_COLOR_BIT)
+            .build();
 
     this->_imageViews[image] = imageView;
 
@@ -90,7 +92,8 @@ ImageViewObject *SceneRenderpass::getImageView(const std::shared_ptr<ImageObject
 }
 
 void SceneRenderpass::updateDescriptorSetWithImage(DescriptorSetObject *descriptorSetObject,
-                                                   ImageViewObject *imageViewObject, uint32_t binding) {
+                                                   const std::shared_ptr<ImageViewObject> &imageViewObject,
+                                                   uint32_t binding) {
     VkDescriptorImageInfo imageInfo = {
             .sampler = this->_textureSampler,
             .imageView = imageViewObject->getHandle(),
@@ -146,10 +149,12 @@ void SceneRenderpass::initSkyboxPipeline() {
 
     Scene *currentScene = this->_engine->sceneManager()->currentScene();
     if (currentScene != nullptr) {
-        this->_skyboxTextureView = ImageViewObject::create(this->_renderingDevice.get(),
-                                                           currentScene->skybox()->texture()->image().get(),
-                                                           VK_IMAGE_VIEW_TYPE_CUBE,
-                                                           VK_IMAGE_ASPECT_COLOR_BIT);
+        this->_skyboxTextureView = ImageViewObjectBuilder(this->_vulkanObjectsAllocator)
+                .fromImageObject(currentScene->skybox()->texture()->image())
+                .withType(VK_IMAGE_VIEW_TYPE_CUBE)
+                .withAspectFlags(VK_IMAGE_ASPECT_COLOR_BIT)
+                .withLayers(0, 6)
+                .build();
 
         updateDescriptorSetWithImage(this->_skyboxDescriptorSet, this->_skyboxTextureView, 0);
     }
@@ -159,7 +164,7 @@ void SceneRenderpass::destroySkyboxPipeline() {
     delete this->_skyboxDescriptorSet;
 
     if (this->_skyboxTextureView != nullptr) {
-        delete this->_skyboxTextureView;
+        this->_skyboxTextureView->destroy();
         this->_skyboxTextureView = nullptr;
     }
 
@@ -195,7 +200,7 @@ void SceneRenderpass::initScenePipeline() {
 
 void SceneRenderpass::destroyScenePipeline() {
     for (const auto &item: this->_imageViews) {
-        delete item.second;
+        item.second->destroy();
     }
 
     this->_imageViews.clear();
@@ -218,10 +223,6 @@ void SceneRenderpass::initCompositionPipeline() {
             .withBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, MAX_NUM_LIGHTS)
             .build();
 
-//    this->_compositionSceneDataBuffer = BufferObject::create(this->_renderingDevice.get(), sizeof(SceneData),
-//                                                             VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-//                                                             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-//                                                             VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     this->_compositionSceneDataBuffer = BufferObjectBuilder(this->_renderingDevice, this->_vulkanObjectsAllocator)
             .withSize(sizeof(SceneData))
             .withUsage(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT)
@@ -326,13 +327,15 @@ SceneRenderpass::SceneRenderpass(const std::shared_ptr<RenderingDevice> &renderi
         }
 
         if (this->_skyboxTextureView != nullptr) {
-            delete this->_skyboxTextureView;
+            this->_skyboxTextureView->destroy();
         }
 
-        this->_skyboxTextureView = ImageViewObject::create(this->_renderingDevice.get(),
-                                                           event.scene->skybox()->texture()->image().get(),
-                                                           VK_IMAGE_VIEW_TYPE_CUBE,
-                                                           VK_IMAGE_ASPECT_COLOR_BIT);
+        this->_skyboxTextureView = ImageViewObjectBuilder(this->_vulkanObjectsAllocator)
+                .fromImageObject(event.scene->skybox()->texture()->image())
+                .withType(VK_IMAGE_VIEW_TYPE_CUBE)
+                .withAspectFlags(VK_IMAGE_ASPECT_COLOR_BIT)
+                .withLayers(0, 6)
+                .build();
 
         updateDescriptorSetWithImage(this->_skyboxDescriptorSet, this->_skyboxTextureView, 0);
     });
@@ -673,9 +676,10 @@ void SceneRenderpass::createFramebuffers() {
                        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
             .withSamples(samples)
             .build();
-    this->_skyboxImageView = ImageViewObject::create(this->_renderingDevice.get(), this->_skyboxImage.get(),
-                                                     VK_IMAGE_VIEW_TYPE_2D,
-                                                     VK_IMAGE_ASPECT_COLOR_BIT);
+    this->_skyboxImageView = ImageViewObjectBuilder(this->_vulkanObjectsAllocator)
+            .fromImageObject(this->_skyboxImage)
+            .withAspectFlags(VK_IMAGE_ASPECT_COLOR_BIT)
+            .build();
 
     this->_albedoImage = ImageObjectBuilder(this->_renderingDevice, this->_vulkanObjectsAllocator)
             .withExtent(extent.width, extent.height)
@@ -684,9 +688,10 @@ void SceneRenderpass::createFramebuffers() {
                        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
             .withSamples(samples)
             .build();
-    this->_albedoImageView = ImageViewObject::create(this->_renderingDevice.get(), this->_albedoImage.get(),
-                                                     VK_IMAGE_VIEW_TYPE_2D,
-                                                     VK_IMAGE_ASPECT_COLOR_BIT);
+    this->_albedoImageView = ImageViewObjectBuilder(this->_vulkanObjectsAllocator)
+            .fromImageObject(this->_albedoImage)
+            .withAspectFlags(VK_IMAGE_ASPECT_COLOR_BIT)
+            .build();
 
     this->_positionImage = ImageObjectBuilder(this->_renderingDevice, this->_vulkanObjectsAllocator)
             .withExtent(extent.width, extent.height)
@@ -695,9 +700,10 @@ void SceneRenderpass::createFramebuffers() {
                        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
             .withSamples(samples)
             .build();
-    this->_positionImageView = ImageViewObject::create(this->_renderingDevice.get(), this->_positionImage.get(),
-                                                       VK_IMAGE_VIEW_TYPE_2D,
-                                                       VK_IMAGE_ASPECT_COLOR_BIT);
+    this->_positionImageView = ImageViewObjectBuilder(this->_vulkanObjectsAllocator)
+            .fromImageObject(this->_positionImage)
+            .withAspectFlags(VK_IMAGE_ASPECT_COLOR_BIT)
+            .build();
 
     this->_normalImage = ImageObjectBuilder(this->_renderingDevice, this->_vulkanObjectsAllocator)
             .withExtent(extent.width, extent.height)
@@ -706,9 +712,10 @@ void SceneRenderpass::createFramebuffers() {
                        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
             .withSamples(samples)
             .build();
-    this->_normalImageView = ImageViewObject::create(this->_renderingDevice.get(), this->_normalImage.get(),
-                                                     VK_IMAGE_VIEW_TYPE_2D,
-                                                     VK_IMAGE_ASPECT_COLOR_BIT);
+    this->_normalImageView = ImageViewObjectBuilder(this->_vulkanObjectsAllocator)
+            .fromImageObject(this->_normalImage)
+            .withAspectFlags(VK_IMAGE_ASPECT_COLOR_BIT)
+            .build();
 
     this->_specularImage = ImageObjectBuilder(this->_renderingDevice, this->_vulkanObjectsAllocator)
             .withExtent(extent.width, extent.height)
@@ -717,9 +724,10 @@ void SceneRenderpass::createFramebuffers() {
                        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
             .withSamples(samples)
             .build();
-    this->_specularImageView = ImageViewObject::create(this->_renderingDevice.get(), this->_specularImage.get(),
-                                                       VK_IMAGE_VIEW_TYPE_2D,
-                                                       VK_IMAGE_ASPECT_COLOR_BIT);
+    this->_specularImageView = ImageViewObjectBuilder(this->_vulkanObjectsAllocator)
+            .fromImageObject(this->_specularImage)
+            .withAspectFlags(VK_IMAGE_ASPECT_COLOR_BIT)
+            .build();
 
     this->_depthImage = ImageObjectBuilder(this->_renderingDevice, this->_vulkanObjectsAllocator)
             .withExtent(extent.width, extent.height)
@@ -727,9 +735,10 @@ void SceneRenderpass::createFramebuffers() {
             .withUsage(VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT)
             .withSamples(samples)
             .build();
-    this->_depthImageView = ImageViewObject::create(this->_renderingDevice.get(), this->_depthImage.get(),
-                                                    VK_IMAGE_VIEW_TYPE_2D,
-                                                    VK_IMAGE_ASPECT_DEPTH_BIT);
+    this->_depthImageView = ImageViewObjectBuilder(this->_vulkanObjectsAllocator)
+            .fromImageObject(this->_depthImage)
+            .withAspectFlags(VK_IMAGE_ASPECT_DEPTH_BIT)
+            .build();
 
     this->_compositionImage = ImageObjectBuilder(this->_renderingDevice, this->_vulkanObjectsAllocator)
             .withExtent(extent.width, extent.height)
@@ -737,9 +746,10 @@ void SceneRenderpass::createFramebuffers() {
             .withUsage(VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
             .withSamples(samples)
             .build();
-    this->_compositionImageView = ImageViewObject::create(this->_renderingDevice.get(), this->_compositionImage.get(),
-                                                          VK_IMAGE_VIEW_TYPE_2D,
-                                                          VK_IMAGE_ASPECT_COLOR_BIT);
+    this->_compositionImageView = ImageViewObjectBuilder(this->_vulkanObjectsAllocator)
+            .fromImageObject(this->_compositionImage)
+            .withAspectFlags(VK_IMAGE_ASPECT_COLOR_BIT)
+            .build();
 
     this->_resultImage = ImageObjectBuilder(this->_renderingDevice, this->_vulkanObjectsAllocator)
             .withExtent(extent.width, extent.height)
@@ -747,9 +757,10 @@ void SceneRenderpass::createFramebuffers() {
             .withUsage(VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT |
                        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
             .build();
-    this->_resultImageView = ImageViewObject::create(this->_renderingDevice.get(), this->_resultImage.get(),
-                                                     VK_IMAGE_VIEW_TYPE_2D,
-                                                     VK_IMAGE_ASPECT_COLOR_BIT);
+    this->_resultImageView = ImageViewObjectBuilder(this->_vulkanObjectsAllocator)
+            .fromImageObject(this->_resultImage)
+            .withAspectFlags(VK_IMAGE_ASPECT_COLOR_BIT)
+            .build();
 
     this->_compositionGBufferDescriptorSet = DescriptorSetObject::create(this->_renderingDevice.get(),
                                                                          MAX_INFLIGHT_FRAMES,
@@ -815,22 +826,22 @@ void SceneRenderpass::destroyFramebuffers() {
 
     delete this->_compositionGBufferDescriptorSet;
 
-    delete this->_compositionImageView;
+    this->_compositionImageView->destroy();
     this->_compositionImage->destroy();
-    delete this->_specularImageView;
+    this->_specularImageView->destroy();
     this->_specularImage->destroy();
-    delete this->_normalImageView;
+    this->_normalImageView->destroy();
     this->_normalImage->destroy();
-    delete this->_positionImageView;
+    this->_positionImageView->destroy();
     this->_positionImage->destroy();
-    delete this->_albedoImageView;
+    this->_albedoImageView->destroy();
     this->_albedoImage->destroy();
-    delete this->_depthImageView;
+    this->_depthImageView->destroy();
     this->_depthImage->destroy();
-    delete this->_skyboxImageView;
+    this->_skyboxImageView->destroy();
     this->_skyboxImage->destroy();
 
-    delete this->_resultImageView;
+    this->_resultImageView->destroy();
     this->_resultImage->destroy();
 }
 

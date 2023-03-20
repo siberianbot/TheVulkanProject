@@ -1,6 +1,8 @@
 #ifndef OBJECTS_DATA_RENDERDATA_HPP
 #define OBJECTS_DATA_RENDERDATA_HPP
 
+#include <memory>
+
 #include "IData.hpp"
 
 class DescriptorSetObject;
@@ -11,8 +13,8 @@ struct RenderingData : public IData {
     ~RenderingData() override;
 
     DescriptorSetObject *descriptorSet = nullptr;
-    ImageViewObject *albedoTextureView = nullptr;
-    ImageViewObject *specTextureView = nullptr;
+    std::shared_ptr<ImageViewObject> albedoTextureView = nullptr;
+    std::shared_ptr<ImageViewObject> specTextureView = nullptr;
 };
 
 #endif // OBJECTS_DATA_RENDERDATA_HPP

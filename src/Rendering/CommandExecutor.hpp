@@ -29,10 +29,6 @@ public:
 
     CommandExecution beginMainExecution(uint32_t frameIdx, Command command);
     CommandExecution beginOneTimeExecution(Command command);
-
-    static std::shared_ptr<CommandExecutor> create(
-            const std::shared_ptr<RenderingDevice> &renderingDevice,
-            const std::shared_ptr<VulkanObjectsAllocator> &vulkanObjectsAllocator);
 };
 
 #endif // RENDERING_COMMANDEXECUTOR_HPP

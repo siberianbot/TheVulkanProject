@@ -59,7 +59,7 @@ void ShaderResource::unload() {
     }
 
     if (this->_shader != nullptr) {
-        delete this->_shader;
+        this->_shader->destroy();
         this->_shader = nullptr;
     }
 

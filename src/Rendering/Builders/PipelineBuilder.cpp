@@ -14,13 +14,13 @@ PipelineBuilder::PipelineBuilder(RenderingDevice *renderingDevice,
     //
 }
 
-PipelineBuilder &PipelineBuilder::addVertexShader(ShaderObject *shader) {
+PipelineBuilder &PipelineBuilder::addVertexShader(const std::shared_ptr<ShaderObject> &shader) {
     this->_vertexShader = shader;
 
     return *this;
 }
 
-PipelineBuilder &PipelineBuilder::addFragmentShader(ShaderObject *shader) {
+PipelineBuilder &PipelineBuilder::addFragmentShader(const std::shared_ptr<ShaderObject> &shader) {
     this->_fragmentShader = shader;
 
     return *this;

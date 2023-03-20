@@ -45,12 +45,6 @@ VulkanObjectsAllocator::VulkanObjectsAllocator(const std::shared_ptr<PhysicalDev
     //
 }
 
-std::shared_ptr<VulkanObjectsAllocator>
-VulkanObjectsAllocator::create(const std::shared_ptr<PhysicalDevice> &physicalDevice,
-                               const std::shared_ptr<RenderingDevice> &renderingDevice) {
-    return std::make_shared<VulkanObjectsAllocator>(physicalDevice, renderingDevice);
-}
-
 VkCommandPool VulkanObjectsAllocator::createCommandPool() {
     VkCommandPoolCreateInfo createInfo = {
             .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
@@ -91,6 +85,17 @@ void VulkanObjectsAllocator::destroyImage(VkImage image) {
     vkDestroyImage(this->_renderingDevice->getHandle(), image, nullptr);
 }
 
+VkImageView VulkanObjectsAllocator::createImageView(VkImageViewCreateInfo *createInfo) {
+    VkImageView imageView;
+    vkEnsure(vkCreateImageView(this->_renderingDevice->getHandle(), createInfo, nullptr, &imageView));
+
+    return imageView;
+}
+
+void VulkanObjectsAllocator::destroyImageView(VkImageView imageView) {
+    vkDestroyImageView(this->_renderingDevice->getHandle(), imageView, nullptr);
+}
+
 VkDeviceMemory VulkanObjectsAllocator::allocateMemoryForBuffer(VkBuffer buffer, VkMemoryPropertyFlags properties) {
     VkMemoryRequirements requirements;
     vkGetBufferMemoryRequirements(this->_renderingDevice->getHandle(), buffer, &requirements);
@@ -107,4 +112,57 @@ VkDeviceMemory VulkanObjectsAllocator::allocateMemoryForImage(VkImage image, VkM
 
 void VulkanObjectsAllocator::freeMemory(VkDeviceMemory memory) {
     vkFreeMemory(this->_renderingDevice->getHandle(), memory, nullptr);
+}
+
+VkFence VulkanObjectsAllocator::createFence(bool signaled) {
+    VkFenceCreateInfo createInfo = {
+            .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = signaled ? VK_FENCE_CREATE_SIGNALED_BIT : (VkFenceCreateFlags) 0
+    };
+
+    VkFence fence;
+    vkEnsure(vkCreateFence(this->_renderingDevice->getHandle(), &createInfo, nullptr, &fence));
+
+    return fence;
+}
+
+void VulkanObjectsAllocator::destroyFence(VkFence fence) {
+    vkDestroyFence(this->_renderingDevice->getHandle(), fence, nullptr);
+}
+
+VkSemaphore VulkanObjectsAllocator::createSemaphore() {
+    VkSemaphoreCreateInfo createInfo = {
+            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0
+    };
+
+    VkSemaphore semaphore;
+    vkEnsure(vkCreateSemaphore(this->_renderingDevice->getHandle(), &createInfo, nullptr, &semaphore));
+
+    return semaphore;
+}
+
+void VulkanObjectsAllocator::destroySemaphore(VkSemaphore semaphore) {
+    vkDestroySemaphore(this->_renderingDevice->getHandle(), semaphore, nullptr);
+}
+
+VkShaderModule VulkanObjectsAllocator::createShader(const std::vector<char> &content) {
+    VkShaderModuleCreateInfo createInfo = {
+            .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0,
+            .codeSize = content.size(),
+            .pCode = reinterpret_cast<const uint32_t *>(content.data())
+    };
+
+    VkShaderModule shaderModule;
+    vkEnsure(vkCreateShaderModule(this->_renderingDevice->getHandle(), &createInfo, nullptr, &shaderModule));
+
+    return shaderModule;
+}
+
+void VulkanObjectsAllocator::destroyShader(VkShaderModule shader) {
+    vkDestroyShaderModule(this->_renderingDevice->getHandle(), shader, nullptr);
 }

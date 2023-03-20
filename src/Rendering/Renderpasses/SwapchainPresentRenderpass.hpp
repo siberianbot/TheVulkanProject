@@ -37,7 +37,7 @@ public:
     void createFramebuffers() override;
     void destroyFramebuffers() override;
 
-    ImageViewObject *getResultImageView(uint32_t imageIdx) override { return nullptr; }
+    std::shared_ptr<ImageViewObject> getResultImageView(uint32_t imageIdx) override { return nullptr; }
 };
 
 #endif // RENDERING_RENDERPASSES_SWAPCHAINPRESENTRENDERPASS_HPP

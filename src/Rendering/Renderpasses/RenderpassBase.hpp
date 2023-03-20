@@ -30,7 +30,7 @@ public:
     virtual void destroyFramebuffers();
 
     // TODO: imageIdx is not used elsewhere
-    virtual ImageViewObject *getResultImageView(uint32_t imageIdx) = 0;
+    virtual std::shared_ptr<ImageViewObject> getResultImageView(uint32_t imageIdx) = 0;
 };
 
 #endif // RENDERING_RENDERPASSES_RENDERPASSBASE_HPP

@@ -33,7 +33,7 @@ private:
     VkPipeline _pipeline;
 
     std::array<std::shared_ptr<ImageObject>, MAX_NUM_LIGHTS> _depthImages;
-    std::array<ImageViewObject *, MAX_NUM_LIGHTS> _depthImageViews;
+    std::array<std::shared_ptr<ImageViewObject>, MAX_NUM_LIGHTS> _depthImageViews;
 
 public:
     ShadowRenderpass(const std::shared_ptr<RenderingDevice> &renderingDevice,
@@ -51,7 +51,9 @@ public:
     void createFramebuffers() override;
     void destroyFramebuffers() override;
 
-    ImageViewObject *getResultImageView(uint32_t imageIdx) override { return this->_depthImageViews[imageIdx]; }
+    std::shared_ptr<ImageViewObject> getResultImageView(uint32_t imageIdx) override {
+        return this->_depthImageViews[imageIdx];
+    }
 };
 
 #endif // RENDERING_RENDERPASSES_SHADOWRENDERPASS_HPP

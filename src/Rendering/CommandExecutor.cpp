@@ -56,9 +56,3 @@ CommandExecution CommandExecutor::beginOneTimeExecution(Command command) {
 
     return CommandExecution(this->_renderingDevice, command, this->_commandPool, commandBuffer, true);
 }
-
-std::shared_ptr<CommandExecutor>
-CommandExecutor::create(const std::shared_ptr<RenderingDevice> &renderingDevice,
-                        const std::shared_ptr<VulkanObjectsAllocator> &vulkanObjectsAllocator) {
-    return std::make_shared<CommandExecutor>(renderingDevice, vulkanObjectsAllocator);
-}

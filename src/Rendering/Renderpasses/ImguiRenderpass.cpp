@@ -17,6 +17,7 @@
 #include "src/Rendering/Objects/ImageObject.hpp"
 #include "src/Rendering/Objects/ImageViewObject.hpp"
 #include "src/Rendering/Builders/ImageObjectBuilder.hpp"
+#include "src/Rendering/Builders/ImageViewObjectBuilder.hpp"
 
 ImguiRenderpass::ImguiRenderpass(const std::shared_ptr<RenderingDevice> &renderingDevice,
                                  const std::shared_ptr<VulkanObjectsAllocator> &vulkanObjectsAllocator,
@@ -128,8 +129,10 @@ void ImguiRenderpass::createFramebuffers() {
                        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
             .build();
 
-    this->_resultImageView = ImageViewObject::create(this->_renderingDevice.get(), this->_resultImage.get(),
-                                                     VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_COLOR_BIT);
+    this->_resultImageView = ImageViewObjectBuilder(this->_vulkanObjectsAllocator)
+            .fromImageObject(this->_resultImage)
+            .withAspectFlags(VK_IMAGE_ASPECT_COLOR_BIT)
+            .build();
 
     FramebufferBuilder builder = FramebufferBuilder(this->_renderingDevice.get(), this->_renderpass)
             .withExtent(extent)
@@ -148,6 +151,6 @@ void ImguiRenderpass::createFramebuffers() {
 void ImguiRenderpass::destroyFramebuffers() {
     RenderpassBase::destroyFramebuffers();
 
-    delete this->_resultImageView;
+    this->_resultImageView->destroy();
     this->_resultImage->destroy();
 }

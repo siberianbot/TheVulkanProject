@@ -65,18 +65,22 @@ void Renderer::init() {
 
     this->_physicalDevice = PhysicalDevice::selectSuitable(this->_instance, this->_surface);
     this->_renderingDevice = RenderingDevice::fromPhysicalDevice(this->_physicalDevice);
-    this->_vulkanObjectsAllocator = VulkanObjectsAllocator::create(this->_physicalDevice, this->_renderingDevice);
-    this->_commandExecutor = CommandExecutor::create(this->_renderingDevice, this->_vulkanObjectsAllocator);
+    this->_vulkanObjectsAllocator = std::make_shared<VulkanObjectsAllocator>(this->_physicalDevice,
+                                                                             this->_renderingDevice);
+    this->_commandExecutor = std::make_shared<CommandExecutor>(this->_renderingDevice,
+                                                               this->_vulkanObjectsAllocator);
     this->_commandExecutor->init();
-    this->_swapchain = new Swapchain(this->_renderingDevice.get());
-    this->_rendererAllocator = RendererAllocator::create(this->_renderingDevice, this->_vulkanObjectsAllocator,
-                                                         this->_commandExecutor);
+    this->_swapchain = std::make_shared<Swapchain>(this->_physicalDevice, this->_renderingDevice,
+                                                   this->_vulkanObjectsAllocator);
+    this->_rendererAllocator = std::make_shared<RendererAllocator>(this->_renderingDevice,
+                                                                   this->_vulkanObjectsAllocator,
+                                                                   this->_commandExecutor);
 
     for (uint32_t frameIdx = 0; frameIdx < MAX_INFLIGHT_FRAMES; frameIdx++) {
         this->_syncObjectsGroups[frameIdx] = new SyncObjectsGroup{
-                .fence =  FenceObject::create(this->_renderingDevice.get(), true),
-                .imageAvailableSemaphore = SemaphoreObject::create(this->_renderingDevice.get()),
-                .renderFinishedSemaphore = SemaphoreObject::create(this->_renderingDevice.get())
+                .fence =  FenceObject::create(this->_renderingDevice, this->_vulkanObjectsAllocator, true),
+                .imageAvailableSemaphore = SemaphoreObject::create(this->_vulkanObjectsAllocator),
+                .renderFinishedSemaphore = SemaphoreObject::create(this->_vulkanObjectsAllocator)
         };
     }
 
@@ -85,16 +89,17 @@ void Renderer::init() {
     RenderpassBase *shadowRenderpass = new ShadowRenderpass(this->_renderingDevice, this->_physicalDevice,
                                                             this->_vulkanObjectsAllocator, this->_engine);
     SceneRenderpass *sceneRenderpass = new SceneRenderpass(this->_renderingDevice, this->_physicalDevice,
-                                                           this->_vulkanObjectsAllocator, this->_swapchain,
+                                                           this->_vulkanObjectsAllocator, this->_swapchain.get(),
                                                            this->_engine);
     sceneRenderpass->addShadowRenderpass(shadowRenderpass);
 
     RenderpassBase *imguiRenderpass = new ImguiRenderpass(this->_renderingDevice, this->_vulkanObjectsAllocator,
-                                                          this->_swapchain, this->_instance,
+                                                          this->_swapchain.get(), this->_instance,
                                                           this->_physicalDevice.get(), this->_commandExecutor.get());
 
     SwapchainPresentRenderpass *presentRenderpass = new SwapchainPresentRenderpass(this->_renderingDevice,
-                                                                                   this->_swapchain, this->_engine);
+                                                                                   this->_swapchain.get(),
+                                                                                   this->_engine);
     presentRenderpass->addInputRenderpass(sceneRenderpass);
     presentRenderpass->addInputRenderpass(imguiRenderpass);
 
@@ -130,10 +135,12 @@ void Renderer::cleanup() {
     }
 
     for (uint32_t frameIdx = 0; frameIdx < MAX_INFLIGHT_FRAMES; frameIdx++) {
+        this->_syncObjectsGroups[frameIdx]->fence->destroy();
+        this->_syncObjectsGroups[frameIdx]->imageAvailableSemaphore->destroy();
+        this->_syncObjectsGroups[frameIdx]->renderFinishedSemaphore->destroy();
         delete this->_syncObjectsGroups[frameIdx];
     }
 
-    delete this->_swapchain;
     this->_commandExecutor->destroy();
     this->_renderingDevice->destroy();
 

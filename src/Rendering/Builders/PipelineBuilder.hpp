@@ -2,6 +2,7 @@
 #define RENDERING_BUILDERS_PIPELINEBUILDER_HPP
 
 #include <functional>
+#include <memory>
 #include <optional>
 #include <vector>
 
@@ -19,8 +20,8 @@ private:
     VkRenderPass _renderpass;
     VkPipelineLayout _pipelineLayout;
 
-    ShaderObject *_vertexShader = nullptr;
-    ShaderObject *_fragmentShader = nullptr;
+    std::shared_ptr<ShaderObject> _vertexShader = nullptr;
+    std::shared_ptr<ShaderObject> _fragmentShader = nullptr;
     std::vector<VkVertexInputBindingDescription> _bindings;
     std::vector<VkVertexInputAttributeDescription> _attributes;
     std::optional<VkSpecializationInfo> _vertexShaderSpecialization;
@@ -34,8 +35,8 @@ private:
 public:
     PipelineBuilder(RenderingDevice *renderingDevice, VkRenderPass renderpass, VkPipelineLayout pipelineLayout);
 
-    PipelineBuilder &addVertexShader(ShaderObject *shader);
-    PipelineBuilder &addFragmentShader(ShaderObject *shader);
+    PipelineBuilder &addVertexShader(const std::shared_ptr<ShaderObject> &shader);
+    PipelineBuilder &addFragmentShader(const std::shared_ptr<ShaderObject> &shader);
 
     PipelineBuilder &addBinding(uint32_t bindingIdx, uint32_t stride, VkVertexInputRate inputRate);
     PipelineBuilder &addAttribute(uint32_t bindingIdx, uint32_t locationIdx,
