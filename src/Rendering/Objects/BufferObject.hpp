@@ -1,33 +1,34 @@
 #ifndef RENDERING_OBJECTS_BUFFEROBJECT_HPP
 #define RENDERING_OBJECTS_BUFFEROBJECT_HPP
 
+#include <memory>
+
 #include <vulkan/vulkan.hpp>
 
 class RenderingDevice;
+class VulkanObjectsAllocator;
 
 class BufferObject {
 private:
-    RenderingDevice *_renderingDevice;
+    std::shared_ptr<RenderingDevice> _renderingDevice;
+    std::shared_ptr<VulkanObjectsAllocator> _vulkanObjectsAllocator;
 
-    VkDeviceSize _size;
     VkBuffer _buffer;
     VkDeviceMemory _memory;
-
-    void *_mapPtr = nullptr;
-
-    BufferObject(RenderingDevice *renderingDevice, VkDeviceSize size, VkBuffer buffer, VkDeviceMemory memory);
+    VkDeviceSize _size;
 
 public:
-    ~BufferObject();
+    BufferObject(const std::shared_ptr<RenderingDevice> &renderingDevice,
+                 const std::shared_ptr<VulkanObjectsAllocator> &vulkanObjectsAllocator,
+                 VkBuffer buffer, VkDeviceMemory memory, VkDeviceSize size);
 
     [[nodiscard]] VkBuffer getHandle() const { return this->_buffer; }
     [[nodiscard]] VkDeviceSize getSize() const { return this->_size; }
 
+    void destroy();
+
     [[nodiscard]] void *map();
     void unmap();
-
-    [[nodiscard]] static BufferObject *create(RenderingDevice *renderingDevice, VkDeviceSize size,
-                                              VkBufferUsageFlags usage, VkMemoryPropertyFlags memoryProperty);
 };
 
 #endif // RENDERING_OBJECTS_BUFFEROBJECT_HPP

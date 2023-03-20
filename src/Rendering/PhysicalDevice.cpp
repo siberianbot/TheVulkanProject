@@ -166,24 +166,6 @@ float PhysicalDevice::getMaxSamplerAnisotropy() {
     return getProperties().limits.maxSamplerAnisotropy;
 }
 
-uint32_t PhysicalDevice::getSuitableMemoryType(uint32_t memoryTypeBits, VkMemoryPropertyFlags memoryProperty) {
-    VkPhysicalDeviceMemoryProperties properties;
-    vkGetPhysicalDeviceMemoryProperties(this->_physicalDevice, &properties);
-
-    for (uint32_t idx = 0; idx < properties.memoryTypeCount; idx++) {
-        bool memoryTypeMatches = memoryTypeBits & (1 << idx);
-        bool memoryPropertyMatches = (properties.memoryTypes[idx].propertyFlags & memoryProperty) == memoryProperty;
-
-        if (!memoryTypeMatches || !memoryPropertyMatches) {
-            continue;
-        }
-
-        return idx;
-    }
-
-    throw std::runtime_error("No suitable memory type available");
-}
-
 std::shared_ptr<PhysicalDevice> PhysicalDevice::selectSuitable(VkInstance instance, VkSurfaceKHR surface) {
     uint32_t count;
     vkEnsure(vkEnumeratePhysicalDevices(instance, &count, nullptr));

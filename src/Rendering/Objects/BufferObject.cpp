@@ -1,44 +1,32 @@
 #include "BufferObject.hpp"
 
+#include "src/Rendering/Common.hpp"
 #include "src/Rendering/RenderingDevice.hpp"
+#include "src/Rendering/VulkanObjectsAllocator.hpp"
 
-BufferObject::BufferObject(RenderingDevice *renderingDevice, VkDeviceSize size, VkBuffer buffer, VkDeviceMemory memory)
+BufferObject::BufferObject(const std::shared_ptr<RenderingDevice> &renderingDevice,
+                           const std::shared_ptr<VulkanObjectsAllocator> &vulkanObjectsAllocator,
+                           VkBuffer buffer, VkDeviceMemory memory, VkDeviceSize size)
         : _renderingDevice(renderingDevice),
-          _size(size), _buffer(buffer), _memory(memory) {
+          _vulkanObjectsAllocator(vulkanObjectsAllocator),
+          _buffer(buffer),
+          _memory(memory),
+          _size(size) {
     //
 }
 
-BufferObject::~BufferObject() {
-    this->unmap();
-
-    this->_renderingDevice->freeMemory(this->_memory);
-    this->_renderingDevice->destroyBuffer(this->_buffer);
+void BufferObject::destroy() {
+    this->_vulkanObjectsAllocator->freeMemory(this->_memory);
+    this->_vulkanObjectsAllocator->destroyBuffer(this->_buffer);
 }
 
 void *BufferObject::map() {
-    if (this->_mapPtr == nullptr) {
-        this->_mapPtr = this->_renderingDevice->mapMemory(this->_memory, this->_size);
-    }
+    void *ptr = nullptr;
+    vkEnsure(vkMapMemory(this->_renderingDevice->getHandle(), this->_memory, 0, this->_size, 0, &ptr));
 
-    return this->_mapPtr;
+    return ptr;
 }
 
 void BufferObject::unmap() {
-    if (this->_mapPtr == nullptr) {
-        return;
-    }
-
-    this->_renderingDevice->unmapMemory(this->_memory);
-    this->_mapPtr = nullptr;
-}
-
-BufferObject *BufferObject::create(RenderingDevice *renderingDevice, VkDeviceSize size, VkBufferUsageFlags usage,
-                                   VkMemoryPropertyFlags memoryProperty) {
-    VkBuffer buffer = renderingDevice->createBuffer(size, usage);
-    VkMemoryRequirements requirements = renderingDevice->getBufferMemoryRequirements(buffer);
-    VkDeviceMemory memory = renderingDevice->allocateMemory(requirements, memoryProperty);
-
-    renderingDevice->bindBufferMemory(buffer, memory);
-
-    return new BufferObject(renderingDevice, size, buffer, memory);
+    vkUnmapMemory(this->_renderingDevice->getHandle(), this->_memory);
 }

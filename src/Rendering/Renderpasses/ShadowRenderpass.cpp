@@ -6,6 +6,7 @@
 #include "src/Rendering/RenderingDevice.hpp"
 #include "src/Rendering/Builders/RenderpassBuilder.hpp"
 #include "src/Rendering/Builders/AttachmentBuilder.hpp"
+#include "src/Rendering/Builders/ImageObjectBuilder.hpp"
 #include "src/Rendering/Builders/SubpassBuilder.hpp"
 #include "src/Rendering/Builders/PipelineLayoutBuilder.hpp"
 #include "src/Rendering/Builders/PipelineBuilder.hpp"
@@ -24,9 +25,14 @@
 
 static constexpr const uint32_t SIZE = 1024;
 
-ShadowRenderpass::ShadowRenderpass(const std::shared_ptr<RenderingDevice> &renderingDevice, Engine *engine)
+ShadowRenderpass::ShadowRenderpass(const std::shared_ptr<RenderingDevice> &renderingDevice,
+                                   const std::shared_ptr<PhysicalDevice> &physicalDevice,
+                                   const std::shared_ptr<VulkanObjectsAllocator> &vulkanObjectsAllocator,
+                                   Engine *engine)
         : RenderpassBase(renderingDevice),
-          _engine(engine) {
+          _engine(engine),
+          _physicalDevice(physicalDevice),
+          _vulkanObjectsAllocator(vulkanObjectsAllocator) {
     //
 }
 
@@ -176,14 +182,14 @@ void ShadowRenderpass::initRenderpass() {
     fragmentShader->unload();
 
     for (uint32_t idx = 0; idx < MAX_NUM_LIGHTS; idx++) {
-        this->_depthImages[idx] = ImageObject::create(this->_renderingDevice.get(), SIZE, SIZE, 1, 0,
-                                                      this->_renderingDevice->getPhysicalDevice()->getDepthFormat(),
-                                                      VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT |
-                                                      VK_IMAGE_USAGE_SAMPLED_BIT,
-                                                      VK_SAMPLE_COUNT_1_BIT,
-                                                      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        this->_depthImages[idx] = ImageObjectBuilder(this->_renderingDevice, this->_vulkanObjectsAllocator)
+                .withExtent(SIZE, SIZE)
+                .withFormat(this->_physicalDevice->getDepthFormat())
+                .withUsage(VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT)
+                .build();
 
-        this->_depthImageViews[idx] = ImageViewObject::create(this->_renderingDevice.get(), this->_depthImages[idx],
+        this->_depthImageViews[idx] = ImageViewObject::create(this->_renderingDevice.get(),
+                                                              this->_depthImages[idx].get(),
                                                               VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_DEPTH_BIT);
     }
 }
@@ -191,7 +197,7 @@ void ShadowRenderpass::initRenderpass() {
 void ShadowRenderpass::destroyRenderpass() {
     for (uint32_t idx = 0; idx < MAX_NUM_LIGHTS; idx++) {
         delete this->_depthImageViews[idx];
-        delete this->_depthImages[idx];
+        this->_depthImages[idx]->destroy();
     }
 
     this->_renderingDevice->destroyPipeline(this->_pipeline);

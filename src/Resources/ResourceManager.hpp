@@ -3,6 +3,7 @@
 
 #include <filesystem>
 #include <map>
+#include <memory>
 #include <optional>
 #include <string>
 
@@ -17,14 +18,14 @@ class RendererAllocator;
 
 class ResourceManager {
 private:
-    RendererAllocator *_rendererAllocator;
+    std::shared_ptr<RendererAllocator> _rendererAllocator;
 
     std::map<std::string, Resource *> _resources;
 
     Resource *getResource(const std::string &id, ResourceType type);
 
 public:
-    ResourceManager(RendererAllocator *rendererAllocator);
+    ResourceManager(const std::shared_ptr<RendererAllocator> &rendererAllocator);
     ~ResourceManager();
 
     void addDataDir(const std::filesystem::path &path);

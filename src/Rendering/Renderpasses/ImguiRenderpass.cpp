@@ -16,10 +16,14 @@
 #include "src/Rendering/Builders/SubpassBuilder.hpp"
 #include "src/Rendering/Objects/ImageObject.hpp"
 #include "src/Rendering/Objects/ImageViewObject.hpp"
+#include "src/Rendering/Builders/ImageObjectBuilder.hpp"
 
-ImguiRenderpass::ImguiRenderpass(const std::shared_ptr<RenderingDevice> &renderingDevice, Swapchain *swapchain, VkInstance instance,
+ImguiRenderpass::ImguiRenderpass(const std::shared_ptr<RenderingDevice> &renderingDevice,
+                                 const std::shared_ptr<VulkanObjectsAllocator> &vulkanObjectsAllocator,
+                                 Swapchain *swapchain, VkInstance instance,
                                  PhysicalDevice *physicalDevice, CommandExecutor *commandExecutor)
         : RenderpassBase(renderingDevice),
+          _vulkanObjectsAllocator(vulkanObjectsAllocator),
           _instance(instance),
           _physicalDevice(physicalDevice),
           _commandExecutor(commandExecutor),
@@ -116,14 +120,15 @@ void ImguiRenderpass::destroyRenderpass() {
 void ImguiRenderpass::createFramebuffers() {
     VkExtent2D extent = this->_swapchain->getSwapchainExtent();
 
-    this->_resultImage = ImageObject::create(this->_renderingDevice.get(), extent.width, extent.height, 1, 0,
-                                             this->_physicalDevice->getColorFormat(),
-                                             VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT |
-                                             VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT |
-                                             VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-                                             VK_SAMPLE_COUNT_1_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    this->_resultImage = ImageObjectBuilder(this->_renderingDevice, this->_vulkanObjectsAllocator)
+            .withExtent(extent.width, extent.height)
+            .withFormat(this->_physicalDevice->getColorFormat())
+            .withUsage(VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT |
+                       VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT |
+                       VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
+            .build();
 
-    this->_resultImageView = ImageViewObject::create(this->_renderingDevice.get(), this->_resultImage,
+    this->_resultImageView = ImageViewObject::create(this->_renderingDevice.get(), this->_resultImage.get(),
                                                      VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_COLOR_BIT);
 
     FramebufferBuilder builder = FramebufferBuilder(this->_renderingDevice.get(), this->_renderpass)
@@ -144,5 +149,5 @@ void ImguiRenderpass::destroyFramebuffers() {
     RenderpassBase::destroyFramebuffers();
 
     delete this->_resultImageView;
-    delete this->_resultImage;
+    this->_resultImage->destroy();
 }

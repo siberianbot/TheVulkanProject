@@ -1,6 +1,8 @@
 #ifndef RESOURCES_IMAGEBASERESOURCE_HPP
 #define RESOURCES_IMAGEBASERESOURCE_HPP
 
+#include <memory>
+
 #include "Resource.hpp"
 
 class RendererAllocator;
@@ -15,14 +17,16 @@ protected:
         void *data;
     };
 
-    RendererAllocator *_rendererAllocator;
+    std::shared_ptr<RendererAllocator> _rendererAllocator;
 
-    ImageObject *_image = nullptr;
+    std::shared_ptr<ImageObject> _image;
 
-    ImageBaseResource(const std::vector<std::filesystem::path> &paths, RendererAllocator *rendererAllocator);
+    ImageBaseResource(const std::vector<std::filesystem::path> &paths,
+                      const std::shared_ptr<RendererAllocator> &rendererAllocator);
 
     ImageData loadImageData(const std::filesystem::path &path);
-    virtual ImageObject *loadImage() = 0;
+
+    virtual std::shared_ptr<ImageObject> loadImage() = 0;
 
 public:
     ~ImageBaseResource() override = default;
@@ -30,7 +34,7 @@ public:
     void load() override;
     void unload() override;
 
-    [[nodiscard]] ImageObject *image() const { return this->_image; }
+    [[nodiscard]] std::shared_ptr<ImageObject> image() const { return this->_image; }
 };
 
 #endif // RESOURCES_IMAGEBASERESOURCE_HPP

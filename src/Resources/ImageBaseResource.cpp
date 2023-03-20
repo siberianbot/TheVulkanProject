@@ -8,7 +8,7 @@
 #include "src/Rendering/Objects/ImageObject.hpp"
 
 ImageBaseResource::ImageBaseResource(const std::vector<std::filesystem::path> &paths,
-                                     RendererAllocator *rendererAllocator)
+                                     const std::shared_ptr<RendererAllocator> &rendererAllocator)
         : Resource(paths),
           _rendererAllocator(rendererAllocator) {
     //
@@ -42,7 +42,7 @@ void ImageBaseResource::unload() {
     }
 
     if (this->_image != nullptr) {
-        delete this->_image;
+        this->_image->destroy();
         this->_image = nullptr;
     }
 

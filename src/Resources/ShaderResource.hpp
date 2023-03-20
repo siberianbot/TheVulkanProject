@@ -8,7 +8,7 @@ class ShaderObject;
 
 class ShaderResource : public Resource {
 private:
-    RendererAllocator *_rendererAllocator;
+    std::shared_ptr<RendererAllocator> _rendererAllocator;
 
     ShaderObject *_shader = nullptr;
     std::vector<char> _shaderCode;
@@ -18,7 +18,7 @@ private:
 
 public:
     ShaderResource(const std::filesystem::path &binPath, const std::filesystem::path &codePath,
-                   RendererAllocator *rendererAllocator);
+                   const std::shared_ptr<RendererAllocator> &rendererAllocator);
     ~ShaderResource() override = default;
 
     void load() override;

@@ -27,11 +27,6 @@ public:
     AttachmentBuilder &withInitialLayout(VkImageLayout layout);
     AttachmentBuilder &withFinalLayout(VkImageLayout layout);
 
-    // TOOD: next methods are used for legacy code, may become unused in future
-    [[deprecated]] AttachmentBuilder &defaultColorAttachment(bool clear);
-    [[deprecated]] AttachmentBuilder &defaultDepthAttachment(bool clear);
-    [[deprecated]] AttachmentBuilder &defaultResolveAttachment();
-
     VkAttachmentDescription build();
 };
 

@@ -32,22 +32,6 @@ public:
 
 #pragma region OBSOLETE
 
-    VkDeviceMemory allocateMemory(VkMemoryRequirements requirements, VkMemoryPropertyFlags memoryProperty);
-    void *mapMemory(VkDeviceMemory memory, VkDeviceSize size);
-    void unmapMemory(VkDeviceMemory memory);
-    void freeMemory(VkDeviceMemory memory);
-
-    VkBuffer createBuffer(VkDeviceSize size, VkBufferUsageFlags usage);
-    VkMemoryRequirements getBufferMemoryRequirements(VkBuffer buffer);
-    void bindBufferMemory(VkBuffer buffer, VkDeviceMemory memory);
-    void destroyBuffer(VkBuffer buffer);
-
-    VkImage createImage(uint32_t width, uint32_t height, uint32_t layers, VkImageCreateFlags flags,
-                        VkFormat format, VkImageUsageFlags usage, VkSampleCountFlagBits samples);
-    VkMemoryRequirements getImageMemoryRequirements(VkImage image);
-    void bindImageMemory(VkImage image, VkDeviceMemory memory);
-    void destroyImage(VkImage image);
-
     VkImageView createImageView(VkImage image, uint32_t layers, VkImageViewType imageViewType,
                                 VkFormat format, VkImageAspectFlags aspectMask);
     void destroyImageView(VkImageView imageView);

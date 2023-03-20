@@ -26,7 +26,7 @@ Resource *ResourceManager::getResource(const std::string &id, ResourceType type)
     return resource;
 }
 
-ResourceManager::ResourceManager(RendererAllocator *rendererAllocator)
+ResourceManager::ResourceManager(const std::shared_ptr<RendererAllocator> &rendererAllocator)
         : _rendererAllocator(rendererAllocator) {
     //
 }

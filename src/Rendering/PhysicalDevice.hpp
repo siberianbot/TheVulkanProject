@@ -48,8 +48,6 @@ public:
     VkSampleCountFlagBits getMsaaSamples();
     float getMaxSamplerAnisotropy();
 
-    uint32_t getSuitableMemoryType(uint32_t memoryTypeBits, VkMemoryPropertyFlags memoryProperty);
-
     static std::shared_ptr<PhysicalDevice> selectSuitable(VkInstance instance, VkSurfaceKHR surface);
 };
 

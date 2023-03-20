@@ -4,18 +4,19 @@
 
 #include "src/Rendering/RendererAllocator.hpp"
 
-ImageObject *ImageResource::loadImage() {
+std::shared_ptr<ImageObject> ImageResource::loadImage() {
     ImageData imageData = this->loadImageData(this->_paths[0]);
-    ImageObject *image = this->_rendererAllocator->uploadImage(imageData.width, imageData.height,
-                                                               imageData.width * imageData.height * 4,
-                                                               imageData.data);
+    std::shared_ptr<ImageObject> image = this->_rendererAllocator->uploadImage(imageData.width, imageData.height,
+                                                                               imageData.width * imageData.height * 4,
+                                                                               imageData.data);
 
     stbi_image_free(imageData.data);
 
     return image;
 }
 
-ImageResource::ImageResource(const std::filesystem::path &path, RendererAllocator *rendererAllocator)
+ImageResource::ImageResource(const std::filesystem::path &path,
+                             const std::shared_ptr<RendererAllocator> &rendererAllocator)
         : ImageBaseResource({path}, rendererAllocator) {
     //
 }

@@ -10,19 +10,19 @@
 class PhysicalDevice;
 class RenderingDevice;
 class CommandExecution;
-class RenderingFunctionsProxy;
+class VulkanObjectsAllocator;
 
 class CommandExecutor {
 private:
     std::shared_ptr<RenderingDevice> _renderingDevice;
-    std::shared_ptr<RenderingFunctionsProxy> _renderingFunctions;
+    std::shared_ptr<VulkanObjectsAllocator> _vulkanObjectsAllocator;
 
     VkCommandPool _commandPool = VK_NULL_HANDLE;
     std::array<VkCommandBuffer, MAX_INFLIGHT_FRAMES> _inflightBuffers;
 
 public:
     CommandExecutor(const std::shared_ptr<RenderingDevice> &renderingDevice,
-                    const std::shared_ptr<RenderingFunctionsProxy> &renderingFunctions);
+                    const std::shared_ptr<VulkanObjectsAllocator> &renderingFunctions);
 
     void init();
     void destroy();
@@ -30,8 +30,9 @@ public:
     CommandExecution beginMainExecution(uint32_t frameIdx, Command command);
     CommandExecution beginOneTimeExecution(Command command);
 
-    static std::shared_ptr<CommandExecutor> create(const std::shared_ptr<RenderingDevice> &renderingDevice,
-                                                   const std::shared_ptr<RenderingFunctionsProxy> &renderingFunctions);
+    static std::shared_ptr<CommandExecutor> create(
+            const std::shared_ptr<RenderingDevice> &renderingDevice,
+            const std::shared_ptr<VulkanObjectsAllocator> &vulkanObjectsAllocator);
 };
 
 #endif // RENDERING_COMMANDEXECUTOR_HPP

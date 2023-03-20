@@ -43,44 +43,6 @@ AttachmentBuilder &AttachmentBuilder::withFinalLayout(VkImageLayout layout) {
     return *this;
 }
 
-AttachmentBuilder &AttachmentBuilder::defaultColorAttachment(bool clear) {
-    this->_initialLayout = clear
-                           ? VK_IMAGE_LAYOUT_UNDEFINED
-                           : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    this->_finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    this->_loadOp = clear
-                    ? VK_ATTACHMENT_LOAD_OP_CLEAR
-                    : VK_ATTACHMENT_LOAD_OP_LOAD;
-    this->_format = this->_physicalDevice->getColorFormat();
-    this->_samples = this->_physicalDevice->getMsaaSamples();
-
-    return *this;
-}
-
-AttachmentBuilder &AttachmentBuilder::defaultDepthAttachment(bool clear) {
-    this->_initialLayout = clear
-                           ? VK_IMAGE_LAYOUT_UNDEFINED
-                           : VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-    this->_finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-    this->_loadOp = clear
-                    ? VK_ATTACHMENT_LOAD_OP_CLEAR
-                    : VK_ATTACHMENT_LOAD_OP_LOAD;
-    this->_format = this->_physicalDevice->getDepthFormat();
-    this->_samples = this->_physicalDevice->getMsaaSamples();
-
-    return *this;
-}
-
-AttachmentBuilder &AttachmentBuilder::defaultResolveAttachment() {
-    this->_initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    this->_finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-    this->_loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    this->_format = this->_physicalDevice->getColorFormat();
-    this->_samples = VK_SAMPLE_COUNT_1_BIT;
-
-    return *this;
-}
-
 VkAttachmentDescription AttachmentBuilder::build() {
     return {
             .flags = 0,

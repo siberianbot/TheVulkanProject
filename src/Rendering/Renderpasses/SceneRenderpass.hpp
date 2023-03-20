@@ -18,6 +18,8 @@ class DescriptorSetObject;
 class BufferObject;
 class ImageObject;
 class ImageViewObject;
+class PhysicalDevice;
+class VulkanObjectsAllocator;
 
 class SceneRenderpass : public RenderpassBase {
 private:
@@ -41,36 +43,38 @@ private:
         glm::mat4 modelRotation;
     };
 
+    std::shared_ptr<PhysicalDevice> _physicalDevice;
+    std::shared_ptr<VulkanObjectsAllocator> _vulkanObjectsAllocator;
     Engine *_engine;
     Swapchain *_swapchain;
 
     VkSampler _textureSampler;
-    std::map<ImageObject *, ImageViewObject *> _imageViews;
+    std::map<std::shared_ptr<ImageObject>, ImageViewObject *> _imageViews;
     DescriptorSetObject *_skyboxDescriptorSet;
     ImageViewObject *_skyboxTextureView = nullptr;
 
-    ImageObject *_skyboxImage;
+    std::shared_ptr<ImageObject> _skyboxImage;
     ImageViewObject *_skyboxImageView;
 
-    ImageObject *_albedoImage;
+    std::shared_ptr<ImageObject> _albedoImage;
     ImageViewObject *_albedoImageView;
 
-    ImageObject *_positionImage;
+    std::shared_ptr<ImageObject> _positionImage;
     ImageViewObject *_positionImageView;
 
-    ImageObject *_normalImage;
+    std::shared_ptr<ImageObject> _normalImage;
     ImageViewObject *_normalImageView;
 
-    ImageObject *_specularImage;
+    std::shared_ptr<ImageObject> _specularImage;
     ImageViewObject *_specularImageView;
 
-    ImageObject *_depthImage;
+    std::shared_ptr<ImageObject> _depthImage;
     ImageViewObject *_depthImageView;
 
-    ImageObject *_compositionImage;
+    std::shared_ptr<ImageObject> _compositionImage;
     ImageViewObject *_compositionImageView;
 
-    ImageObject *_resultImage;
+    std::shared_ptr<ImageObject> _resultImage;
     ImageViewObject *_resultImageView;
 
     VkDescriptorPool _descriptorPool;
@@ -85,7 +89,7 @@ private:
     DescriptorSetObject *_compositionGBufferDescriptorSet;
     VkDescriptorSetLayout _compositionSceneDataDescriptorSetLayout;
     DescriptorSetObject *_compositionSceneDataDescriptorSet;
-    BufferObject *_compositionSceneDataBuffer;
+    std::shared_ptr<BufferObject> _compositionSceneDataBuffer;
     SceneData *_compositionSceneData;
     VkPipelineLayout _compositionPipelineLayout;
     VkPipeline _compositionPipeline;
@@ -93,7 +97,7 @@ private:
     std::vector<RenderpassBase *> _shadowRenderpasses;
 
     std::shared_ptr<RenderingData> getRenderData(Object *object);
-    ImageViewObject *getImageView(ImageObject *image);
+    ImageViewObject *getImageView(const std::shared_ptr<ImageObject> &image);
 
     void updateDescriptorSetWithImage(DescriptorSetObject *descriptorSetObject, ImageViewObject *imageViewObject,
                                       uint32_t binding);
@@ -108,7 +112,10 @@ private:
     void destroyCompositionPipeline();
 
 public:
-    SceneRenderpass(const std::shared_ptr<RenderingDevice> &renderingDevice, Swapchain *swapchain, Engine *engine);
+    SceneRenderpass(const std::shared_ptr<RenderingDevice> &renderingDevice,
+                    const std::shared_ptr<PhysicalDevice> &physicalDevice,
+                    const std::shared_ptr<VulkanObjectsAllocator> &vulkanObjectsAllocator,
+                    Swapchain *swapchain, Engine *engine);
     ~SceneRenderpass() override = default;
 
     void recordCommands(VkCommandBuffer commandBuffer, VkRect2D renderArea,

@@ -6,22 +6,27 @@
 class PhysicalDevice;
 class CommandExecutor;
 class Swapchain;
+class VulkanObjectsAllocator;
 class ImageObject;
 class ImageViewObject;
 
 class ImguiRenderpass : public RenderpassBase {
 private:
+    std::shared_ptr<VulkanObjectsAllocator> _vulkanObjectsAllocator;
+
     VkInstance _instance;
     PhysicalDevice *_physicalDevice;
     CommandExecutor *_commandExecutor;
     Swapchain *_swapchain;
     VkDescriptorPool _descriptorPool;
 
-    ImageObject *_resultImage;
+    std::shared_ptr<ImageObject> _resultImage;
     ImageViewObject *_resultImageView;
 
 public:
-    ImguiRenderpass(const std::shared_ptr<RenderingDevice> &renderingDevice, Swapchain *swapchain, VkInstance instance,
+    ImguiRenderpass(const std::shared_ptr<RenderingDevice> &renderingDevice,
+                    const std::shared_ptr<VulkanObjectsAllocator> &vulkanObjectsAllocator,
+                    Swapchain *swapchain, VkInstance instance,
                     PhysicalDevice *physicalDevice, CommandExecutor *commandExecutor);
     ~ImguiRenderpass() override = default;
 

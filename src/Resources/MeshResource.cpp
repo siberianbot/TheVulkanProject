@@ -59,7 +59,8 @@ std::tuple<std::vector<uint32_t>, std::vector<Vertex>> MeshResource::loadData() 
     return std::make_tuple(indices, vertices);
 }
 
-MeshResource::MeshResource(const std::filesystem::path &path, RendererAllocator *rendererAllocator)
+MeshResource::MeshResource(const std::filesystem::path &path,
+                           const std::shared_ptr<RendererAllocator> &rendererAllocator)
         : Resource({path}),
           _rendererAllocator(rendererAllocator) {
     //
@@ -85,12 +86,12 @@ void MeshResource::unload() {
     }
 
     if (this->_vertexBuffer != nullptr) {
-        delete this->_vertexBuffer;
+        this->_vertexBuffer->destroy();
         this->_vertexBuffer = nullptr;
     }
 
     if (this->_indexBuffer != nullptr) {
-        delete this->_indexBuffer;
+        this->_indexBuffer->destroy();
         this->_indexBuffer = nullptr;
     }
 

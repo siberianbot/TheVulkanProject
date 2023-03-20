@@ -5,10 +5,11 @@
 
 class ImageResource : public ImageBaseResource {
 private:
-    ImageObject *loadImage() override;
+    std::shared_ptr<ImageObject> loadImage() override;
 
 public:
-    ImageResource(const std::filesystem::path &path, RendererAllocator *rendererAllocator);
+    ImageResource(const std::filesystem::path &path,
+                  const std::shared_ptr<RendererAllocator> &rendererAllocator);
     ~ImageResource() override = default;
 
     [[nodiscard]] ResourceType type() const override { return IMAGE_RESOURCE; }

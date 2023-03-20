@@ -26,7 +26,7 @@ src = [
     'src/Events/EventQueue.cpp',
 
     # Rendering
-    'src/Rendering/RenderingFunctionsProxy.cpp',
+    'src/Rendering/VulkanObjectsAllocator.cpp',
     'src/Rendering/Renderer.cpp',
     'src/Rendering/PhysicalDevice.cpp',
     'src/Rendering/RenderingDevice.cpp',
@@ -36,9 +36,11 @@ src = [
     'src/Rendering/RendererAllocator.cpp',
 
     'src/Rendering/Builders/AttachmentBuilder.cpp',
+    'src/Rendering/Builders/BufferObjectBuilder.cpp',
     'src/Rendering/Builders/DescriptorPoolBuilder.cpp',
     'src/Rendering/Builders/DescriptorSetLayoutBuilder.cpp',
     'src/Rendering/Builders/FramebufferBuilder.cpp',
+    'src/Rendering/Builders/ImageObjectBuilder.cpp',
     'src/Rendering/Builders/PipelineBuilder.cpp',
     'src/Rendering/Builders/PipelineLayoutBuilder.cpp',
     'src/Rendering/Builders/RenderpassBuilder.cpp',

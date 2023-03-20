@@ -2,18 +2,18 @@
 
 #include "src/Rendering/Common.hpp"
 #include "src/Rendering/RenderingDevice.hpp"
-#include "src/Rendering/RenderingFunctionsProxy.hpp"
+#include "src/Rendering/VulkanObjectsAllocator.hpp"
 #include "src/Rendering/CommandExecution.hpp"
 
 CommandExecutor::CommandExecutor(const std::shared_ptr<RenderingDevice> &renderingDevice,
-                                 const std::shared_ptr<RenderingFunctionsProxy> &renderingFunctions)
+                                 const std::shared_ptr<VulkanObjectsAllocator> &renderingFunctions)
         : _renderingDevice(renderingDevice),
-          _renderingFunctions(renderingFunctions) {
+          _vulkanObjectsAllocator(renderingFunctions) {
     //
 }
 
 void CommandExecutor::init() {
-    this->_commandPool = this->_renderingFunctions->createCommandPool();
+    this->_commandPool = this->_vulkanObjectsAllocator->createCommandPool();
 
     VkCommandBufferAllocateInfo allocateInfo = {
             .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
@@ -31,7 +31,7 @@ void CommandExecutor::destroy() {
     vkFreeCommandBuffers(this->_renderingDevice->getHandle(), this->_commandPool, this->_inflightBuffers.size(),
                          this->_inflightBuffers.data());
 
-    this->_renderingFunctions->destroyCommandPool(this->_commandPool);
+    this->_vulkanObjectsAllocator->destroyCommandPool(this->_commandPool);
 }
 
 CommandExecution CommandExecutor::beginMainExecution(uint32_t frameIdx, Command command) {
@@ -59,6 +59,6 @@ CommandExecution CommandExecutor::beginOneTimeExecution(Command command) {
 
 std::shared_ptr<CommandExecutor>
 CommandExecutor::create(const std::shared_ptr<RenderingDevice> &renderingDevice,
-                        const std::shared_ptr<RenderingFunctionsProxy> &renderingFunctions) {
-    return std::make_shared<CommandExecutor>(renderingDevice, renderingFunctions);
+                        const std::shared_ptr<VulkanObjectsAllocator> &vulkanObjectsAllocator) {
+    return std::make_shared<CommandExecutor>(renderingDevice, vulkanObjectsAllocator);
 }

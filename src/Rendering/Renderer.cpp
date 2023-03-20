@@ -18,7 +18,7 @@
 #include "src/Rendering/Renderpasses/ShadowRenderpass.hpp"
 #include "src/Rendering/Renderpasses/SwapchainPresentRenderpass.hpp"
 #include "src/System/Window.hpp"
-#include "src/Rendering/RenderingFunctionsProxy.hpp"
+#include "src/Rendering/VulkanObjectsAllocator.hpp"
 
 VKAPI_ATTR VkBool32 VKAPI_CALL Renderer::debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
                                                        VkDebugUtilsMessageTypeFlagsEXT messageType,
@@ -65,11 +65,12 @@ void Renderer::init() {
 
     this->_physicalDevice = PhysicalDevice::selectSuitable(this->_instance, this->_surface);
     this->_renderingDevice = RenderingDevice::fromPhysicalDevice(this->_physicalDevice);
-    this->_renderingFunctions = RenderingFunctionsProxy::create(this->_physicalDevice, this->_renderingDevice);
-    this->_commandExecutor = CommandExecutor::create(this->_renderingDevice, this->_renderingFunctions);
+    this->_vulkanObjectsAllocator = VulkanObjectsAllocator::create(this->_physicalDevice, this->_renderingDevice);
+    this->_commandExecutor = CommandExecutor::create(this->_renderingDevice, this->_vulkanObjectsAllocator);
     this->_commandExecutor->init();
     this->_swapchain = new Swapchain(this->_renderingDevice.get());
-    this->_rendererAllocator = new RendererAllocator(this->_renderingDevice.get(), this->_commandExecutor.get());
+    this->_rendererAllocator = RendererAllocator::create(this->_renderingDevice, this->_vulkanObjectsAllocator,
+                                                         this->_commandExecutor);
 
     for (uint32_t frameIdx = 0; frameIdx < MAX_INFLIGHT_FRAMES; frameIdx++) {
         this->_syncObjectsGroups[frameIdx] = new SyncObjectsGroup{
@@ -81,11 +82,15 @@ void Renderer::init() {
 
     this->_swapchain->create();
 
-    RenderpassBase *shadowRenderpass = new ShadowRenderpass(this->_renderingDevice, this->_engine);
-    SceneRenderpass *sceneRenderpass = new SceneRenderpass(this->_renderingDevice, this->_swapchain, this->_engine);
+    RenderpassBase *shadowRenderpass = new ShadowRenderpass(this->_renderingDevice, this->_physicalDevice,
+                                                            this->_vulkanObjectsAllocator, this->_engine);
+    SceneRenderpass *sceneRenderpass = new SceneRenderpass(this->_renderingDevice, this->_physicalDevice,
+                                                           this->_vulkanObjectsAllocator, this->_swapchain,
+                                                           this->_engine);
     sceneRenderpass->addShadowRenderpass(shadowRenderpass);
 
-    RenderpassBase *imguiRenderpass = new ImguiRenderpass(this->_renderingDevice, this->_swapchain, this->_instance,
+    RenderpassBase *imguiRenderpass = new ImguiRenderpass(this->_renderingDevice, this->_vulkanObjectsAllocator,
+                                                          this->_swapchain, this->_instance,
                                                           this->_physicalDevice.get(), this->_commandExecutor.get());
 
     SwapchainPresentRenderpass *presentRenderpass = new SwapchainPresentRenderpass(this->_renderingDevice,
@@ -128,7 +133,6 @@ void Renderer::cleanup() {
         delete this->_syncObjectsGroups[frameIdx];
     }
 
-    delete this->_rendererAllocator;
     delete this->_swapchain;
     this->_commandExecutor->destroy();
     this->_renderingDevice->destroy();

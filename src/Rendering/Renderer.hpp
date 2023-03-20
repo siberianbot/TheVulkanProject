@@ -20,7 +20,7 @@ class FenceObject;
 class SemaphoreObject;
 class RenderpassBase;
 class RendererAllocator;
-class RenderingFunctionsProxy;
+class VulkanObjectsAllocator;
 
 class Renderer {
 private:
@@ -39,10 +39,11 @@ private:
 
     std::shared_ptr<PhysicalDevice> _physicalDevice;
     std::shared_ptr<RenderingDevice> _renderingDevice;
-    std::shared_ptr<RenderingFunctionsProxy> _renderingFunctions;
+    std::shared_ptr<VulkanObjectsAllocator> _vulkanObjectsAllocator;
     std::shared_ptr<CommandExecutor> _commandExecutor;
+    std::shared_ptr<RendererAllocator> _rendererAllocator;
+
     Swapchain *_swapchain;
-    RendererAllocator *_rendererAllocator;
 
     std::array<SyncObjectsGroup *, MAX_INFLIGHT_FRAMES> _syncObjectsGroups;
     std::vector<RenderpassBase *> _renderpasses;
@@ -69,7 +70,7 @@ public:
     void render();
     void wait();
 
-    [[nodiscard]] RendererAllocator *rendererAllocator() const { return this->_rendererAllocator; }
+    [[nodiscard]] std::shared_ptr<RendererAllocator> rendererAllocator() const { return this->_rendererAllocator; }
 };
 
 #endif // RENDERING_RENDERER_HPP
