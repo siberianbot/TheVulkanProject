@@ -12,8 +12,8 @@ SemaphoreObject::~SemaphoreObject() {
     this->_renderingDevice->destroySemaphore(this->_semaphore);
 }
 
-SemaphoreObject *SemaphoreObject::create(RenderingDevice *renderingDevice) {
+std::shared_ptr<SemaphoreObject> SemaphoreObject::create(RenderingDevice *renderingDevice) {
     VkSemaphore semaphore = renderingDevice->createSemaphore();
 
-    return new SemaphoreObject(renderingDevice, semaphore);
+    return std::make_shared<SemaphoreObject>(renderingDevice, semaphore);
 }

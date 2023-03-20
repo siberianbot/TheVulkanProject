@@ -18,12 +18,7 @@
 #include "src/Rendering/Renderpasses/ShadowRenderpass.hpp"
 #include "src/Rendering/Renderpasses/SwapchainPresentRenderpass.hpp"
 #include "src/System/Window.hpp"
-
-Renderer::SyncObjectsGroup::~SyncObjectsGroup() {
-    delete this->fence;
-    delete this->imageAvailableSemaphore;
-    delete this->renderFinishedSemaphore;
-}
+#include "src/Rendering/RenderingFunctionsProxy.hpp"
 
 VKAPI_ATTR VkBool32 VKAPI_CALL Renderer::debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
                                                        VkDebugUtilsMessageTypeFlagsEXT messageType,
@@ -70,7 +65,9 @@ void Renderer::init() {
 
     this->_physicalDevice = PhysicalDevice::selectSuitable(this->_instance, this->_surface);
     this->_renderingDevice = RenderingDevice::fromPhysicalDevice(this->_physicalDevice);
-    this->_commandExecutor = CommandExecutor::create(this->_physicalDevice, this->_renderingDevice);
+    this->_renderingFunctions = RenderingFunctionsProxy::create(this->_physicalDevice, this->_renderingDevice);
+    this->_commandExecutor = CommandExecutor::create(this->_renderingDevice, this->_renderingFunctions);
+    this->_commandExecutor->init();
     this->_swapchain = new Swapchain(this->_renderingDevice.get());
     this->_rendererAllocator = new RendererAllocator(this->_renderingDevice.get(), this->_commandExecutor.get());
 

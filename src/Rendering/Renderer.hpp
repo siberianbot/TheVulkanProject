@@ -20,15 +20,14 @@ class FenceObject;
 class SemaphoreObject;
 class RenderpassBase;
 class RendererAllocator;
+class RenderingFunctionsProxy;
 
 class Renderer {
 private:
     struct SyncObjectsGroup {
-        FenceObject *fence;
-        SemaphoreObject *imageAvailableSemaphore;
-        SemaphoreObject *renderFinishedSemaphore;
-
-        ~SyncObjectsGroup();
+        std::shared_ptr<FenceObject> fence;
+        std::shared_ptr<SemaphoreObject> imageAvailableSemaphore;
+        std::shared_ptr<SemaphoreObject> renderFinishedSemaphore;
     };
 
     Engine *_engine;
@@ -37,8 +36,10 @@ private:
 
     VkInstance _instance = VK_NULL_HANDLE;
     VkSurfaceKHR _surface = VK_NULL_HANDLE;
+
     std::shared_ptr<PhysicalDevice> _physicalDevice;
     std::shared_ptr<RenderingDevice> _renderingDevice;
+    std::shared_ptr<RenderingFunctionsProxy> _renderingFunctions;
     std::shared_ptr<CommandExecutor> _commandExecutor;
     Swapchain *_swapchain;
     RendererAllocator *_rendererAllocator;

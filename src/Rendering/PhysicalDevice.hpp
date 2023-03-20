@@ -6,8 +6,6 @@
 
 #include <vulkan/vulkan.hpp>
 
-class RenderingDevice;
-
 class PhysicalDevice {
 private:
     struct QueueFamilies {

@@ -1,6 +1,8 @@
 #ifndef RENDERING_OBJECTS_FENCEOBJECT_HPP
 #define RENDERING_OBJECTS_FENCEOBJECT_HPP
 
+#include <memory>
+
 #include <vulkan/vulkan.hpp>
 
 class RenderingDevice;
@@ -11,9 +13,8 @@ private:
 
     VkFence _fence;
 
-    FenceObject(RenderingDevice *renderingDevice, VkFence fence);
-
 public:
+    FenceObject(RenderingDevice *renderingDevice, VkFence fence);
     ~FenceObject();
 
     [[nodiscard]] VkFence getHandle() const { return this->_fence; }
@@ -21,7 +22,7 @@ public:
     void wait(uint64_t timeout);
     void reset();
 
-    [[nodiscard]] static FenceObject *create(RenderingDevice *renderingDevice, bool signaled);
+    [[nodiscard]] static std::shared_ptr<FenceObject> create(RenderingDevice *renderingDevice, bool signaled);
 };
 
 #endif // RENDERING_OBJECTS_FENCEOBJECT_HPP

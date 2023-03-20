@@ -18,10 +18,10 @@ private:
     VkCommandBuffer _commandBuffer;
     bool _isOneTimeBuffer;
 
-    FenceObject *_fence = nullptr;
+    VkFence _fence = VK_NULL_HANDLE;
     std::vector<VkSemaphore> _waitSemaphores;
     std::vector<VkSemaphore> _signalSemaphores;
-    std::optional<VkPipelineStageFlags> _waitDstStageMask;
+    std::vector<VkPipelineStageFlags> _waitDstStageMasks;
 
 public:
     CommandExecution(const std::shared_ptr<RenderingDevice> &renderingDevice,
@@ -31,9 +31,9 @@ public:
                      bool isOneTimeBuffer);
     ~CommandExecution();
 
-    CommandExecution &withFence(FenceObject *fence);
-    CommandExecution &withWaitSemaphore(SemaphoreObject *semaphore);
-    CommandExecution &withSignalSemaphore(SemaphoreObject *semaphore);
+    CommandExecution &withFence(const std::shared_ptr<FenceObject> &fence);
+    CommandExecution &withWaitSemaphore(const std::shared_ptr<SemaphoreObject> &semaphore);
+    CommandExecution &withSignalSemaphore(const std::shared_ptr<SemaphoreObject> &semaphore);
     CommandExecution &withWaitDstStageMask(VkPipelineStageFlags waitDstStageMask);
 
     void submit(bool waitQueueIdle);

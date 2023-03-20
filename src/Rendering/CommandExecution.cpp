@@ -26,26 +26,26 @@ CommandExecution::~CommandExecution() {
     vkFreeCommandBuffers(this->_renderingDevice->getHandle(), this->_commandPool, 1, &this->_commandBuffer);
 }
 
-CommandExecution &CommandExecution::withFence(FenceObject *fence) {
-    this->_fence = fence;
+CommandExecution &CommandExecution::withFence(const std::shared_ptr<FenceObject> &fence) {
+    this->_fence = fence->getHandle();
 
     return *this;
 }
 
-CommandExecution &CommandExecution::withWaitSemaphore(SemaphoreObject *semaphore) {
+CommandExecution &CommandExecution::withWaitSemaphore(const std::shared_ptr<SemaphoreObject> &semaphore) {
     this->_waitSemaphores.push_back(semaphore->getHandle());
 
     return *this;
 }
 
-CommandExecution &CommandExecution::withSignalSemaphore(SemaphoreObject *semaphore) {
+CommandExecution &CommandExecution::withSignalSemaphore(const std::shared_ptr<SemaphoreObject> &semaphore) {
     this->_signalSemaphores.push_back(semaphore->getHandle());
 
     return *this;
 }
 
 CommandExecution &CommandExecution::withWaitDstStageMask(VkPipelineStageFlags waitDstStageMask) {
-    this->_waitDstStageMask = waitDstStageMask;
+    this->_waitDstStageMasks.push_back(waitDstStageMask);
 
     return *this;
 }
@@ -71,20 +71,14 @@ void CommandExecution::submit(bool waitQueueIdle) {
             .pNext = nullptr,
             .waitSemaphoreCount = static_cast<uint32_t>(this->_waitSemaphores.size()),
             .pWaitSemaphores = this->_waitSemaphores.data(),
-            .pWaitDstStageMask = this->_waitDstStageMask.has_value()
-                                 ? &this->_waitDstStageMask.value()
-                                 : nullptr,
+            .pWaitDstStageMask = this->_waitDstStageMasks.data(),
             .commandBufferCount = 1,
             .pCommandBuffers = &this->_commandBuffer,
             .signalSemaphoreCount = static_cast<uint32_t>(this->_signalSemaphores.size()),
             .pSignalSemaphores = this->_signalSemaphores.data()
     };
 
-    VkFence fence = this->_fence != nullptr
-                    ? this->_fence->getHandle()
-                    : VK_NULL_HANDLE;
-
-    vkEnsure(vkQueueSubmit(this->_renderingDevice->getGraphicsQueue(), 1, &submitInfo, fence));
+    vkEnsure(vkQueueSubmit(this->_renderingDevice->getGraphicsQueue(), 1, &submitInfo, this->_fence));
 
     if (!waitQueueIdle) {
         return;

@@ -26,6 +26,7 @@ src = [
     'src/Events/EventQueue.cpp',
 
     # Rendering
+    'src/Rendering/RenderingFunctionsProxy.cpp',
     'src/Rendering/Renderer.cpp',
     'src/Rendering/PhysicalDevice.cpp',
     'src/Rendering/RenderingDevice.cpp',
