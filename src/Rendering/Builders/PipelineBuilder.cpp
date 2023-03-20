@@ -1,7 +1,5 @@
 #include "PipelineBuilder.hpp"
 
-#include <fstream>
-
 #include "src/Rendering/RenderingDevice.hpp"
 #include "src/Rendering/Builders/SpecializationInfoBuilder.hpp"
 #include "src/Rendering/Objects/ShaderObject.hpp"
