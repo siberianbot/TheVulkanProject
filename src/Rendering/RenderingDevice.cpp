@@ -193,32 +193,6 @@ void RenderingDevice::destroyPipelineLayout(VkPipelineLayout pipelineLayout) {
     vkDestroyPipelineLayout(this->_device, pipelineLayout, nullptr);
 }
 
-std::vector<VkDescriptorSet> RenderingDevice::allocateDescriptorSets(uint32_t count, VkDescriptorPool descriptorPool,
-                                                                     VkDescriptorSetLayout descriptorSetLayout) {
-    std::vector<VkDescriptorSetLayout> layouts(count, descriptorSetLayout);
-    std::vector<VkDescriptorSet> descriptorSets(count);
-
-    VkDescriptorSetAllocateInfo allocateInfo = {
-            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-            .pNext = nullptr,
-            .descriptorPool = descriptorPool,
-            .descriptorSetCount = count,
-            .pSetLayouts = layouts.data()
-    };
-
-    vkEnsure(vkAllocateDescriptorSets(this->_device, &allocateInfo, descriptorSets.data()));
-
-    return descriptorSets;
-}
-
-void RenderingDevice::freeDescriptorSets(VkDescriptorPool descriptorPool, uint32_t count, const VkDescriptorSet *ptr) {
-    vkEnsure(vkFreeDescriptorSets(this->_device, descriptorPool, count, ptr));
-}
-
-void RenderingDevice::updateDescriptorSets(const std::vector<VkWriteDescriptorSet> &writes) {
-    vkUpdateDescriptorSets(this->_device, static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
-}
-
 VkRenderPass RenderingDevice::createRenderpass(const std::vector<VkAttachmentDescription> &attachments,
                                                const std::vector<VkSubpassDescription> &subpasses,
                                                const std::vector<VkSubpassDependency> &dependencies) {

@@ -1,6 +1,7 @@
 #ifndef RENDERING_RENDERPASSES_SCENERENDERPASS_HPP
 #define RENDERING_RENDERPASSES_SCENERENDERPASS_HPP
 
+#include <array>
 #include <map>
 #include <memory>
 
@@ -50,7 +51,7 @@ private:
 
     VkSampler _textureSampler;
     std::map<std::shared_ptr<ImageObject>, std::shared_ptr<ImageViewObject>> _imageViews;
-    DescriptorSetObject *_skyboxDescriptorSet;
+    std::array<std::shared_ptr<DescriptorSetObject>, MAX_INFLIGHT_FRAMES> _skyboxDescriptorSets;
     std::shared_ptr<ImageViewObject> _skyboxTextureView = nullptr;
 
     std::shared_ptr<ImageObject> _skyboxImage;
@@ -86,9 +87,9 @@ private:
     VkPipeline _scenePipeline;
 
     VkDescriptorSetLayout _compositionGBufferDescriptorSetLayout;
-    DescriptorSetObject *_compositionGBufferDescriptorSet;
+    std::array<std::shared_ptr<DescriptorSetObject>, MAX_INFLIGHT_FRAMES> _compositionGBufferDescriptorSets;
     VkDescriptorSetLayout _compositionSceneDataDescriptorSetLayout;
-    DescriptorSetObject *_compositionSceneDataDescriptorSet;
+    std::array<std::shared_ptr<DescriptorSetObject>, MAX_INFLIGHT_FRAMES> _compositionSceneDataDescriptorSets;
     std::shared_ptr<BufferObject> _compositionSceneDataBuffer;
     SceneData *_compositionSceneData;
     VkPipelineLayout _compositionPipelineLayout;
@@ -99,9 +100,10 @@ private:
     std::shared_ptr<RenderingData> getRenderData(Object *object);
     std::shared_ptr<ImageViewObject> getImageView(const std::shared_ptr<ImageObject> &image);
 
-    void updateDescriptorSetWithImage(DescriptorSetObject *descriptorSetObject,
-                                      const std::shared_ptr<ImageViewObject> &imageViewObject,
-                                      uint32_t binding);
+    void updateDescriptorSetWithImage(
+            const std::array<std::shared_ptr<DescriptorSetObject>, MAX_INFLIGHT_FRAMES> &descriptorSets,
+            const std::shared_ptr<ImageViewObject> &imageViewObject,
+            uint32_t binding);
 
     void initSkyboxPipeline();
     void destroySkyboxPipeline();

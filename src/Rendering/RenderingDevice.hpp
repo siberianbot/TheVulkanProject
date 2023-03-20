@@ -56,11 +56,6 @@ public:
                                           const std::vector<VkPushConstantRange> &pushConstants);
     void destroyPipelineLayout(VkPipelineLayout pipelineLayout);
 
-    std::vector<VkDescriptorSet> allocateDescriptorSets(uint32_t count, VkDescriptorPool descriptorPool,
-                                                        VkDescriptorSetLayout descriptorSetLayout);
-    void freeDescriptorSets(VkDescriptorPool descriptorPool, uint32_t count, const VkDescriptorSet *ptr);
-    void updateDescriptorSets(const std::vector<VkWriteDescriptorSet> &writes);
-
     VkRenderPass createRenderpass(const std::vector<VkAttachmentDescription> &attachments,
                                   const std::vector<VkSubpassDescription> &subpasses,
                                   const std::vector<VkSubpassDependency> &dependencies);

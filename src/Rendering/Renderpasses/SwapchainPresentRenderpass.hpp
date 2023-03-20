@@ -20,7 +20,7 @@ private:
     VkDescriptorSetLayout _descriptorSetLayout;
     VkPipelineLayout _pipelineLayout;
     VkPipeline _pipeline;
-    DescriptorSetObject *_descriptorSet;
+    std::vector<std::shared_ptr<DescriptorSetObject>> _descriptorSets;
 
 public:
     SwapchainPresentRenderpass(const std::shared_ptr<RenderingDevice> &renderingDevice, Swapchain *swapchain, Engine *engine);

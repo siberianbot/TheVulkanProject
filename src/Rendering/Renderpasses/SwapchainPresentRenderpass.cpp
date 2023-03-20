@@ -17,7 +17,8 @@
 #include "src/Resources/ResourceManager.hpp"
 #include "src/Resources/ShaderResource.hpp"
 
-SwapchainPresentRenderpass::SwapchainPresentRenderpass(const std::shared_ptr<RenderingDevice> &renderingDevice, Swapchain *swapchain,
+SwapchainPresentRenderpass::SwapchainPresentRenderpass(const std::shared_ptr<RenderingDevice> &renderingDevice,
+                                                       Swapchain *swapchain,
                                                        Engine *engine)
         : RenderpassBase(renderingDevice),
           _swapchain(swapchain),
@@ -61,7 +62,7 @@ void SwapchainPresentRenderpass::recordCommands(VkCommandBuffer commandBuffer, V
 
     vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->_pipeline);
 
-    VkDescriptorSet descriptor = this->_descriptorSet->getDescriptorSet(imageIdx);
+    VkDescriptorSet descriptor = this->_descriptorSets[imageIdx]->getHandle();
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->_pipelineLayout, 0, 1,
                             &descriptor, 0, nullptr);
 
@@ -166,11 +167,14 @@ void SwapchainPresentRenderpass::createFramebuffers() {
         this->_framebuffers[imageIdx] = builder.build();
     }
 
-    this->_descriptorSet = DescriptorSetObject::create(this->_renderingDevice.get(), imagesCount, this->_descriptorPool,
-                                                       this->_descriptorSetLayout);
+    this->_descriptorSets.resize(imagesCount);
+    for (uint32_t imageIdx = 0; imageIdx < imagesCount; imageIdx++) {
+        this->_descriptorSets[imageIdx] = DescriptorSetObject::create(this->_renderingDevice,
+                                                                      this->_descriptorPool,
+                                                                      this->_descriptorSetLayout);
+    }
 
     for (uint32_t passIdx = 0; passIdx < passesCount; passIdx++) {
-
         for (uint32_t imageIdx = 0; imageIdx < imagesCount; imageIdx++) {
             VkDescriptorImageInfo imageInfo = {
                     .sampler = VK_NULL_HANDLE,
@@ -182,7 +186,7 @@ void SwapchainPresentRenderpass::createFramebuffers() {
                     VkWriteDescriptorSet{
                             .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                             .pNext = nullptr,
-                            .dstSet = this->_descriptorSet->getDescriptorSet(imageIdx),
+                            .dstSet = this->_descriptorSets[imageIdx]->getHandle(),
                             .dstBinding = passIdx,
                             .dstArrayElement = 0,
                             .descriptorCount = 1,
@@ -193,13 +197,16 @@ void SwapchainPresentRenderpass::createFramebuffers() {
                     }
             };
 
-            this->_renderingDevice->updateDescriptorSets(writes);
+            vkUpdateDescriptorSets(this->_renderingDevice->getHandle(), static_cast<uint32_t>(writes.size()),
+                                   writes.data(), 0, nullptr);
         }
     }
 }
 
 void SwapchainPresentRenderpass::destroyFramebuffers() {
-    delete this->_descriptorSet;
+    for (std::shared_ptr<DescriptorSetObject> &descriptorSet: this->_descriptorSets) {
+        descriptorSet->destroy();
+    }
 
     RenderpassBase::destroyFramebuffers();
 }

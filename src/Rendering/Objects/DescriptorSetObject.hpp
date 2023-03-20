@@ -1,27 +1,29 @@
 #ifndef RENDERING_OBJECTS_DESCRIPTORSETOBJECT_HPP
 #define RENDERING_OBJECTS_DESCRIPTORSETOBJECT_HPP
 
+#include <memory>
+
 #include <vulkan/vulkan.hpp>
 
 class RenderingDevice;
 
 class DescriptorSetObject {
 private:
-    RenderingDevice *_renderingDevice;
+    std::shared_ptr<RenderingDevice> _renderingDevice;
 
     VkDescriptorPool _descriptorPool;
-    std::vector<VkDescriptorSet> _descriptorSets;
-
-    DescriptorSetObject(RenderingDevice *renderingDevice, VkDescriptorPool descriptorPool,
-                        const std::vector<VkDescriptorSet> &descriptorSets);
+    VkDescriptorSet _descriptorSet;
 
 public:
-    ~DescriptorSetObject();
+    DescriptorSetObject(const std::shared_ptr<RenderingDevice> &renderingDevice,
+                        VkDescriptorPool descriptorPool, VkDescriptorSet descriptorSet);
 
-    [[nodiscard]] VkDescriptorSet getDescriptorSet(uint32_t idx) const { return this->_descriptorSets[idx]; }
+    [[nodiscard]] VkDescriptorSet getHandle() const { return this->_descriptorSet; }
 
-    [[nodiscard]] static DescriptorSetObject *create(RenderingDevice *renderingDevice, uint32_t count,
-                                                     VkDescriptorPool pool, VkDescriptorSetLayout layout);
+    void destroy();
+
+    static std::shared_ptr<DescriptorSetObject> create(const std::shared_ptr<RenderingDevice> &renderingDevice,
+                                                       VkDescriptorPool descriptorPool, VkDescriptorSetLayout layout);
 };
 
 

@@ -1,23 +1,33 @@
 #include "DescriptorSetObject.hpp"
 
+#include "src/Rendering/Common.hpp"
 #include "src/Rendering/RenderingDevice.hpp"
 
-DescriptorSetObject::DescriptorSetObject(RenderingDevice *renderingDevice, VkDescriptorPool descriptorPool,
-                                         const std::vector<VkDescriptorSet> &descriptorSets)
+DescriptorSetObject::DescriptorSetObject(const std::shared_ptr<RenderingDevice> &renderingDevice,
+                                         VkDescriptorPool descriptorPool, VkDescriptorSet descriptorSet)
         : _renderingDevice(renderingDevice),
           _descriptorPool(descriptorPool),
-          _descriptorSets(descriptorSets) {
+          _descriptorSet(descriptorSet) {
     //
 }
 
-DescriptorSetObject::~DescriptorSetObject() {
-    this->_renderingDevice->freeDescriptorSets(this->_descriptorPool, this->_descriptorSets.size(),
-                                               this->_descriptorSets.data());
+void DescriptorSetObject::destroy() {
+    vkFreeDescriptorSets(this->_renderingDevice->getHandle(), this->_descriptorPool, 1, &this->_descriptorSet);
 }
 
-DescriptorSetObject *DescriptorSetObject::create(RenderingDevice *renderingDevice, uint32_t count,
-                                                 VkDescriptorPool pool, VkDescriptorSetLayout layout) {
-    std::vector<VkDescriptorSet> descripotSets = renderingDevice->allocateDescriptorSets(count, pool, layout);
+std::shared_ptr<DescriptorSetObject> DescriptorSetObject::create(
+        const std::shared_ptr<RenderingDevice> &renderingDevice, VkDescriptorPool descriptorPool,
+        VkDescriptorSetLayout layout) {
+    VkDescriptorSetAllocateInfo allocateInfo = {
+            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+            .pNext = nullptr,
+            .descriptorPool = descriptorPool,
+            .descriptorSetCount = 1,
+            .pSetLayouts = &layout
+    };
 
-    return new DescriptorSetObject(renderingDevice, pool, descripotSets);
+    VkDescriptorSet descriptorSet;
+    vkEnsure(vkAllocateDescriptorSets(renderingDevice->getHandle(), &allocateInfo, &descriptorSet));
+
+    return std::make_shared<DescriptorSetObject>(renderingDevice, descriptorPool, descriptorSet);
 }

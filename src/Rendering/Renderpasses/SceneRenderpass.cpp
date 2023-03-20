@@ -42,9 +42,11 @@ std::shared_ptr<RenderingData> SceneRenderpass::getRenderData(Object *object) {
 
     if (renderData == nullptr) {
         renderData = std::make_shared<RenderingData>();
-        renderData->descriptorSet = DescriptorSetObject::create(this->_renderingDevice.get(), MAX_INFLIGHT_FRAMES,
-                                                                this->_descriptorPool,
-                                                                this->_objectDescriptorSetLayout);
+        for (uint32_t idx = 0; idx < MAX_INFLIGHT_FRAMES; ++idx) {
+            renderData->descriptorSets[idx] = DescriptorSetObject::create(this->_renderingDevice,
+                                                                          this->_descriptorPool,
+                                                                          this->_objectDescriptorSetLayout);
+        }
 
         object->data()[RENDERING_DATA_TYPE] = renderData;
     }
@@ -57,7 +59,7 @@ std::shared_ptr<RenderingData> SceneRenderpass::getRenderData(Object *object) {
         albedoTexture->getHandle() != renderData->albedoTextureView->getImage()) {
         renderData->albedoTextureView = getImageView(albedoTexture);
 
-        updateDescriptorSetWithImage(renderData->descriptorSet, renderData->albedoTextureView, 0);
+        updateDescriptorSetWithImage(renderData->descriptorSets, renderData->albedoTextureView, 0);
     }
 
     std::shared_ptr<ImageObject> specTexture = object->specTexture() == nullptr
@@ -68,7 +70,7 @@ std::shared_ptr<RenderingData> SceneRenderpass::getRenderData(Object *object) {
         specTexture->getHandle() != renderData->specTextureView->getImage()) {
         renderData->specTextureView = getImageView(specTexture);
 
-        updateDescriptorSetWithImage(renderData->descriptorSet, renderData->specTextureView, 1);
+        updateDescriptorSetWithImage(renderData->descriptorSets, renderData->specTextureView, 1);
     }
 
     return renderData;
@@ -91,9 +93,10 @@ std::shared_ptr<ImageViewObject> SceneRenderpass::getImageView(const std::shared
     return imageView;
 }
 
-void SceneRenderpass::updateDescriptorSetWithImage(DescriptorSetObject *descriptorSetObject,
-                                                   const std::shared_ptr<ImageViewObject> &imageViewObject,
-                                                   uint32_t binding) {
+void SceneRenderpass::updateDescriptorSetWithImage(
+        const std::array<std::shared_ptr<DescriptorSetObject>, MAX_INFLIGHT_FRAMES> &descriptorSets,
+        const std::shared_ptr<ImageViewObject> &imageViewObject,
+        uint32_t binding) {
     VkDescriptorImageInfo imageInfo = {
             .sampler = this->_textureSampler,
             .imageView = imageViewObject->getHandle(),
@@ -105,7 +108,7 @@ void SceneRenderpass::updateDescriptorSetWithImage(DescriptorSetObject *descript
         writes.push_back(VkWriteDescriptorSet{
                 .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                 .pNext = nullptr,
-                .dstSet = descriptorSetObject->getDescriptorSet(idx),
+                .dstSet = descriptorSets[idx]->getHandle(),
                 .dstBinding = binding,
                 .dstArrayElement = 0,
                 .descriptorCount = 1,
@@ -116,7 +119,7 @@ void SceneRenderpass::updateDescriptorSetWithImage(DescriptorSetObject *descript
         });
     }
 
-    this->_renderingDevice.get()->updateDescriptorSets(writes);
+    vkUpdateDescriptorSets(this->_renderingDevice->getHandle(), writes.size(), writes.data(), 0, nullptr);
 }
 
 void SceneRenderpass::initSkyboxPipeline() {
@@ -144,8 +147,11 @@ void SceneRenderpass::initSkyboxPipeline() {
     vertexShader->unload();
     fragmentShader->unload();
 
-    this->_skyboxDescriptorSet = DescriptorSetObject::create(this->_renderingDevice.get(), MAX_INFLIGHT_FRAMES,
-                                                             this->_descriptorPool, this->_objectDescriptorSetLayout);
+    for (uint32_t idx = 0; idx < MAX_INFLIGHT_FRAMES; ++idx) {
+        this->_skyboxDescriptorSets[idx] = DescriptorSetObject::create(this->_renderingDevice,
+                                                                       this->_descriptorPool,
+                                                                       this->_objectDescriptorSetLayout);
+    }
 
     Scene *currentScene = this->_engine->sceneManager()->currentScene();
     if (currentScene != nullptr) {
@@ -156,12 +162,14 @@ void SceneRenderpass::initSkyboxPipeline() {
                 .withLayers(0, 6)
                 .build();
 
-        updateDescriptorSetWithImage(this->_skyboxDescriptorSet, this->_skyboxTextureView, 0);
+        updateDescriptorSetWithImage(this->_skyboxDescriptorSets, this->_skyboxTextureView, 0);
     }
 }
 
 void SceneRenderpass::destroySkyboxPipeline() {
-    delete this->_skyboxDescriptorSet;
+    for (uint32_t idx = 0; idx < MAX_INFLIGHT_FRAMES; ++idx) {
+        this->_skyboxDescriptorSets[idx]->destroy();
+    }
 
     if (this->_skyboxTextureView != nullptr) {
         this->_skyboxTextureView->destroy();
@@ -199,8 +207,8 @@ void SceneRenderpass::initScenePipeline() {
 }
 
 void SceneRenderpass::destroyScenePipeline() {
-    for (const auto &item: this->_imageViews) {
-        item.second->destroy();
+    for (const auto &[image, imageView]: this->_imageViews) {
+        imageView->destroy();
     }
 
     this->_imageViews.clear();
@@ -231,12 +239,12 @@ void SceneRenderpass::initCompositionPipeline() {
 
     this->_compositionSceneData = reinterpret_cast<SceneData *>(this->_compositionSceneDataBuffer->map());
 
-    this->_compositionSceneDataDescriptorSet = DescriptorSetObject::create(this->_renderingDevice.get(),
-                                                                           MAX_INFLIGHT_FRAMES,
-                                                                           this->_descriptorPool,
-                                                                           this->_compositionSceneDataDescriptorSetLayout);
+    for (uint32_t idx = 0; idx < MAX_INFLIGHT_FRAMES; ++idx) {
+        this->_compositionSceneDataDescriptorSets[idx] = DescriptorSetObject::create(
+                this->_renderingDevice,
+                this->_descriptorPool,
+                this->_compositionSceneDataDescriptorSetLayout);
 
-    for (uint32_t frameIdx = 0; frameIdx < MAX_INFLIGHT_FRAMES; frameIdx++) {
         VkDescriptorBufferInfo bufferInfo = {
                 .buffer = this->_compositionSceneDataBuffer->getHandle(),
                 .offset = 0,
@@ -244,10 +252,10 @@ void SceneRenderpass::initCompositionPipeline() {
         };
 
         std::vector<VkDescriptorImageInfo> imageInfo(MAX_NUM_LIGHTS);
-        for (uint32_t idx = 0; idx < MAX_NUM_LIGHTS; idx++) {
-            imageInfo[idx] = {
+        for (uint32_t lightIdx = 0; lightIdx < MAX_NUM_LIGHTS; lightIdx++) {
+            imageInfo[lightIdx] = {
                     .sampler = this->_textureSampler,
-                    .imageView = this->_shadowRenderpasses[0]->getResultImageView(idx)->getHandle(),
+                    .imageView = this->_shadowRenderpasses[0]->getResultImageView(lightIdx)->getHandle(),
                     .imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL
             };
         }
@@ -256,7 +264,7 @@ void SceneRenderpass::initCompositionPipeline() {
                 VkWriteDescriptorSet{
                         .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                         .pNext = nullptr,
-                        .dstSet = this->_compositionSceneDataDescriptorSet->getDescriptorSet(frameIdx),
+                        .dstSet = this->_compositionSceneDataDescriptorSets[idx]->getHandle(),
                         .dstBinding = 0,
                         .dstArrayElement = 0,
                         .descriptorCount = 1,
@@ -268,7 +276,7 @@ void SceneRenderpass::initCompositionPipeline() {
                 VkWriteDescriptorSet{
                         .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                         .pNext = nullptr,
-                        .dstSet = this->_compositionSceneDataDescriptorSet->getDescriptorSet(frameIdx),
+                        .dstSet = this->_compositionSceneDataDescriptorSets[idx]->getHandle(),
                         .dstBinding = 1,
                         .dstArrayElement = 0,
                         .descriptorCount = static_cast<uint32_t>(imageInfo.size()),
@@ -279,7 +287,7 @@ void SceneRenderpass::initCompositionPipeline() {
                 }
         };
 
-        this->_renderingDevice.get()->updateDescriptorSets(writes);
+        vkUpdateDescriptorSets(this->_renderingDevice->getHandle(), writes.size(), writes.data(), 0, nullptr);
     }
 
     this->_compositionPipelineLayout = PipelineLayoutBuilder(this->_renderingDevice.get())
@@ -308,7 +316,11 @@ void SceneRenderpass::destroyCompositionPipeline() {
     this->_renderingDevice.get()->destroyPipelineLayout(this->_compositionPipelineLayout);
     this->_renderingDevice.get()->destroyDescriptorSetLayout(this->_compositionSceneDataDescriptorSetLayout);
     this->_renderingDevice.get()->destroyDescriptorSetLayout(this->_compositionGBufferDescriptorSetLayout);
-    delete this->_compositionSceneDataDescriptorSet;
+
+    for (std::shared_ptr<DescriptorSetObject> &descriptorSet: this->_compositionSceneDataDescriptorSets) {
+        descriptorSet->destroy();
+    }
+
     this->_compositionSceneDataBuffer->destroy();
 }
 
@@ -337,7 +349,7 @@ SceneRenderpass::SceneRenderpass(const std::shared_ptr<RenderingDevice> &renderi
                 .withLayers(0, 6)
                 .build();
 
-        updateDescriptorSetWithImage(this->_skyboxDescriptorSet, this->_skyboxTextureView, 0);
+        updateDescriptorSetWithImage(this->_skyboxDescriptorSets, this->_skyboxTextureView, 0);
     });
 }
 
@@ -448,7 +460,7 @@ void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D ren
         vkCmdPushConstants(commandBuffer, this->_skyboxPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
                            sizeof(MeshConstants), &constants);
 
-        VkDescriptorSet descriptorSet = this->_skyboxDescriptorSet->getDescriptorSet(frameIdx);
+        VkDescriptorSet descriptorSet = this->_skyboxDescriptorSets[frameIdx]->getHandle();
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->_skyboxPipelineLayout,
                                 0, 1, &descriptorSet, 0, nullptr);
 
@@ -492,7 +504,7 @@ void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D ren
             vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer, &offset);
             vkCmdBindIndexBuffer(commandBuffer, object->mesh()->indexBuffer()->getHandle(), 0, VK_INDEX_TYPE_UINT32);
 
-            VkDescriptorSet descriptor = getRenderData(object)->descriptorSet->getDescriptorSet(frameIdx);
+            VkDescriptorSet descriptor = getRenderData(object)->descriptorSets[frameIdx]->getHandle();
             vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->_scenePipelineLayout,
                                     0, 1, &descriptor, 0, nullptr);
 
@@ -506,11 +518,11 @@ void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D ren
     {
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->_compositionPipeline);
 
-        VkDescriptorSet gBufferDescriptor = this->_compositionGBufferDescriptorSet->getDescriptorSet(frameIdx);
+        VkDescriptorSet gBufferDescriptor = this->_compositionGBufferDescriptorSets[frameIdx]->getHandle();
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->_compositionPipelineLayout,
                                 0, 1, &gBufferDescriptor, 0, nullptr);
 
-        VkDescriptorSet sceneDataDescriptor = this->_compositionSceneDataDescriptorSet->getDescriptorSet(frameIdx);
+        VkDescriptorSet sceneDataDescriptor = this->_compositionSceneDataDescriptorSets[frameIdx]->getHandle();
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->_compositionPipelineLayout,
                                 1, 1, &sceneDataDescriptor, 0, nullptr);
 
@@ -762,11 +774,6 @@ void SceneRenderpass::createFramebuffers() {
             .withAspectFlags(VK_IMAGE_ASPECT_COLOR_BIT)
             .build();
 
-    this->_compositionGBufferDescriptorSet = DescriptorSetObject::create(this->_renderingDevice.get(),
-                                                                         MAX_INFLIGHT_FRAMES,
-                                                                         this->_descriptorPool,
-                                                                         this->_compositionGBufferDescriptorSetLayout);
-
     std::array<VkImageView, 5> compositionImages = {
             this->_skyboxImageView->getHandle(),
             this->_albedoImageView->getHandle(),
@@ -776,6 +783,9 @@ void SceneRenderpass::createFramebuffers() {
     };
 
     for (uint32_t frameIdx = 0; frameIdx < MAX_INFLIGHT_FRAMES; frameIdx++) {
+        this->_compositionGBufferDescriptorSets[frameIdx] = DescriptorSetObject::create(
+                this->_renderingDevice, this->_descriptorPool, this->_compositionGBufferDescriptorSetLayout);
+
         for (uint32_t imageIdx = 0; imageIdx < compositionImages.size(); imageIdx++) {
             VkDescriptorImageInfo imageInfo = {
                     .sampler = VK_NULL_HANDLE,
@@ -787,7 +797,7 @@ void SceneRenderpass::createFramebuffers() {
                     VkWriteDescriptorSet{
                             .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                             .pNext = nullptr,
-                            .dstSet = this->_compositionGBufferDescriptorSet->getDescriptorSet(frameIdx),
+                            .dstSet = this->_compositionGBufferDescriptorSets[frameIdx]->getHandle(),
                             .dstBinding = imageIdx,
                             .dstArrayElement = 0,
                             .descriptorCount = 1,
@@ -798,7 +808,7 @@ void SceneRenderpass::createFramebuffers() {
                     }
             };
 
-            this->_renderingDevice->updateDescriptorSets(writes);
+            vkUpdateDescriptorSets(this->_renderingDevice->getHandle(), writes.size(), writes.data(), 0, nullptr);
         }
     }
 
@@ -824,7 +834,9 @@ void SceneRenderpass::createFramebuffers() {
 void SceneRenderpass::destroyFramebuffers() {
     RenderpassBase::destroyFramebuffers();
 
-    delete this->_compositionGBufferDescriptorSet;
+    for (uint32_t idx = 0; idx < MAX_INFLIGHT_FRAMES; ++idx) {
+        this->_compositionGBufferDescriptorSets[idx]->destroy();
+    }
 
     this->_compositionImageView->destroy();
     this->_compositionImage->destroy();
