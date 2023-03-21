@@ -20,28 +20,28 @@ class ResourceManager {
 private:
     std::shared_ptr<RendererAllocator> _rendererAllocator;
 
-    std::map<std::string, Resource *> _resources;
+    std::map<std::string, std::shared_ptr<Resource>> _resources;
 
-    Resource *getResource(const std::string &id, ResourceType type);
+    std::shared_ptr<Resource> getResource(const std::string &id, ResourceType type);
 
 public:
     ResourceManager(const std::shared_ptr<RendererAllocator> &rendererAllocator);
-    ~ResourceManager();
 
     void addDataDir(const std::filesystem::path &path);
 
-    [[nodiscard]] std::optional<std::string> getIdOf(Resource *resource) const;
-
-    [[nodiscard]] MeshResource *loadMesh(const std::string &id);
-    [[nodiscard]] ImageResource *loadImage(const std::string &id);
-    [[nodiscard]] CubeImageResource *loadCubeImage(const std::string &id);
-    [[nodiscard]] ShaderResource *loadShader(const std::string &id);
-
-    [[nodiscard]] ImageResource *loadDefaultImage();
-
     void unloadAll();
+    void removeAll();
 
-    const std::map<std::string, Resource *> &resources() const { return this->_resources; }
+    [[nodiscard]] std::optional<std::string> getIdOf(const std::shared_ptr<Resource> &resource) const;
+
+    [[nodiscard]] std::shared_ptr<MeshResource> loadMesh(const std::string &id);
+    [[nodiscard]] std::shared_ptr<ImageResource> loadImage(const std::string &id);
+    [[nodiscard]] std::shared_ptr<CubeImageResource> loadCubeImage(const std::string &id);
+    [[nodiscard]] std::shared_ptr<ShaderResource> loadShader(const std::string &id);
+
+    [[nodiscard]] std::shared_ptr<ImageResource> loadDefaultImage();
+
+    const std::map<std::string, std::shared_ptr<Resource>> &resources() const { return this->_resources; }
 };
 
 #endif // RESOURCES_RESOURCEMANAGER_HPP

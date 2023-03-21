@@ -26,7 +26,7 @@ Engine::Engine()
           _eventQueue(std::make_shared<EventQueue>()),
           _inputProcessor(std::make_shared<InputProcessor>(this->_eventQueue)),
           _window(std::make_shared<Window>(this->_engineVars, this->_eventQueue)),
-          _renderer(new Renderer(this)),
+          _renderer(std::make_shared<Renderer>(this)),
           _resourceManager(nullptr),
           _sceneManager(new SceneManager(this->_eventQueue.get())) {
     //
@@ -52,7 +52,7 @@ void Engine::init() {
 
     this->_renderer->init();
 
-    this->_resourceManager = new ResourceManager(this->_renderer->rendererAllocator());
+    this->_resourceManager = std::make_shared<ResourceManager>(this->_renderer->rendererAllocator());
     this->_resourceManager->addDataDir("data");
 
     this->_renderer->initRenderpasses();
@@ -129,17 +129,17 @@ void Engine::init() {
         }
     });
 
-    MeshResource *cubeMesh = this->_resourceManager->loadMesh("cube");
-    MeshResource *skyboxMesh = this->_resourceManager->loadMesh("skybox");
-    MeshResource *suzanneMesh = this->_resourceManager->loadMesh("suzanne");
-    MeshResource *vikingRoomMesh = this->_resourceManager->loadMesh("viking_room");
+    std::shared_ptr<MeshResource> cubeMesh = this->_resourceManager->loadMesh("cube");
+    std::shared_ptr<MeshResource> skyboxMesh = this->_resourceManager->loadMesh("skybox");
+    std::shared_ptr<MeshResource> suzanneMesh = this->_resourceManager->loadMesh("suzanne");
+    std::shared_ptr<MeshResource> vikingRoomMesh = this->_resourceManager->loadMesh("viking_room");
 
-    ImageResource *defaultTexture = this->_resourceManager->loadDefaultImage();
-    ImageResource *concreteTexture = this->_resourceManager->loadImage("concrete");
-    ImageResource *cubeTexture = this->_resourceManager->loadImage("cube_texture");
-    ImageResource *cubeSpecularTexture = this->_resourceManager->loadImage("cube_texture_specular");
-    ImageResource *vikingRoomTexture = this->_resourceManager->loadImage("viking_room_texture");
-    CubeImageResource *skyboxTexture = this->_resourceManager->loadCubeImage("skybox_texture");
+    std::shared_ptr<ImageResource> defaultTexture = this->_resourceManager->loadDefaultImage();
+    std::shared_ptr<ImageResource> concreteTexture = this->_resourceManager->loadImage("concrete");
+    std::shared_ptr<ImageResource> cubeTexture = this->_resourceManager->loadImage("cube_texture");
+    std::shared_ptr<ImageResource> cubeSpecularTexture = this->_resourceManager->loadImage("cube_texture_specular");
+    std::shared_ptr<ImageResource> vikingRoomTexture = this->_resourceManager->loadImage("viking_room_texture");
+    std::shared_ptr<CubeImageResource> skyboxTexture = this->_resourceManager->loadCubeImage("skybox_texture");
 
     Scene *scene = new Scene(this, new Skybox(skyboxMesh, skyboxTexture));
 
@@ -252,7 +252,7 @@ void Engine::init() {
 void Engine::cleanup() {
     this->_renderer->wait();
 
-    this->_resourceManager->unloadAll();
+    this->_resourceManager->removeAll();
     this->_renderer->cleanup();
 
     ImGui::DestroyContext();
@@ -263,7 +263,6 @@ void Engine::cleanup() {
 
     delete this->_debugUI;
     delete this->_sceneManager;
-    delete this->_resourceManager;
 }
 
 void Engine::run() {

@@ -189,7 +189,7 @@ void DebugUI::drawRendererShaderEditor() {
                         this->_selectedShaderResource->unloadCode();
                     }
 
-                    this->_selectedShaderResource = dynamic_cast<ShaderResource *>(resource);
+                    this->_selectedShaderResource = std::dynamic_pointer_cast<ShaderResource>(resource);
 
                     try {
                         this->_selectedShaderResource->loadCode();
@@ -263,8 +263,8 @@ void DebugUI::drawSceneObjectsWindow() {
         }
 
         if (ImGui::Button("Add object")) {
-            MeshResource *cubeMesh = this->_engine->resourceManager()->loadMesh("cube");
-            ImageResource *defaultImage = this->_engine->resourceManager()->loadDefaultImage();
+            std::shared_ptr<MeshResource> cubeMesh = this->_engine->resourceManager()->loadMesh("cube");
+            std::shared_ptr<ImageResource> defaultImage = this->_engine->resourceManager()->loadDefaultImage();
 
             Object *object = new Object();
             object->mesh() = cubeMesh;
@@ -344,7 +344,7 @@ void DebugUI::drawSceneObjectsWindow() {
                     const bool selected = this->_selectedObject->mesh() == resource;
 
                     if (ImGui::Selectable(id.c_str(), selected)) {
-                        this->_selectedObject->mesh() = dynamic_cast<MeshResource *>(resource);
+                        this->_selectedObject->mesh() = std::dynamic_pointer_cast<MeshResource>(resource);
                         this->_selectedObjectMeshName = id;
                     }
 
@@ -379,7 +379,7 @@ void DebugUI::drawSceneObjectsWindow() {
                     const bool selected = this->_selectedObject->albedoTexture() == resource;
 
                     if (ImGui::Selectable(id.c_str(), selected)) {
-                        this->_selectedObject->albedoTexture() = dynamic_cast<ImageResource *>(resource);
+                        this->_selectedObject->albedoTexture() = std::dynamic_pointer_cast<ImageResource>(resource);
                         this->_selectedObjectAlbedoTextureName = id;
                     }
 
@@ -414,7 +414,7 @@ void DebugUI::drawSceneObjectsWindow() {
                     const bool selected = this->_selectedObject->specTexture() == resource;
 
                     if (ImGui::Selectable(id.c_str(), selected)) {
-                        this->_selectedObject->specTexture() = dynamic_cast<ImageResource *>(resource);
+                        this->_selectedObject->specTexture() = std::dynamic_pointer_cast<ImageResource>(resource);
                         this->_selectedObjectSpecularTextureName = id;
                     }
 

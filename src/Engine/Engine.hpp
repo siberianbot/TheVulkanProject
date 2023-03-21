@@ -26,9 +26,9 @@ private:
     std::shared_ptr<EventQueue> _eventQueue;
     std::shared_ptr<InputProcessor> _inputProcessor;
     std::shared_ptr<Window> _window;
+    std::shared_ptr<Renderer> _renderer;
+    std::shared_ptr<ResourceManager> _resourceManager;
 
-    Renderer *_renderer;
-    ResourceManager *_resourceManager;
     SceneManager *_sceneManager;
     DebugUI *_debugUI;
 
@@ -54,9 +54,9 @@ public:
     [[nodiscard]] std::shared_ptr<EventQueue> eventQueue() const { return this->_eventQueue; }
     [[nodiscard]] std::shared_ptr<InputProcessor> inputProcessor() const { return this->_inputProcessor; }
     [[nodiscard]] std::shared_ptr<Window> window() const { return this->_window; }
+    [[nodiscard]] std::shared_ptr<Renderer> renderer() { return this->_renderer; }
+    [[nodiscard]] std::shared_ptr<ResourceManager> resourceManager() { return this->_resourceManager; }
 
-    [[nodiscard]] Renderer *renderer() { return this->_renderer; }
-    [[nodiscard]] ResourceManager *resourceManager() { return this->_resourceManager; }
     [[nodiscard]] SceneManager *sceneManager() { return this->_sceneManager; }
 
     [[nodiscard]] float delta() { return this->_delta; }

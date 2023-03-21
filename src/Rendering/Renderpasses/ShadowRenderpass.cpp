@@ -167,8 +167,8 @@ void ShadowRenderpass::initRenderpass() {
             .withPushConstant(VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshConstants))
             .build();
 
-    ShaderResource *vertexShader = this->_engine->resourceManager()->loadShader("shadow_vert");
-    ShaderResource *fragmentShader = this->_engine->resourceManager()->loadShader("shadow_frag");
+    std::shared_ptr<ShaderResource> vertexShader = this->_engine->resourceManager()->loadShader("shadow_vert");
+    std::shared_ptr<ShaderResource> fragmentShader = this->_engine->resourceManager()->loadShader("shadow_frag");
 
     this->_pipeline = PipelineBuilder(this->_renderingDevice.get(), this->_renderpass, this->_pipelineLayout)
             .addVertexShader(vertexShader->shader())

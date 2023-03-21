@@ -127,8 +127,8 @@ void SwapchainPresentRenderpass::initRenderpass() {
             .withDescriptorSetLayout(this->_descriptorSetLayout)
             .build();
 
-    ShaderResource *vertexShader = this->_engine->resourceManager()->loadShader("composition_vert");
-    ShaderResource *fragmentShader = this->_engine->resourceManager()->loadShader("composition_frag");
+    std::shared_ptr<ShaderResource> vertexShader = this->_engine->resourceManager()->loadShader("composition_vert");
+    std::shared_ptr<ShaderResource> fragmentShader = this->_engine->resourceManager()->loadShader("composition_frag");
 
     this->_pipeline = PipelineBuilder(this->_renderingDevice.get(), this->_renderpass, this->_pipelineLayout)
             .addVertexShader(vertexShader->shader())

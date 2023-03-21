@@ -128,8 +128,8 @@ void SceneRenderpass::initSkyboxPipeline() {
             .withPushConstant(VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshConstants))
             .build();
 
-    ShaderResource *vertexShader = this->_engine->resourceManager()->loadShader("default_vert");
-    ShaderResource *fragmentShader = this->_engine->resourceManager()->loadShader("skybox_frag");
+    std::shared_ptr<ShaderResource> vertexShader = this->_engine->resourceManager()->loadShader("default_vert");
+    std::shared_ptr<ShaderResource> fragmentShader = this->_engine->resourceManager()->loadShader("skybox_frag");
 
     this->_skyboxPipeline = PipelineBuilder(this->_renderingDevice.get(), this->_renderpass,
                                             this->_skyboxPipelineLayout)
@@ -186,8 +186,8 @@ void SceneRenderpass::initScenePipeline() {
             .withPushConstant(VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshConstants))
             .build();
 
-    ShaderResource *vertexShader = this->_engine->resourceManager()->loadShader("default_vert");
-    ShaderResource *fragmentShader = this->_engine->resourceManager()->loadShader("default_frag");
+    std::shared_ptr<ShaderResource> vertexShader = this->_engine->resourceManager()->loadShader("default_vert");
+    std::shared_ptr<ShaderResource> fragmentShader = this->_engine->resourceManager()->loadShader("default_frag");
 
     this->_scenePipeline = PipelineBuilder(this->_renderingDevice.get(), this->_renderpass, this->_scenePipelineLayout)
             .addVertexShader(vertexShader->shader())
@@ -295,8 +295,9 @@ void SceneRenderpass::initCompositionPipeline() {
             .withDescriptorSetLayout(this->_compositionSceneDataDescriptorSetLayout)
             .build();
 
-    ShaderResource *vertexShader = this->_engine->resourceManager()->loadShader("composition_vert");
-    ShaderResource *fragmentShader = this->_engine->resourceManager()->loadShader("scene_composition_frag");
+    std::shared_ptr<ShaderResource> vertexShader = this->_engine->resourceManager()->loadShader("composition_vert");
+    std::shared_ptr<ShaderResource> fragmentShader = this->_engine->resourceManager()->loadShader(
+            "scene_composition_frag");
 
     this->_compositionPipeline = PipelineBuilder(this->_renderingDevice.get(), this->_renderpass,
                                                  this->_compositionPipelineLayout)

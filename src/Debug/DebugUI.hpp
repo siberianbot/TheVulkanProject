@@ -1,6 +1,7 @@
 #ifndef DEBUG_DEBUGUI_HPP
 #define DEBUG_DEBUGUI_HPP
 
+#include <memory>
 #include <optional>
 #include <string>
 #include <vector>
@@ -24,7 +25,7 @@ private:
             "Rectangle"
     };
 
-    ShaderResource *_selectedShaderResource = nullptr;
+    std::shared_ptr<ShaderResource> _selectedShaderResource = nullptr;
     std::string _selectedShaderName = NONE_ITEM;
     std::string _selectedShaderCode;
     std::string _selectedShaderStatus;
