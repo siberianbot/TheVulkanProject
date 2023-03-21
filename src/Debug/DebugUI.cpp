@@ -270,12 +270,9 @@ void DebugUI::drawSceneObjectsWindow() {
             object->mesh() = cubeMesh;
             object->albedoTexture() = defaultImage;
 
-            this->_selectedObjectMeshName = this->_engine->resourceManager()->getIdOf(
-                    this->_selectedObject->mesh()).value_or(NONE_ITEM);
-            this->_selectedObjectAlbedoTextureName = this->_engine->resourceManager()->getIdOf(
-                    this->_selectedObject->albedoTexture()).value_or(NONE_ITEM);
-            this->_selectedObjectSpecularTextureName = this->_engine->resourceManager()->getIdOf(
-                    this->_selectedObject->specTexture()).value_or(NONE_ITEM);
+            this->_selectedObjectMeshName = this->_selectedObject->mesh()->id();
+            this->_selectedObjectAlbedoTextureName = this->_selectedObject->albedoTexture()->id();
+            this->_selectedObjectSpecularTextureName = this->_selectedObject->specTexture()->id();
 
             currentScene->addObject(object);
 
@@ -297,12 +294,9 @@ void DebugUI::drawSceneObjectsWindow() {
                 if (ImGui::Selectable(name.c_str(), isSelected)) {
                     this->_selectedObject = object;
 
-                    this->_selectedObjectMeshName = this->_engine->resourceManager()->getIdOf(
-                            this->_selectedObject->mesh()).value_or(NONE_ITEM);
-                    this->_selectedObjectAlbedoTextureName = this->_engine->resourceManager()->getIdOf(
-                            this->_selectedObject->albedoTexture()).value_or(NONE_ITEM);
-                    this->_selectedObjectSpecularTextureName = this->_engine->resourceManager()->getIdOf(
-                            this->_selectedObject->specTexture()).value_or(NONE_ITEM);
+                    this->_selectedObjectMeshName = this->_selectedObject->mesh()->id();
+                    this->_selectedObjectAlbedoTextureName = this->_selectedObject->albedoTexture()->id();
+                    this->_selectedObjectSpecularTextureName = this->_selectedObject->specTexture()->id();
                 }
 
                 if (isSelected) {

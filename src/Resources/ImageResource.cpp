@@ -15,8 +15,8 @@ std::shared_ptr<ImageObject> ImageResource::loadImage() {
     return image;
 }
 
-ImageResource::ImageResource(const std::filesystem::path &path,
+ImageResource::ImageResource(const std::string &id, const std::filesystem::path &path,
                              const std::shared_ptr<RendererAllocator> &rendererAllocator)
-        : ImageBaseResource({path}, rendererAllocator) {
+        : ImageBaseResource(id, {path}, rendererAllocator) {
     //
 }

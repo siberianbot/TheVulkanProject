@@ -59,9 +59,9 @@ std::tuple<std::vector<uint32_t>, std::vector<Vertex>> MeshResource::loadData() 
     return std::make_tuple(indices, vertices);
 }
 
-MeshResource::MeshResource(const std::filesystem::path &path,
+MeshResource::MeshResource(const std::string &id, const std::filesystem::path &path,
                            const std::shared_ptr<RendererAllocator> &rendererAllocator)
-        : Resource({path}),
+        : Resource(id, {path}),
           _rendererAllocator(rendererAllocator) {
     //
 }

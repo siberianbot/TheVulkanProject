@@ -21,7 +21,8 @@ private:
     std::tuple<std::vector<uint32_t>, std::vector<Vertex>> loadData();
 
 public:
-    MeshResource(const std::filesystem::path &path, const std::shared_ptr<RendererAllocator> &rendererAllocator);
+    MeshResource(const std::string &id, const std::filesystem::path &path,
+                 const std::shared_ptr<RendererAllocator> &rendererAllocator);
     ~MeshResource() override = default;
 
     void load() override;

@@ -10,7 +10,7 @@ private:
     std::shared_ptr<ImageObject> loadImage() override;
 
 public:
-    CubeImageResource(const std::array<std::filesystem::path, 6> &paths,
+    CubeImageResource(const std::string &id, const std::array<std::filesystem::path, 6> &paths,
                       const std::shared_ptr<RendererAllocator> &rendererAllocator);
     ~CubeImageResource() override = default;
 

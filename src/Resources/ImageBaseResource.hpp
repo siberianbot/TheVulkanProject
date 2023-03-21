@@ -21,7 +21,7 @@ protected:
 
     std::shared_ptr<ImageObject> _image;
 
-    ImageBaseResource(const std::vector<std::filesystem::path> &paths,
+    ImageBaseResource(const std::string &id, const std::vector<std::filesystem::path> &paths,
                       const std::shared_ptr<RendererAllocator> &rendererAllocator);
 
     ImageData loadImageData(const std::filesystem::path &path);

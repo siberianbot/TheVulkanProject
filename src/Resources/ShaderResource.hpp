@@ -19,7 +19,8 @@ private:
     void writeContent(const std::filesystem::path &path, const std::string &content);
 
 public:
-    ShaderResource(const std::filesystem::path &binPath, const std::filesystem::path &codePath,
+    ShaderResource(const std::string &id,
+                   const std::filesystem::path &binPath, const std::filesystem::path &codePath,
                    const std::shared_ptr<RendererAllocator> &rendererAllocator);
     ~ShaderResource() override = default;
 

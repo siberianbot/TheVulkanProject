@@ -22,7 +22,7 @@ private:
 
     std::map<std::string, std::shared_ptr<Resource>> _resources;
 
-    std::shared_ptr<Resource> getResource(const std::string &id, ResourceType type);
+    std::shared_ptr<Resource> getResource(const std::string &name, ResourceType type);
 
 public:
     ResourceManager(const std::shared_ptr<RendererAllocator> &rendererAllocator);
@@ -31,8 +31,6 @@ public:
 
     void unloadAll();
     void removeAll();
-
-    [[nodiscard]] std::optional<std::string> getIdOf(const std::shared_ptr<Resource> &resource) const;
 
     [[nodiscard]] std::shared_ptr<MeshResource> loadMesh(const std::string &id);
     [[nodiscard]] std::shared_ptr<ImageResource> loadImage(const std::string &id);

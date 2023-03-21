@@ -12,12 +12,12 @@
 static constexpr const char *DATA_DIR_MANIFEST_NAME = "resources.json";
 static constexpr const char *DEFAULT_IMAGE_NAME = "default_texture";
 
-std::shared_ptr<Resource> ResourceManager::getResource(const std::string &id, ResourceType type) {
-    if (!this->_resources.contains(id)) {
+std::shared_ptr<Resource> ResourceManager::getResource(const std::string &name, ResourceType type) {
+    if (!this->_resources.contains(name)) {
         throw std::runtime_error("Resource not found");
     }
 
-    std::shared_ptr<Resource> resource = this->_resources[id];
+    std::shared_ptr<Resource> resource = this->_resources[name];
 
     if (resource->type() != type) {
         throw std::runtime_error("Invalid resource type");
@@ -47,12 +47,12 @@ void ResourceManager::addDataDir(const std::filesystem::path &path) {
 
         switch (type) {
             case MESH_RESOURCE: {
-                resource = std::make_shared<MeshResource>(path / entry["path"], this->_rendererAllocator);
+                resource = std::make_shared<MeshResource>(id, path / entry["path"], this->_rendererAllocator);
                 break;
             }
 
             case IMAGE_RESOURCE: {
-                resource = std::make_shared<ImageResource>(path / entry["path"], this->_rendererAllocator);
+                resource = std::make_shared<ImageResource>(id, path / entry["path"], this->_rendererAllocator);
                 break;
             }
 
@@ -69,12 +69,13 @@ void ResourceManager::addDataDir(const std::filesystem::path &path) {
                     paths[idx] = path / pathsJson[idx];
                 }
 
-                resource = std::make_shared<CubeImageResource>(paths, this->_rendererAllocator);
+                resource = std::make_shared<CubeImageResource>(id, paths, this->_rendererAllocator);
                 break;
             }
 
             case SHADER_RESOURCE: {
-                resource = std::make_shared<ShaderResource>(path / entry["bin-path"], path / entry["code-path"],
+                resource = std::make_shared<ShaderResource>(id,
+                                                            path / entry["bin-path"], path / entry["code-path"],
                                                             this->_rendererAllocator);
                 break;
             }
@@ -96,21 +97,6 @@ void ResourceManager::unloadAll() {
 void ResourceManager::removeAll() {
     this->unloadAll();
     this->_resources.clear();
-}
-
-std::optional<std::string> ResourceManager::getIdOf(const std::shared_ptr<Resource> &resource) const {
-    if (resource == nullptr) {
-        return std::nullopt;
-    }
-
-    auto it = std::find_if(this->_resources.begin(), this->_resources.end(),
-                           [&](const auto &pair) {
-                               return pair.second == resource;
-                           });
-
-    return it != this->_resources.end()
-           ? std::make_optional(it->first)
-           : std::nullopt;
 }
 
 std::shared_ptr<MeshResource> ResourceManager::loadMesh(const std::string &id) {

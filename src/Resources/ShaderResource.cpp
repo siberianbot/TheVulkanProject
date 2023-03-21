@@ -36,9 +36,10 @@ void ShaderResource::writeContent(const std::filesystem::path &path, const std::
     file.close();
 }
 
-ShaderResource::ShaderResource(const std::filesystem::path &binPath, const std::filesystem::path &codePath,
+ShaderResource::ShaderResource(const std::string &id,
+                               const std::filesystem::path &binPath, const std::filesystem::path &codePath,
                                const std::shared_ptr<RendererAllocator> &rendererAllocator)
-        : Resource({binPath, codePath}),
+        : Resource(id, {binPath, codePath}),
           _rendererAllocator(rendererAllocator) {
     //
 }

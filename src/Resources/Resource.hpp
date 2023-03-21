@@ -2,16 +2,19 @@
 #define RESOURCES_RESOURCE_HPP
 
 #include <filesystem>
+#include <string>
 #include <vector>
 
 #include "src/Types/ResourceType.hpp"
 
 class Resource {
 protected:
-    bool _isLoaded = false;
+    std::string _id;
     std::vector<std::filesystem::path> _paths;
 
-    Resource(const std::vector<std::filesystem::path> &paths);
+    bool _isLoaded = false;
+
+    Resource(const std::string &id, const std::vector<std::filesystem::path> &paths);
 
 public:
     virtual ~Resource() = default;
@@ -21,8 +24,10 @@ public:
 
     [[nodiscard]] virtual ResourceType type() const = 0;
 
-    [[nodiscard]] bool isLoaded() const { return this->_isLoaded; }
+    [[nodiscard]] const std::string &id() const { return this->_id; }
     [[nodiscard]] const std::vector<std::filesystem::path> &paths() const { return this->_paths; }
+
+    [[nodiscard]] bool isLoaded() const { return this->_isLoaded; }
 };
 
 #endif // RESOURCES_RESOURCE_HPP

@@ -28,8 +28,8 @@ std::shared_ptr<ImageObject> CubeImageResource::loadImage() {
     return image;
 }
 
-CubeImageResource::CubeImageResource(const std::array<std::filesystem::path, 6> &paths,
+CubeImageResource::CubeImageResource(const std::string &id, const std::array<std::filesystem::path, 6> &paths,
                                      const std::shared_ptr<RendererAllocator> &rendererAllocator)
-        : ImageBaseResource(std::vector(paths.begin(), paths.end()), rendererAllocator) {
+        : ImageBaseResource(id, std::vector(paths.begin(), paths.end()), rendererAllocator) {
     //
 }

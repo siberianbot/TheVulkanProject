@@ -7,9 +7,9 @@
 
 #include "src/Rendering/Objects/ImageObject.hpp"
 
-ImageBaseResource::ImageBaseResource(const std::vector<std::filesystem::path> &paths,
+ImageBaseResource::ImageBaseResource(const std::string &id, const std::vector<std::filesystem::path> &paths,
                                      const std::shared_ptr<RendererAllocator> &rendererAllocator)
-        : Resource(paths),
+        : Resource(id, paths),
           _rendererAllocator(rendererAllocator) {
     //
 }

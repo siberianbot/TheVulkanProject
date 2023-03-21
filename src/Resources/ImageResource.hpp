@@ -8,7 +8,7 @@ private:
     std::shared_ptr<ImageObject> loadImage() override;
 
 public:
-    ImageResource(const std::filesystem::path &path,
+    ImageResource(const std::string &id, const std::filesystem::path &path,
                   const std::shared_ptr<RendererAllocator> &rendererAllocator);
     ~ImageResource() override = default;
 

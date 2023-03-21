@@ -1,7 +1,8 @@
 #include "Resource.hpp"
 
-Resource::Resource(const std::vector<std::filesystem::path> &paths)
-        : _paths(paths) {
+Resource::Resource(const std::string &id, const std::vector<std::filesystem::path> &paths)
+        : _id(id),
+          _paths(paths) {
     //
 }
 
