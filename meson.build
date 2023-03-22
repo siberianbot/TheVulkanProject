@@ -23,6 +23,7 @@ src = [
     'src/Engine/InputProcessor.cpp',
 
     # Events
+    'src/Events/Event.cpp',
     'src/Events/EventQueue.cpp',
 
     # Rendering
@@ -59,7 +60,7 @@ src = [
 
     'src/Rendering/Renderpasses/RenderpassBase.cpp',
     'src/Rendering/Renderpasses/ImguiRenderpass.cpp',
-    'src/Rendering/Renderpasses/SceneRenderpass.cpp',
+    # TODO: 'src/Rendering/Renderpasses/SceneRenderpass.cpp',
     'src/Rendering/Renderpasses/ShadowRenderpass.cpp',
     'src/Rendering/Renderpasses/SwapchainPresentRenderpass.cpp',
 
@@ -73,20 +74,26 @@ src = [
     'src/Resources/ShaderResource.cpp',
 
     # Objects
-    'src/Objects/Camera.cpp',
-    'src/Objects/Light.cpp',
     'src/Objects/Object.cpp',
-    'src/Objects/Skybox.cpp',
-    'src/Objects/Data/RenderingData.cpp',
+    'src/Objects/Camera.cpp',
+    'src/Objects/LightSource.cpp',
+    'src/Objects/Prop.cpp',
+    'src/Objects/World.cpp',
+    'src/Objects/Components/PositionComponent.cpp',
+    'src/Objects/Components/ModelComponent.cpp',
+    'src/Objects/Components/SkyboxComponent.cpp',
 
     # Scene
     'src/Scene/Scene.cpp',
+    'src/Scene/SceneNode.cpp',
+    'src/Scene/SceneIterator.cpp',
     'src/Scene/SceneManager.cpp',
 
     # Debug
     'src/Debug/DebugUI.cpp',
 
     # Types
+    'src/Types/LightSourceType.cpp',
     'src/Types/ResourceType.cpp',
 
     # System

@@ -6,35 +6,38 @@ InputProcessor::InputProcessor(const std::shared_ptr<EventQueue> &eventQueue)
         : _eventQueue(eventQueue) {
     this->_eventQueue->addHandler([this](const Event &event) {
         switch (event.type) {
-            case KEYBOARD_PRESS_INPUT_EVENT:
-                for (InputHandler &handler: this->_keyboardPressHandlers[event.input.keyboardKey]) {
+            case KEYBOARD_PRESS_INPUT_EVENT: {
+                for (InputHandler &handler: this->_keyboardPressHandlers[event.input().keyboardKey]) {
                     handler();
                 }
+            }
                 break;
 
             case KEYBOARD_RELEASE_INPUT_EVENT:
-                for (InputHandler &handler: this->_keyboardReleaseHandlers[event.input.keyboardKey]) {
+                for (InputHandler &handler: this->_keyboardReleaseHandlers[event.input().keyboardKey]) {
                     handler();
                 }
                 break;
 
             case MOUSE_PRESS_INPUT_EVENT:
-                for (InputHandler &handler: this->_mousePressHandlers[event.input.mouseButton]) {
+                for (InputHandler &handler: this->_mousePressHandlers[event.input().mouseButton]) {
                     handler();
                 }
                 break;
 
             case MOUSE_RELEASE_INPUT_EVENT:
-                for (InputHandler &handler: this->_mouseReleaseHandlers[event.input.mouseButton]) {
+                for (InputHandler &handler: this->_mouseReleaseHandlers[event.input().mouseButton]) {
                     handler();
                 }
                 break;
 
-            case CURSOR_MOVE_INPUT_EVENT:
+            case CURSOR_MOVE_INPUT_EVENT: {
+                InputData input = event.input();
                 for (CursorMoveHandler &handler: this->_cursorMoveHandlers) {
-                    handler(event.input.cursorHorizontal, event.input.cursorVertical);
+                    handler(input.cursorHorizontal, input.cursorVertical);
                 }
                 break;
+            }
 
             default:
                 break;

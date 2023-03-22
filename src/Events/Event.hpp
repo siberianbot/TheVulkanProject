@@ -2,19 +2,23 @@
 #define EVENTS_EVENTBASE_HPP
 
 #include <cstdint>
+#include <memory>
+#include <variant>
 
 class Object;
-class Light;
+
 class Scene;
 
 enum EventType {
     CLOSE_REQUESTED_EVENT,
     RENDERER_RELOADING_REQUESTED_EVENT,
-    OBJECT_CREATED_EVENT,
-    OBJECT_DESTROYED_EVENT,
-    LIGHT_CREATED_EVENT,
-    LIGHT_DESTROYED_EVENT,
-    SCENE_TRANSITION_EVENT,
+
+    // *_OBJECT_EVENT
+    CREATED_OBJECT_EVENT,
+    DESTROYED_OBJECT_EVENT,
+
+    // *_SCENE_EVENT
+    TRANSITION_SCENE_EVENT,
 
     // *_WINDOW_EVENT
     RESIZE_WINDOW_EVENT,
@@ -41,19 +45,24 @@ struct WindowData {
 
 struct Event {
     EventType type;
-    union {
-        // OBJECT_CREATED, OBJECT_DESTROYED
-        Object *object;
-        // LIGHT_CREATED, LIGHT_DESTROYED
-        Light *light;
-        // SCENE_TRANSITION_EVENT
-        Scene *scene;
+    std::variant<
+            std::shared_ptr<Object>,
+            std::shared_ptr<Scene>,
+            WindowData,
+            InputData
+    > value;
 
-        // *_WINDOW_EVENT
-        WindowData window;
-        // *_INPUT_EVENT
-        InputData input;
-    };
+    // *_OBJECT_EVENT
+    std::shared_ptr<Object> object() const;
+
+    // *_SCENE_EVENT
+    std::shared_ptr<Scene> scene() const;
+
+    // *_WINDOW_EVENT
+    WindowData window() const;
+
+    // *_INPUT_EVENTS
+    InputData input() const;
 };
 
 #endif // EVENTS_EVENTBASE_HPP

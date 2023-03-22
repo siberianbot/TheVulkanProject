@@ -19,9 +19,11 @@
 #include "src/Resources/MeshResource.hpp"
 #include "src/Resources/ShaderResource.hpp"
 #include "src/Objects/Camera.hpp"
-#include "src/Objects/Light.hpp"
-#include "src/Objects/Object.hpp"
+#include "src/Objects/LightSource.hpp"
+#include "src/Objects/Components/PositionComponent.hpp"
+#include "src/Objects/Components/ModelComponent.hpp"
 #include "src/Scene/Scene.hpp"
+#include "src/Scene/SceneNode.hpp"
 #include "src/Scene/SceneManager.hpp"
 
 static constexpr const uint32_t SIZE = 1024;
@@ -39,28 +41,30 @@ ShadowRenderpass::ShadowRenderpass(const std::shared_ptr<RenderingDevice> &rende
 
 void ShadowRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D renderArea, uint32_t frameIdx,
                                       uint32_t imageIdx) {
-    Scene *currentScene = this->_engine->sceneManager()->currentScene();
-
+    std::shared_ptr<Scene> currentScene = this->_engine->sceneManager()->currentScene();
     std::vector<LightData> lightData;
-    if (currentScene != nullptr) {
-        for (uint32_t idx = 0; idx < currentScene->lights().size(); idx++) {
-            Light *light = currentScene->lights()[idx];
 
-            if (!light->enabled() || glm::distance(currentScene->camera()->position(), light->position()) > 100) {
+    if (currentScene != nullptr) {
+        SceneIterator iterator = currentScene->iterate();
+
+        do {
+            std::shared_ptr<LightSource> light = std::dynamic_pointer_cast<LightSource>(iterator.current()->object());
+
+            if (light == nullptr) {
                 continue;
             }
 
-            glm::mat4 projection = light->getProjectionMatrix();
-            if (light->kind() == POINT_LIGHT) {
+            glm::mat4 projection = light->projection();
+            if (light->type() == POINT_LIGHT_SOURCE) {
                 for (glm::vec3 forward: POINT_LIGHT_DIRECTIONS) {
-                    glm::mat4 view = light->getViewMatrix(forward);
+                    glm::mat4 view = light->view(forward);
                     lightData.push_back(LightData{projection, view});
                 }
             } else {
-                glm::mat4 view = light->getViewMatrix();
+                glm::mat4 view = light->view();
                 lightData.push_back(LightData{projection, view});
             }
-        }
+        } while (iterator.moveNext());
     }
 
     const std::array<VkClearValue, 1> clearValues = {
@@ -116,25 +120,44 @@ void ShadowRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D re
 
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->_pipeline);
 
+        SceneIterator iterator = currentScene->iterate();
+
         uint32_t idx = 0;
-        for (Object *object: currentScene->objects()) {
-            if (object->mesh() == nullptr) {
+        do {
+            std::shared_ptr<Object> object = iterator.current()->object();
+
+            if (object == nullptr) {
                 continue;
             }
 
-            glm::mat4 model = object->getModelMatrix(false);
+            std::weak_ptr<PositionComponent> weakPosition = object->getComponent<PositionComponent>();
+            std::weak_ptr<ModelComponent> weakModel = object->getComponent<ModelComponent>();
+
+            if (weakPosition.expired() || weakModel.expired()) {
+                continue;
+            }
+
+            std::shared_ptr<PositionComponent> position = weakPosition.lock();
+            std::shared_ptr<ModelComponent> model = weakModel.lock();
+
+            if (model->mesh.expired()) {
+                continue;
+            }
+
+            std::shared_ptr<MeshResource> mesh = model->mesh.lock();
+
             MeshConstants constants = {
-                    .matrix = datum.projection * datum.view * model,
+                    .matrix = datum.projection * datum.view * weakPosition.lock()->model(),
             };
             vkCmdPushConstants(commandBuffer, this->_pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
                                sizeof(MeshConstants), &constants);
 
-            VkBuffer vertexBuffer = object->mesh()->vertexBuffer()->getHandle();
+            VkBuffer vertexBuffer = mesh->vertexBuffer()->getHandle();
             vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer, &offset);
-            vkCmdBindIndexBuffer(commandBuffer, object->mesh()->indexBuffer()->getHandle(), 0, VK_INDEX_TYPE_UINT32);
+            vkCmdBindIndexBuffer(commandBuffer, mesh->indexBuffer()->getHandle(), 0, VK_INDEX_TYPE_UINT32);
 
-            vkCmdDrawIndexed(commandBuffer, object->mesh()->count(), 1, 0, 0, idx++);
-        }
+            vkCmdDrawIndexed(commandBuffer, mesh->count(), 1, 0, 0, idx++);
+        } while (iterator.moveNext());
 
         vkCmdEndRenderPass(commandBuffer);
     }

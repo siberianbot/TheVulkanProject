@@ -1,43 +1,22 @@
 #ifndef SCENE_SCENE_HPP
 #define SCENE_SCENE_HPP
 
-#include <string>
-#include <vector>
+#include <memory>
 
-class Engine;
-class Camera;
-class Object;
-class Skybox;
-class Light;
+#include "src/Scene/SceneIterator.hpp"
+
+class SceneNode;
 
 class Scene {
 private:
-    Engine *_engine;
-
-    std::vector<Object *> _objects;
-    std::vector<Light *> _lights;
-
-    Camera *_camera;
-    Skybox *_skybox;
+    std::shared_ptr<SceneNode> _root;
 
 public:
-    Scene(Engine *engine, Skybox *skybox);
-    ~Scene();
+    [[nodiscard]] std::shared_ptr<SceneNode> &root() { return this->_root; }
 
-    [[nodiscard]] const std::vector<Object *> &objects() const { return this->_objects; }
-    [[nodiscard]] const std::vector<Light *> &lights() const { return this->_lights; }
+    [[nodiscard]] SceneIterator iterate();
 
-    [[nodiscard]] Camera *camera() const { return this->_camera; }
-    [[nodiscard]] Skybox *skybox() const { return this->_skybox; }
-
-    void addObject(Object *object);
-    void removeObject(Object *object);
-
-    void addLight(Light *light);
-    void removeLight(Light *light);
-
-    void clearObjects();
-    void clearLights();
+    static std::shared_ptr<Scene> empty();
 };
 
 #endif // SCENE_SCENE_HPP

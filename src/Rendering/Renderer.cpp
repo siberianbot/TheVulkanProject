@@ -14,7 +14,7 @@
 #include "src/Rendering/Objects/FenceObject.hpp"
 #include "src/Rendering/Objects/SemaphoreObject.hpp"
 #include "src/Rendering/Renderpasses/ImguiRenderpass.hpp"
-#include "src/Rendering/Renderpasses/SceneRenderpass.hpp"
+//#include "src/Rendering/Renderpasses/SceneRenderpass.hpp"
 #include "src/Rendering/Renderpasses/ShadowRenderpass.hpp"
 #include "src/Rendering/Renderpasses/SwapchainPresentRenderpass.hpp"
 #include "src/System/Window.hpp"
@@ -88,10 +88,10 @@ void Renderer::init() {
 
     RenderpassBase *shadowRenderpass = new ShadowRenderpass(this->_renderingDevice, this->_physicalDevice,
                                                             this->_vulkanObjectsAllocator, this->_engine);
-    SceneRenderpass *sceneRenderpass = new SceneRenderpass(this->_renderingDevice, this->_physicalDevice,
-                                                           this->_vulkanObjectsAllocator, this->_swapchain.get(),
-                                                           this->_engine);
-    sceneRenderpass->addShadowRenderpass(shadowRenderpass);
+//    SceneRenderpass *sceneRenderpass = new SceneRenderpass(this->_renderingDevice, this->_physicalDevice,
+//                                                           this->_vulkanObjectsAllocator, this->_swapchain.get(),
+//                                                           this->_engine);
+//    sceneRenderpass->addShadowRenderpass(shadowRenderpass);
 
     RenderpassBase *imguiRenderpass = new ImguiRenderpass(this->_renderingDevice, this->_vulkanObjectsAllocator,
                                                           this->_swapchain.get(), this->_instance,
@@ -100,11 +100,11 @@ void Renderer::init() {
     SwapchainPresentRenderpass *presentRenderpass = new SwapchainPresentRenderpass(this->_renderingDevice,
                                                                                    this->_swapchain.get(),
                                                                                    this->_engine);
-    presentRenderpass->addInputRenderpass(sceneRenderpass);
+//    presentRenderpass->addInputRenderpass(sceneRenderpass);
     presentRenderpass->addInputRenderpass(imguiRenderpass);
 
     this->_renderpasses.push_back(shadowRenderpass);
-    this->_renderpasses.push_back(sceneRenderpass);
+//    this->_renderpasses.push_back(sceneRenderpass);
     this->_renderpasses.push_back(imguiRenderpass);
     this->_renderpasses.push_back(presentRenderpass);
 

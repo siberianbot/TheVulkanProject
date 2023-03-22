@@ -3,29 +3,35 @@
 
 #include <glm/vec3.hpp>
 #include <glm/mat4x4.hpp>
-#include <glm/trigonometric.hpp>
 
-class Camera {
+#include "src/Objects/Object.hpp"
+
+struct PositionComponent;
+
+class Camera : public Object {
 private:
-    glm::vec3 _position = glm::vec3(0);
-    float _yaw = 0;
-    float _pitch = 0;
-    float _near = 0.1f;
-    float _far = 100.0f;
-    float _fov = glm::radians(90.0f);
+    std::shared_ptr<PositionComponent> _position;
+
+    float _near;
+    float _far;
+    float _fov;
 
 public:
-    [[nodiscard]] glm::vec3 &position() { return this->_position; }
-    [[nodiscard]] float &yaw() { return this->_yaw; }
-    [[nodiscard]] float &pitch() { return this->_pitch; }
-    [[nodiscard]] float &near() { return this->_near; }
-    [[nodiscard]] float &far() { return this->_far; }
-    [[nodiscard]] float &fov() { return this->_fov; }
+    explicit Camera();
+    ~Camera() override = default;
 
-    glm::vec3 getForwardVector();
-    glm::vec3 getSideVector();
-    glm::mat4 getProjectionMatrix(uint32_t width, uint32_t height);
-    glm::mat4 getViewMatrix(bool ignorePosition);
+    std::string displayName() override;
+
+    [[nodiscard]] float &near() { this->_near; }
+    [[nodiscard]] float &far() { this->_far; }
+    [[nodiscard]] float &fov() { this->_fov; }
+
+    [[nodiscard]] glm::vec3 forward() const;
+    [[nodiscard]] glm::vec3 side() const;
+    [[nodiscard]] glm::vec3 up() const;
+
+    [[nodiscard]] glm::mat4 projection(float aspect) const;
+    [[nodiscard]] glm::mat4 view(bool ignorePosition) const;
 };
 
 #endif // OBJECTS_CAMERA_HPP

@@ -1,28 +1,49 @@
 #include "Camera.hpp"
 
+#include <sstream>
+
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/quaternion.hpp>
 
-#include "src/Math/Math.hpp"
+#include "src/Objects/Components/PositionComponent.hpp"
 
-glm::vec3 Camera::getForwardVector() {
-    return forward(this->_yaw, this->_pitch);
+Camera::Camera()
+        : _position(std::make_shared<PositionComponent>()),
+          _near(0.01f),
+          _far(100.0f),
+          _fov(glm::radians(90.0f)) {
+    this->_components.push_back(this->_position);
 }
 
-glm::vec3 Camera::getSideVector() {
-    return forward(this->_yaw + glm::radians(90.0f), glm::radians(90.0f));
+std::string Camera::displayName() {
+    std::stringstream ss;
+    ss << "(" << this->id() << ") camera";
+
+    return ss.str();
 }
 
-glm::mat4 Camera::getProjectionMatrix(uint32_t width, uint32_t height) {
-    return glm::perspective(this->_fov, width / (float) height, this->_near, this->_far);
+glm::vec3 Camera::forward() const {
+    return this->_position->rotationMat3() * glm::vec3(1, 0, 0);
 }
 
-glm::mat4 Camera::getViewMatrix(bool ignorePosition) {
-    glm::vec3 forward = this->getForwardVector();
-    glm::vec3 up = glm::vec3(0, 1, 0);
+glm::vec3 Camera::side() const {
+    return this->_position->rotationMat3() * glm::vec3(0, 0, 1);
+}
 
-    if (ignorePosition) {
-        return glm::lookAt(glm::vec3(0), forward, up);
-    } else {
-        return glm::lookAt(this->_position, this->_position + forward, up);
-    }
+glm::vec3 Camera::up() const {
+    return this->_position->rotationMat3() * glm::vec3(0, 1, 0);
+}
+
+glm::mat4 Camera::projection(float aspect) const {
+    return glm::perspective(this->_fov, aspect, this->_near, this->_far);
+}
+
+glm::mat4 Camera::view(bool ignorePosition) const {
+    glm::mat3 rotation = this->_position->rotationMat3();
+    glm::vec3 forward = rotation * glm::vec3(1, 0, 0);
+    glm::vec3 up = rotation * glm::vec3(0, 1, 0);
+
+    return ignorePosition
+           ? glm::lookAt(glm::vec3(0), forward, up)
+           : glm::lookAt(this->_position->position, this->_position->position + forward, up);
 }

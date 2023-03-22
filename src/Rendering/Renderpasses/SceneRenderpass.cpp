@@ -4,12 +4,12 @@
 #include "src/Engine/EngineVars.hpp"
 #include "src/Events/EventQueue.hpp"
 #include "src/Objects/Camera.hpp"
-#include "src/Objects/Light.hpp"
-#include "src/Objects/Object.hpp"
+#include "src/Objects/LightSource.hpp"
+#include "src/Objects/Components/ModelComponent.hpp"
+#include "src/Objects/Components/PositionComponent.hpp"
+#include "src/Objects/Components/SkyboxComponent.hpp"
 #include "src/Scene/Scene.hpp"
 #include "src/Scene/SceneManager.hpp"
-#include "src/Objects/Skybox.hpp"
-#include "src/Objects/Data/RenderingData.hpp"
 #include "src/Types/Vertex.hpp"
 #include "src/Rendering/PhysicalDevice.hpp"
 #include "src/Rendering/RenderingDevice.hpp"
@@ -356,7 +356,7 @@ SceneRenderpass::SceneRenderpass(const std::shared_ptr<RenderingDevice> &renderi
 
 void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D renderArea,
                                      uint32_t frameIdx, uint32_t imageIdx) {
-    Scene *currentScene = this->_engine->sceneManager()->currentScene();
+    std::shared_ptr<Scene> currentScene = this->_engine->sceneManager()->currentScene();
 
     // PREPARE SCENE DATA
     {

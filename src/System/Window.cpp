@@ -32,7 +32,7 @@ void Window::mouseButtonCallback(GLFWwindow *window, int button, int action, int
 
     Event event = {
             .type = type,
-            .input = {
+            .value = InputData{
                     .mouseButton = button
             }
     };
@@ -48,7 +48,7 @@ void Window::framebufferResizeCallback(GLFWwindow *window, int width, int height
 
     Event event = {
             .type = RESIZE_WINDOW_EVENT,
-            .window = {
+            .value = WindowData{
                     .width = static_cast<uint32_t>(width),
                     .height = static_cast<uint32_t>(height)
             }
@@ -78,12 +78,12 @@ void Window::keyCallback(GLFWwindow *window, int key, int scancode, int action, 
             return; // not supported by design
 
         default:
-            throw std::runtime_error("Not supported mouse button action");
+            throw std::runtime_error("Not supported keyboard action");
     }
 
     Event event = {
             .type = type,
-            .input = {
+            .value = InputData{
                     .keyboardKey = key
             }
     };
@@ -96,7 +96,7 @@ void Window::cursorCallback(GLFWwindow *window, double x, double y) {
 
     Event event = {
             .type = CURSOR_MOVE_INPUT_EVENT,
-            .input = InputData{
+            .value = InputData{
                     .cursorHorizontal = x,
                     .cursorVertical = y
             }

@@ -1,21 +1,28 @@
 #ifndef SCENE_SCENEMANAGER_HPP
 #define SCENE_SCENEMANAGER_HPP
 
+#include <memory>
+
 class EventQueue;
 class Scene;
+class SceneNode;
+class Object;
 
 class SceneManager {
 private:
-    EventQueue *_eventQueue;
+    std::shared_ptr<EventQueue> _eventQueue;
 
-    Scene *_currentScene = nullptr;
+    std::shared_ptr<Scene> _currentScene = nullptr;
 
 public:
-    SceneManager(EventQueue *eventQueue);
+    SceneManager(const std::shared_ptr<EventQueue> &eventQueue);
 
-    void switchScene(Scene *newScene);
+    void setScene(const std::shared_ptr<Scene> &scene);
 
-    [[nodiscard]] Scene *currentScene() { return this->_currentScene; }
+    std::shared_ptr<SceneNode> addObject(const std::shared_ptr<Object> &object);
+    void removeNode(const std::shared_ptr<SceneNode> &node);
+
+    [[nodiscard]] std::shared_ptr<Scene> currentScene() { return this->_currentScene; }
 };
 
 #endif // SCENE_SCENEMANAGER_HPP

@@ -8,12 +8,10 @@ class EventQueue;
 class EngineVars;
 class InputProcessor;
 class Window;
-
-class DebugUI;
-class Scene;
+class Renderer;
 class ResourceManager;
 class SceneManager;
-class Renderer;
+class DebugUI;
 
 enum CameraControlState {
     NotFocused,
@@ -28,9 +26,8 @@ private:
     std::shared_ptr<Window> _window;
     std::shared_ptr<Renderer> _renderer;
     std::shared_ptr<ResourceManager> _resourceManager;
-
-    SceneManager *_sceneManager;
-    DebugUI *_debugUI;
+    std::shared_ptr<SceneManager> _sceneManager;
+    std::shared_ptr<DebugUI> _debugUI;
 
     bool _work = false;
     float _delta = 0;
@@ -56,8 +53,7 @@ public:
     [[nodiscard]] std::shared_ptr<Window> window() const { return this->_window; }
     [[nodiscard]] std::shared_ptr<Renderer> renderer() { return this->_renderer; }
     [[nodiscard]] std::shared_ptr<ResourceManager> resourceManager() { return this->_resourceManager; }
-
-    [[nodiscard]] SceneManager *sceneManager() { return this->_sceneManager; }
+    [[nodiscard]] std::shared_ptr<SceneManager> sceneManager() { return this->_sceneManager; }
 
     [[nodiscard]] float delta() { return this->_delta; }
 };

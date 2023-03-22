@@ -7,8 +7,10 @@ layout (location = 0) out vec3 outColor;
 
 void main()
 {
-    vec4 scene = subpassLoad(inputScene);
-    vec4 imgui = subpassLoad(inputImgui);
-
-    outColor = (1 - imgui.a) * scene.rgb + imgui.a * imgui.rgb;
+    // TODO
+    outColor = subpassLoad(inputScene).rgb;
+//    vec4 scene = subpassLoad(inputScene);
+//    vec4 imgui = subpassLoad(inputImgui);
+//
+//    outColor = (1 - imgui.a) * scene.rgb + imgui.a * imgui.rgb;
 }
