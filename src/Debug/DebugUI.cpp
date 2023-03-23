@@ -1,6 +1,7 @@
 #include "DebugUI.hpp"
 
 #include <fstream>
+#include <functional>
 #include <sstream>
 
 #include <imgui.h>
@@ -57,7 +58,7 @@ void DebugUI::drawMainMenu() {
         }
 
         if (ImGui::BeginMenu("Scene")) {
-            if (ImGui::MenuItem("Objects", NULL, this->_sceneObjectsWindowVisible & 1)) {
+            if (ImGui::MenuItem("Scene tree", NULL, this->_sceneObjectsWindowVisible & 1)) {
                 this->_sceneObjectsWindowVisible++;
             }
 
@@ -249,7 +250,7 @@ void DebugUI::drawSceneObjectsWindow() {
         return;
     }
 
-    if (ImGui::Begin("Objects")) {
+    if (ImGui::Begin("Scene tree")) {
         std::shared_ptr<Scene> currentScene = this->_sceneManager->currentScene();
 
         if (currentScene == nullptr) {
@@ -283,148 +284,39 @@ void DebugUI::drawSceneObjectsWindow() {
 //            this->_selectedObject = nullptr;
 //        }
 
-        if (ImGui::BeginListBox("#objects", ImVec2(-FLT_MIN, 10 * ImGui::GetTextLineHeightWithSpacing()))) {
-            SceneIterator iterator = currentScene->iterate();
-
-            do {
-                std::shared_ptr<SceneNode> node = iterator.current();
-
+        if (ImGui::BeginListBox("#scene_tree", ImVec2(-1, -1))) {
+            std::function<void(const std::shared_ptr<SceneNode> &)> renderItem = [this, &renderItem](
+                    const std::shared_ptr<SceneNode> &node) {
                 const bool isSelected = this->_selectedSceneNode == node;
 
-                if (ImGui::Selectable(node->displayName().c_str(), isSelected)) {
-                    this->_selectedSceneNode = node;
-                }
+                ImGuiTreeNodeFlags flags = 0;
 
                 if (isSelected) {
-                    ImGui::SetItemDefaultFocus();
+                    flags |= ImGuiTreeNodeFlags_Selected;
                 }
-            } while (iterator.moveNext());
+
+                if (node->descendants().empty()) {
+                    flags |= ImGuiTreeNodeFlags_Leaf;
+                }
+
+                if (ImGui::TreeNodeEx(node->displayName().c_str(), flags)) {
+                    for (const auto &child: node->descendants()) {
+                        renderItem(child);
+                    }
+
+                    if (ImGui::IsItemClicked()) {
+                        // TODO: misclick
+                        this->_selectedSceneNode = node;
+                    }
+
+                    ImGui::TreePop();
+                }
+            };
+
+            renderItem(currentScene->root());
 
             ImGui::EndListBox();
         }
-
-        // TODO:
-//        if (this->_selectedObject != nullptr) {
-//            ImGui::InputScalarN("Position", ImGuiDataType_Float, reinterpret_cast<float *>(
-//                    &this->_selectedObject->position()), 3, &this->_floatStep, &this->_floatFastStep, "%.3f");
-//
-//            ImGui::SliderAngle("Pitch", &this->_selectedObject->rotation().x, 0, 360.0f);
-//            ImGui::SliderAngle("Yaw", &this->_selectedObject->rotation().y, 0, 360.0f);
-//            ImGui::SliderAngle("Roll", &this->_selectedObject->rotation().z, 0, 360.0f);
-//
-//            if (ImGui::BeginCombo("Mesh", this->_selectedObjectMeshName.c_str())) {
-//                // None
-//                {
-//                    const bool selected = this->_selectedObject->mesh() == nullptr;
-//
-//                    if (ImGui::Selectable(NONE_ITEM, selected)) {
-//                        this->_selectedObject->mesh() = nullptr;
-//                        this->_selectedObjectMeshName = NONE_ITEM;
-//                    }
-//
-//                    if (selected) {
-//                        ImGui::SetItemDefaultFocus();
-//                    }
-//                }
-//
-//                for (const auto &[id, resource]: this->_engine->resourceManager()->resources()) {
-//                    if (resource->type() != MESH_RESOURCE) {
-//                        continue;
-//                    }
-//
-//                    const bool selected = this->_selectedObject->mesh() == resource;
-//
-//                    if (ImGui::Selectable(id.c_str(), selected)) {
-//                        this->_selectedObject->mesh() = std::dynamic_pointer_cast<MeshResource>(resource);
-//                        this->_selectedObjectMeshName = id;
-//                    }
-//
-//                    if (selected) {
-//                        ImGui::SetItemDefaultFocus();
-//                    }
-//                }
-//
-//                ImGui::EndCombo();
-//            }
-//
-//            if (ImGui::BeginCombo("Albedo texture", this->_selectedObjectAlbedoTextureName.c_str())) {
-//                // None
-//                {
-//                    const bool selected = this->_selectedObject->albedoTexture() == nullptr;
-//
-//                    if (ImGui::Selectable(NONE_ITEM, selected)) {
-//                        this->_selectedObject->albedoTexture() = nullptr;
-//                        this->_selectedObjectAlbedoTextureName = NONE_ITEM;
-//                    }
-//
-//                    if (selected) {
-//                        ImGui::SetItemDefaultFocus();
-//                    }
-//                }
-//
-//                for (const auto &[id, resource]: this->_engine->resourceManager()->resources()) {
-//                    if (resource->type() != IMAGE_RESOURCE) {
-//                        continue;
-//                    }
-//
-//                    const bool selected = this->_selectedObject->albedoTexture() == resource;
-//
-//                    if (ImGui::Selectable(id.c_str(), selected)) {
-//                        this->_selectedObject->albedoTexture() = std::dynamic_pointer_cast<ImageResource>(resource);
-//                        this->_selectedObjectAlbedoTextureName = id;
-//                    }
-//
-//                    if (selected) {
-//                        ImGui::SetItemDefaultFocus();
-//                    }
-//                }
-//
-//                ImGui::EndCombo();
-//            }
-//
-//            if (ImGui::BeginCombo("Specular texture", this->_selectedObjectSpecularTextureName.c_str())) {
-//                // None
-//                {
-//                    const bool selected = this->_selectedObject->specTexture() == nullptr;
-//
-//                    if (ImGui::Selectable(NONE_ITEM, selected)) {
-//                        this->_selectedObject->specTexture() = nullptr;
-//                        this->_selectedObjectSpecularTextureName = NONE_ITEM;
-//                    }
-//
-//                    if (selected) {
-//                        ImGui::SetItemDefaultFocus();
-//                    }
-//                }
-//
-//                for (const auto &[id, resource]: this->_engine->resourceManager()->resources()) {
-//                    if (resource->type() != IMAGE_RESOURCE) {
-//                        continue;
-//                    }
-//
-//                    const bool selected = this->_selectedObject->specTexture() == resource;
-//
-//                    if (ImGui::Selectable(id.c_str(), selected)) {
-//                        this->_selectedObject->specTexture() = std::dynamic_pointer_cast<ImageResource>(resource);
-//                        this->_selectedObjectSpecularTextureName = id;
-//                    }
-//
-//                    if (selected) {
-//                        ImGui::SetItemDefaultFocus();
-//                    }
-//                }
-//
-//                ImGui::EndCombo();
-//            }
-//
-//            if (ImGui::Button("Delete object")) {
-//                currentScene->removeObject(this->_selectedObject);
-//                this->_selectedObject = nullptr;
-//                this->_selectedObjectMeshName = NONE_ITEM;
-//                this->_selectedObjectAlbedoTextureName = NONE_ITEM;
-//                this->_selectedObjectSpecularTextureName = NONE_ITEM;
-//            }
-//        }
     }
 
     ImGui::End();

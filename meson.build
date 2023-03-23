@@ -79,8 +79,9 @@ src = [
     'src/Objects/LightSource.cpp',
     'src/Objects/Prop.cpp',
     'src/Objects/World.cpp',
-    'src/Objects/Components/PositionComponent.cpp',
+    'src/Objects/Components/Component.cpp',
     'src/Objects/Components/ModelComponent.cpp',
+    'src/Objects/Components/PositionComponent.cpp',
     'src/Objects/Components/SkyboxComponent.cpp',
 
     # Scene

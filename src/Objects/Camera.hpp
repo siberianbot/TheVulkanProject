@@ -6,7 +6,7 @@
 
 #include "src/Objects/Object.hpp"
 
-struct PositionComponent;
+class PositionComponent;
 
 class Camera : public Object {
 private:
@@ -32,6 +32,8 @@ public:
 
     [[nodiscard]] glm::mat4 projection(float aspect) const;
     [[nodiscard]] glm::mat4 view(bool ignorePosition) const;
+
+    [[nodiscard]] const std::shared_ptr<PositionComponent> position() const { return this->_position; }
 };
 
 #endif // OBJECTS_CAMERA_HPP

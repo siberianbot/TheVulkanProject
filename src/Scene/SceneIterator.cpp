@@ -8,14 +8,12 @@ bool SceneIterator::isDiscovered(const std::shared_ptr<SceneNode> &node) {
     return std::find(this->_discovered.begin(), this->_discovered.end(), node) != this->_discovered.end();
 }
 
-SceneIterator::SceneIterator(const std::shared_ptr<SceneNode> &current)
-        : _current(current) {
+SceneIterator::SceneIterator(const std::shared_ptr<SceneNode> &current) {
     this->_stack.push(current);
 }
 
 bool SceneIterator::moveNext() {
     if (this->_stack.empty()) {
-        this->_current = nullptr;
         return false;
     }
 
@@ -23,10 +21,18 @@ bool SceneIterator::moveNext() {
     this->_stack.pop();
 
     if (!isDiscovered(node)) {
-        for (const auto &child: node->descendants()) {
-            this->_stack.push(child);
+        for (auto it = node->descendants().rbegin(); it != node->descendants().rend(); it++) {
+            this->_stack.push(*it);
         }
     }
 
-    return false;
+    return !this->_stack.empty();
+}
+
+const std::shared_ptr<SceneNode> &SceneIterator::current() const {
+    if (this->_stack.empty()) {
+        return nullptr;
+    }
+
+    return this->_stack.top();
 }

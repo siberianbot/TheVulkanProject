@@ -4,7 +4,7 @@
 #include <array>
 #include <memory>
 
-#include "src/Objects/Components/IComponent.hpp"
+#include "src/Objects/Components/Component.hpp"
 #include "src/Rendering/Constants.hpp"
 
 class MeshResource;
@@ -12,17 +12,32 @@ class ImageResource;
 class DescriptorSetObject;
 class ImageViewObject;
 
-struct ModelComponent : public IComponent {
+class ModelComponent : public Component {
+private:
+    std::weak_ptr<MeshResource> _mesh;
+    std::weak_ptr<ImageResource> _albedoTexture;
+    std::weak_ptr<ImageResource> _specularTexture;
+
+    std::array<std::shared_ptr<DescriptorSetObject>, MAX_INFLIGHT_FRAMES> _descriptorSets;
+    std::shared_ptr<ImageViewObject> _albedoTextureView;
+    std::shared_ptr<ImageViewObject> _specularTextureView;
+
 public:
     ~ModelComponent() override;
 
-    std::weak_ptr<MeshResource> mesh;
-    std::weak_ptr<ImageResource> albedoTexture;
-    std::weak_ptr<ImageResource> specularTexture;
+    [[nodiscard]] const std::weak_ptr<MeshResource> &mesh() const { return this->_mesh; }
+    [[nodiscard]] const std::weak_ptr<ImageResource> &albedoTexture() const { return this->_albedoTexture; }
+    [[nodiscard]] const std::weak_ptr<ImageResource> &specularTexture() const { return this->_specularTexture; }
 
-    std::array<std::shared_ptr<DescriptorSetObject>, MAX_INFLIGHT_FRAMES> descriptorSets;
-    std::shared_ptr<ImageViewObject> albedoTextureView;
-    std::shared_ptr<ImageViewObject> specularTextureView;
+    void setMesh(const std::weak_ptr<MeshResource> &mesh);
+    void setAlbedoTexture(const std::weak_ptr<ImageResource> &texture);
+    void setSpecularTexture(const std::weak_ptr<ImageResource> &texture);
+
+    [[nodiscard]] std::array<std::shared_ptr<DescriptorSetObject>, MAX_INFLIGHT_FRAMES> &descriptorSets() {
+        return this->_descriptorSets;
+    }
+    [[nodiscard]] std::shared_ptr<ImageViewObject> &albedoTextureView() { return this->_albedoTextureView; }
+    [[nodiscard]] std::shared_ptr<ImageViewObject> &specularTextureView() { return this->_specularTextureView; }
 };
 
 #endif // OBJECTS_COMPONENTS_MODELCOMPONENT_HPP

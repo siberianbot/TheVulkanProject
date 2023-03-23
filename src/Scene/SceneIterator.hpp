@@ -12,8 +12,6 @@ private:
     std::stack<std::shared_ptr<SceneNode>> _stack;
     std::vector<std::shared_ptr<SceneNode>> _discovered;
 
-    std::shared_ptr<SceneNode> _current;
-
     bool isDiscovered(const std::shared_ptr<SceneNode> &node);
 
 public:
@@ -21,7 +19,7 @@ public:
 
     bool moveNext();
 
-    const std::shared_ptr<SceneNode> &current() const { return this->_current; }
+    const std::shared_ptr<SceneNode> &current() const;
 };
 
 #endif // SRC_SCENE_SCENEITERATOR_HPP

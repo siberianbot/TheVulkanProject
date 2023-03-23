@@ -50,7 +50,7 @@ void ShadowRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D re
         do {
             std::shared_ptr<LightSource> light = std::dynamic_pointer_cast<LightSource>(iterator.current()->object());
 
-            if (light == nullptr) {
+            if (light == nullptr || !light->enabled()) {
                 continue;
             }
 
@@ -140,11 +140,11 @@ void ShadowRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D re
             std::shared_ptr<PositionComponent> position = weakPosition.lock();
             std::shared_ptr<ModelComponent> model = weakModel.lock();
 
-            if (model->mesh.expired()) {
+            if (model->mesh().expired()) {
                 continue;
             }
 
-            std::shared_ptr<MeshResource> mesh = model->mesh.lock();
+            std::shared_ptr<MeshResource> mesh = model->mesh().lock();
 
             MeshConstants constants = {
                     .matrix = datum.projection * datum.view * weakPosition.lock()->model(),

@@ -4,9 +4,9 @@
 #include <glm/vec3.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-#include "src/Objects/Components/IComponent.hpp"
+#include "src/Objects/Components/Component.hpp"
 
-struct PositionComponent : public IComponent {
+class PositionComponent : public Component {
 public:
     ~PositionComponent() override = default;
 

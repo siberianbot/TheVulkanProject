@@ -3,8 +3,8 @@
 
 #include "src/Objects/Object.hpp"
 
-struct PositionComponent;
-struct ModelComponent;
+class PositionComponent;
+class ModelComponent;
 
 class Prop : public Object {
 private:
@@ -16,6 +16,9 @@ public:
     ~Prop() override = default;
 
     std::string displayName() override;
+
+    [[nodiscard]] const std::shared_ptr<PositionComponent> position() const { return this->_position; }
+    [[nodiscard]] const std::shared_ptr<ModelComponent> model() const { return this->_model; }
 };
 
 #endif // OBJECTS_PROP_HPP

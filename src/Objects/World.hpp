@@ -3,7 +3,7 @@
 
 #include "src/Objects/Object.hpp"
 
-struct SkyboxComponent;
+class SkyboxComponent;
 
 class World : public Object {
 private:
@@ -14,6 +14,8 @@ public:
     ~World() override = default;
 
     std::string displayName() override;
+
+    [[nodiscard]] const std::shared_ptr<SkyboxComponent> &skybox() const { return this->_skybox; }
 };
 
 #endif // OBJECTS_WORLD_HPP

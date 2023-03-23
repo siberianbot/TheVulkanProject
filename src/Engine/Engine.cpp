@@ -1,7 +1,6 @@
 #include "Engine.hpp"
 
 #include <GLFW/glfw3.h>
-#include <glm/vec3.hpp>
 #include "subprojects/imgui-1.89.2/imgui.h"
 
 #include "src/Engine/EngineVars.hpp"
@@ -15,8 +14,13 @@
 #include "src/Resources/ResourceManager.hpp"
 #include "src/Objects/Camera.hpp"
 #include "src/Objects/LightSource.hpp"
-#include "src/Objects/Object.hpp"
+#include "src/Objects/Prop.hpp"
+#include "src/Objects/World.hpp"
+#include "src/Objects/Components/ModelComponent.hpp"
+#include "src/Objects/Components/PositionComponent.hpp"
+#include "src/Objects/Components/SkyboxComponent.hpp"
 #include "src/Scene/Scene.hpp"
+#include "src/Scene/SceneNode.hpp"
 #include "src/Scene/SceneManager.hpp"
 #include "src/Debug/DebugUI.hpp"
 
@@ -144,110 +148,123 @@ void Engine::init() {
     std::shared_ptr<ImageResource> vikingRoomTexture = this->_resourceManager->loadImage("viking_room_texture");
     std::shared_ptr<CubeImageResource> skyboxTexture = this->_resourceManager->loadCubeImage("skybox_texture");
 
-//    Scene *scene = new Scene(this, new Skybox(skyboxMesh, skyboxTexture));
-//
-//    Object *object;
-//
-//    object = new Object();
-//    object->position() = glm::vec3(0, 0, 2);
-//    object->mesh() = vikingRoomMesh;
-//    object->albedoTexture() = vikingRoomTexture;
-//    scene->addObject(object);
-//
-//    object = new Object();
-//    object->position() = glm::vec3(0);
-//    object->scale() = glm::vec3(0.5f);
-//    object->mesh() = cubeMesh;
-//    object->albedoTexture() = cubeTexture;
-//    object->specTexture() = cubeSpecularTexture;
-//    scene->addObject(object);
-//
-//    object = new Object();
-//    object->position() = glm::vec3(0, 0, -2);
-//    object->scale() = glm::vec3(0.5f);
-//    object->mesh() = suzanneMesh;
-//    object->albedoTexture() = concreteTexture;
-//    object->specTexture() = defaultTexture;
-//    scene->addObject(object);
-//
-//    // down
-//    object = new Object();
-//    object->position() = glm::vec3(0, -4, 0);
-//    object->rotation() = glm::vec3(glm::radians(270.0f), 0, 0);
-//    object->scale() = glm::vec3(7, 9, 0.1);
-//    object->mesh() = cubeMesh;
-//    object->albedoTexture() = concreteTexture;
-//    scene->addObject(object);
-//
-//    // front
-//    object = new Object();
-//    object->position() = glm::vec3(7, 0, 0);
-//    object->rotation() = glm::vec3(0, glm::radians(270.0f), 0);
-//    object->scale() = glm::vec3(9, 4, 0.1);
-//    object->mesh() = cubeMesh;
-//    object->albedoTexture() = concreteTexture;
-//    scene->addObject(object);
-//
-//    // back
-//    object = new Object();
-//    object->position() = glm::vec3(-7, 0, 0);
-//    object->rotation() = glm::vec3(0, glm::radians(90.0f), 0);
-//    object->scale() = glm::vec3(9, 4, 0.1);
-//    object->mesh() = cubeMesh;
-//    object->albedoTexture() = concreteTexture;
-//    scene->addObject(object);
-//
-//    // left
-//    object = new Object();
-//    object->position() = glm::vec3(0, 0, -9);
-//    object->rotation() = glm::vec3(0);
-//    object->scale() = glm::vec3(7, 4, 0.1);
-//    object->mesh() = cubeMesh;
-//    object->albedoTexture() = concreteTexture;
-//    scene->addObject(object);
-//
-//    // right
-//    object = new Object();
-//    object->position() = glm::vec3(0, 0, 9);
-//    object->rotation() = glm::vec3(0, glm::radians(180.0f), 0);
-//    object->scale() = glm::vec3(7, 4, 0.1);
-//    object->mesh() = cubeMesh;
-//    object->albedoTexture() = concreteTexture;
-//    scene->addObject(object);
-//
-//    Light *light;
-//
-//    light = new Light(glm::vec3(10), glm::vec3(1), 500);
-//    light->enabled() = false;
-//    light->kind() = RECT_LIGHT;
-//    light->rotation().x = glm::radians(225.0f);
-//    light->rotation().y = glm::radians(45.0f);
-//    light->rect().x = 20;
-//    light->rect().y = 20;
-//    scene->addLight(light);
-//
-//    light = new Light(glm::vec3(2, 0, -2), glm::vec3(1, 0, 0), 50);
-//    light->enabled() = false;
-//    light->rotation().x = glm::radians(135.0f);
-//    light->rotation().y = glm::radians(90.0f);
-//    scene->addLight(light);
-//
-//    light = new Light(glm::vec3(2, 2, 0), glm::vec3(0, 1, 0), 20);
-//    light->enabled() = true;
-//    light->kind() = POINT_LIGHT;
-//    scene->addLight(light);
-//
-//    light = new Light(glm::vec3(2, 0, 2), glm::vec3(0, 0, 1), 50);
-//    light->enabled() = false;
-//    light->rotation().x = glm::radians(225.0f);
-//    light->rotation().y = glm::radians(90.0f);
-//    scene->addLight(light);
-//
-//    scene->camera()->position() = glm::vec3(2, 2, 2);
-//    scene->camera()->yaw() = glm::radians(-135.0f);
-//    scene->camera()->pitch() = glm::radians(45.0f);
-//
-//    this->_sceneManager->setScene(scene);
+    this->_sceneManager->setScene(Scene::empty());
+
+    std::shared_ptr<World> world = std::make_shared<World>();
+    world->skybox()->setMesh(skyboxMesh);
+    world->skybox()->setTexture(skyboxTexture);
+    this->_sceneManager->currentScene()->root()->object() = world;
+
+    std::shared_ptr<Prop> prop;
+
+    prop = std::make_shared<Prop>();
+    prop->position()->position = glm::vec3(0, 0, 2);
+    prop->model()->setMesh(vikingRoomMesh);
+    prop->model()->setAlbedoTexture(vikingRoomTexture);
+    this->_sceneManager->addObject(prop);
+
+    prop = std::make_shared<Prop>();
+    prop->position()->position = glm::vec3(0);
+    prop->position()->scale = glm::vec3(0.5f);
+    prop->model()->setMesh(cubeMesh);
+    prop->model()->setAlbedoTexture(cubeTexture);
+    prop->model()->setSpecularTexture(cubeSpecularTexture);
+    this->_sceneManager->addObject(prop);
+
+    prop = std::make_shared<Prop>();
+    prop->position()->position = glm::vec3(0, 0, -2);
+    prop->position()->scale = glm::vec3(0.5f);
+    prop->model()->setMesh(suzanneMesh);
+    prop->model()->setAlbedoTexture(concreteTexture);
+    prop->model()->setSpecularTexture(defaultTexture);
+    this->_sceneManager->addObject(prop);
+
+    // down
+    prop = std::make_shared<Prop>();
+    prop->position()->position = glm::vec3(0, -4, 0);
+    prop->position()->rotation = glm::vec3(glm::radians(270.0f), 0, 0);
+    prop->position()->scale = glm::vec3(7, 9, 0.1);
+    prop->model()->setMesh(cubeMesh);
+    prop->model()->setAlbedoTexture(concreteTexture);
+    this->_sceneManager->addObject(prop);
+
+    // front
+    prop = std::make_shared<Prop>();
+    prop->position()->position = glm::vec3(7, 0, 0);
+    prop->position()->rotation = glm::vec3(0, glm::radians(270.0f), 0);
+    prop->position()->scale = glm::vec3(9, 4, 0.1);
+    prop->model()->setMesh(cubeMesh);
+    prop->model()->setAlbedoTexture(concreteTexture);
+    this->_sceneManager->addObject(prop);
+
+    // back
+    prop = std::make_shared<Prop>();
+    prop->position()->position = glm::vec3(-7, 0, 0);
+    prop->position()->rotation = glm::vec3(0, glm::radians(90.0f), 0);
+    prop->position()->scale = glm::vec3(9, 4, 0.1);
+    prop->model()->setMesh(cubeMesh);
+    prop->model()->setAlbedoTexture(concreteTexture);
+    this->_sceneManager->addObject(prop);
+
+    // left
+    prop = std::make_shared<Prop>();
+    prop->position()->position = glm::vec3(0, 0, -9);
+    prop->position()->rotation = glm::vec3(0);
+    prop->position()->scale = glm::vec3(7, 4, 0.1);
+    prop->model()->setMesh(cubeMesh);
+    prop->model()->setAlbedoTexture(concreteTexture);
+    this->_sceneManager->addObject(prop);
+
+    // right
+    prop = std::make_shared<Prop>();
+    prop->position()->position = glm::vec3(0, 0, 9);
+    prop->position()->rotation = glm::vec3(0, glm::radians(180.0f), 0);
+    prop->position()->scale = glm::vec3(7, 4, 0.1);
+    prop->model()->setMesh(cubeMesh);
+    prop->model()->setAlbedoTexture(concreteTexture);
+    this->_sceneManager->addObject(prop);
+
+    std::shared_ptr<LightSource> light;
+
+    light = std::make_shared<LightSource>();
+    light->type() = RECTANGLE_LIGHT_SOURCE;
+    light->enabled() = false;
+    light->range() = 250;
+    light->position()->position = glm::vec3(10);
+    light->position()->rotation = glm::vec3(glm::radians(225.0f), glm::radians(45.0f), 0);
+    light->rect() = glm::vec2(20);
+    this->_sceneManager->addObject(light);
+
+    light = std::make_shared<LightSource>();
+    light->type() = CONE_LIGHT_SOURCE;
+    light->enabled() = false;
+    light->color() = glm::vec3(1, 0, 0);
+    light->range() = 50;
+    light->position()->position = glm::vec3(2, 0, -2);
+    light->position()->rotation = glm::vec3(glm::radians(135.0f), glm::radians(90.0f), 0);
+    this->_sceneManager->addObject(light);
+
+    light = std::make_shared<LightSource>();
+    light->type() = POINT_LIGHT_SOURCE;
+    light->enabled() = true;
+    light->color() = glm::vec3(0, 1, 0);
+    light->range() = 20;
+    light->position()->position = glm::vec3(2, 2, 0);
+    this->_sceneManager->addObject(light);
+
+    light = std::make_shared<LightSource>();
+    light->type() = CONE_LIGHT_SOURCE;
+    light->enabled() = false;
+    light->color() = glm::vec3(0, 0, 1);
+    light->range() = 50;
+    light->position()->position = glm::vec3(2, 0, 2);
+    light->position()->rotation = glm::vec3(glm::radians(225.0f), glm::radians(90.0f), 0);
+    this->_sceneManager->addObject(light);
+
+    std::shared_ptr<Camera> camera = std::make_shared<Camera>();
+    camera->position()->position = glm::vec3(2);
+    camera->position()->rotation = glm::vec3(glm::radians(-135.0f), glm::radians(45.0f), 0);
+    this->_sceneManager->addObject(camera);
 }
 
 void Engine::cleanup() {

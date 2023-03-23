@@ -7,13 +7,14 @@
 #include "src/Objects/Object.hpp"
 #include "src/Types/LightSourceType.hpp"
 
-struct PositionComponent;
+class PositionComponent;
 
 class LightSource : public Object {
 private:
     std::shared_ptr<PositionComponent> _position;
 
     LightSourceType _type;
+    bool _enabled;
     glm::vec3 _color;
     float _range;
     float _angle;
@@ -26,6 +27,7 @@ public:
     std::string displayName() override;
 
     [[nodiscard]] LightSourceType &type() { return this->_type; }
+    [[nodiscard]] bool &enabled() { return this->_enabled; }
     [[nodiscard]] glm::vec3 &color() { return this->_color; }
     [[nodiscard]] float &range() { return this->_range; }
 
@@ -39,6 +41,8 @@ public:
     [[nodiscard]] glm::mat4 projection() const;
     [[nodiscard]] glm::mat4 view() const;
     [[nodiscard]] glm::mat4 view(const glm::vec3 &forward) const;
+
+    [[nodiscard]] const std::shared_ptr<PositionComponent> position() const { return this->_position; }
 };
 
 
