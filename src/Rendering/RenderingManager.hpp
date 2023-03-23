@@ -46,6 +46,7 @@ public:
 
     void waitIdle();
 
+    [[nodiscard]] VkInstance instance() const { return this->_instance; }
     [[nodiscard]] const std::shared_ptr<PhysicalDevice> &physicalDevice() const { return this->_physicalDevice; }
     [[nodiscard]] const std::shared_ptr<RenderingDevice> &renderingDevice() const { return this->_renderingDevice; }
     [[nodiscard]] const std::shared_ptr<CommandExecutor> &commandExecutor() const { return this->_commandExecutor; }

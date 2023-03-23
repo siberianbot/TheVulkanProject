@@ -42,6 +42,7 @@ void Engine::init() {
         throw std::runtime_error("Failed to initilalize GLFW");
     }
 
+    // TODO: put Dear ImGui somewhere
     ImGui::CreateContext();
     ImGui::StyleColorsDark();
 
@@ -318,8 +319,8 @@ void Engine::run() {
 //            }
         }
 
-//    TODO:        this->_debugUI->render();
-//    TODO:    this->_renderer->render();
+        this->_debugUI->render();
+        this->_renderer->render();
 
         this->_delta = glfwGetTime() - startTime;
     }

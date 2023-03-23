@@ -4,6 +4,7 @@
 #include <array>
 #include <memory>
 #include <optional>
+#include <vector>
 
 #include "src/Rendering/Constants.hpp"
 
@@ -11,6 +12,7 @@ class EventQueue;
 class RenderingManager;
 class FenceObject;
 class SemaphoreObject;
+class StageBase;
 
 class Renderer {
 private:
@@ -26,10 +28,9 @@ private:
     uint32_t _currentFrameIdx = 0;
     std::array<std::shared_ptr<SyncObjectsGroup>, MAX_INFLIGHT_FRAMES> _syncObjectsGroups;
 
-    void handleResize();
+    std::vector<std::shared_ptr<StageBase>> _stages;
 
-    void initRenderpasses();
-    void destroyRenderpasses();
+    void handleResize();
 
     std::optional<uint32_t> acquireNextImageIdx(const std::shared_ptr<SemaphoreObject> &semaphore);
 

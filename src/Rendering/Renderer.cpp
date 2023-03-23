@@ -8,19 +8,13 @@
 #include "src/Rendering/Swapchain.hpp"
 #include "src/Rendering/Objects/FenceObject.hpp"
 #include "src/Rendering/Objects/SemaphoreObject.hpp"
+#include "src/Rendering/Stages/DebugUIStage.hpp"
 
 void Renderer::handleResize() {
     this->_renderingManager->waitIdle();
 
+    // TODO: reset framebuffers
     this->_renderingManager->swapchain()->create();
-}
-
-void Renderer::initRenderpasses() {
-    // TODO
-}
-
-void Renderer::destroyRenderpasses() {
-    // TODO
 }
 
 std::optional<uint32_t> Renderer::acquireNextImageIdx(const std::shared_ptr<SemaphoreObject> &semaphore) {
@@ -49,10 +43,7 @@ Renderer::Renderer(const std::shared_ptr<EventQueue> &eventQueue,
 void Renderer::init() {
     this->_eventQueue->addHandler([this](const Event &event) {
         switch (event.type) {
-            case RENDERER_RELOADING_REQUESTED_EVENT:
-                this->destroyRenderpasses();
-                this->initRenderpasses();
-                break;
+            // TODO: reload stages, renderpasses, framebuffers
 
             case RESIZE_WINDOW_EVENT:
                 this->handleResize();
@@ -77,17 +68,25 @@ void Renderer::init() {
 
     this->_renderingManager->swapchain()->create();
 
-    // TODO: init renderpasses
+    this->_stages.emplace_back(std::make_shared<DebugUIStage>(this->_eventQueue,
+                                                              this->_renderingManager->physicalDevice(),
+                                                              this->_renderingManager->renderingDevice(),
+                                                              this->_renderingManager->vulkanObjectsAllocator(),
+                                                              this->_renderingManager->swapchain(),
+                                                              this->_renderingManager->commandExecutor(),
+                                                              this->_renderingManager->instance()));
 
-    this->initRenderpasses();
+    for (const auto &stage: this->_stages) {
+        stage->init();
+    }
 }
 
 void Renderer::destroy() {
     this->_renderingManager->waitIdle();
 
-    this->destroyRenderpasses();
-
-    // TODO: destroy renderpasses
+    for (const auto &stage: this->_stages) {
+        stage->destroy();
+    }
 
     this->_renderingManager->swapchain()->destroy();
 
@@ -116,7 +115,9 @@ void Renderer::render() {
 
     this->_renderingManager->commandExecutor()->beginMainExecution(
                     this->_currentFrameIdx, [&](VkCommandBuffer cmdBuffer) {
-                        // TODO: render
+                        for (const auto &stage: this->_stages) {
+                            stage->record(cmdBuffer, this->_currentFrameIdx, imageIdx);
+                        }
                     })
             .withFence(currentSyncObjects->fence)
             .withWaitSemaphore(currentSyncObjects->imageAvailableSemaphore)
