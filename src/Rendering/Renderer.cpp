@@ -1,89 +1,56 @@
 #include "Renderer.hpp"
 
-#include <iostream>
-
-#include "src/Constants.hpp"
-#include "src/Engine/Engine.hpp"
 #include "src/Events/EventQueue.hpp"
-#include "CommandExecution.hpp"
-#include "CommandExecutor.hpp"
-#include "PhysicalDevice.hpp"
-#include "RenderingDevice.hpp"
-#include "RenderingObjectsAllocator.hpp"
-#include "Swapchain.hpp"
+#include "src/Rendering/CommandExecution.hpp"
+#include "src/Rendering/CommandExecutor.hpp"
+#include "src/Rendering/RenderingDevice.hpp"
+#include "src/Rendering/RenderingManager.hpp"
+#include "src/Rendering/Swapchain.hpp"
 #include "src/Rendering/Objects/FenceObject.hpp"
 #include "src/Rendering/Objects/SemaphoreObject.hpp"
-#include "src/Rendering/Renderpasses/ImguiRenderpass.hpp"
-//#include "src/Rendering/Renderpasses/SceneRenderpass.hpp"
-#include "src/Rendering/Renderpasses/ShadowRenderpass.hpp"
-#include "src/Rendering/Renderpasses/SwapchainPresentRenderpass.hpp"
-#include "src/System/Window.hpp"
-#include "src/Rendering/VulkanObjectsAllocator.hpp"
 
-VKAPI_ATTR VkBool32 VKAPI_CALL Renderer::debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-                                                       VkDebugUtilsMessageTypeFlagsEXT messageType,
-                                                       const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
-                                                       void *pUserData) {
+void Renderer::handleResize() {
+    this->_renderingManager->waitIdle();
 
+    this->_renderingManager->swapchain()->create();
 }
 
-Renderer::Renderer(Engine *engine) : _engine(engine) {
+void Renderer::initRenderpasses() {
+    // TODO
+}
+
+void Renderer::destroyRenderpasses() {
+    // TODO
+}
+
+std::optional<uint32_t> Renderer::acquireNextImageIdx(const std::shared_ptr<SemaphoreObject> &semaphore) {
+    uint32_t imageIdx;
+    VkResult result = vkAcquireNextImageKHR(this->_renderingManager->renderingDevice()->getHandle(),
+                                            this->_renderingManager->swapchain()->getHandle(),
+                                            UINT64_MAX, semaphore->getHandle(), VK_NULL_HANDLE, &imageIdx);
+
+
+    if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+        return std::nullopt;
+    } else if (result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR) {
+        return imageIdx;
+    }
+
+    throw std::runtime_error("Vulkan runtime error");
+}
+
+Renderer::Renderer(const std::shared_ptr<EventQueue> &eventQueue,
+                   const std::shared_ptr<RenderingManager> &renderingManager)
+        : _eventQueue(eventQueue),
+          _renderingManager(renderingManager) {
     //
 }
 
 void Renderer::init() {
-    this->_instance = createInstance();
-    this->_surface = createSurface(this->_engine->window()->handle());
-
-    this->_physicalDevice = PhysicalDevice::selectSuitable(this->_instance, this->_surface);
-    this->_renderingDevice = RenderingDevice::fromPhysicalDevice(this->_physicalDevice);
-    this->_vulkanObjectsAllocator = std::make_shared<VulkanObjectsAllocator>(this->_physicalDevice,
-                                                                             this->_renderingDevice);
-    this->_commandExecutor = std::make_shared<CommandExecutor>(this->_renderingDevice,
-                                                               this->_vulkanObjectsAllocator);
-    this->_commandExecutor->init();
-    this->_swapchain = std::make_shared<Swapchain>(this->_physicalDevice, this->_renderingDevice,
-                                                   this->_vulkanObjectsAllocator);
-    this->_renderingObjectsAllocator = std::make_shared<RenderingObjectsAllocator>(this->_renderingDevice,
-                                                                           this->_vulkanObjectsAllocator,
-                                                                           this->_commandExecutor);
-
-    for (uint32_t frameIdx = 0; frameIdx < MAX_INFLIGHT_FRAMES; frameIdx++) {
-        this->_syncObjectsGroups[frameIdx] = new SyncObjectsGroup{
-                .fence =  FenceObject::create(this->_renderingDevice, this->_vulkanObjectsAllocator, true),
-                .imageAvailableSemaphore = SemaphoreObject::create(this->_vulkanObjectsAllocator),
-                .renderFinishedSemaphore = SemaphoreObject::create(this->_vulkanObjectsAllocator)
-        };
-    }
-
-    this->_swapchain->create();
-
-    RenderpassBase *shadowRenderpass = new ShadowRenderpass(this->_renderingDevice, this->_physicalDevice,
-                                                            this->_vulkanObjectsAllocator, this->_engine);
-//    SceneRenderpass *sceneRenderpass = new SceneRenderpass(this->_renderingDevice, this->_physicalDevice,
-//                                                           this->_vulkanObjectsAllocator, this->_swapchain.get(),
-//                                                           this->_engine);
-//    sceneRenderpass->addShadowRenderpass(shadowRenderpass);
-
-    RenderpassBase *imguiRenderpass = new ImguiRenderpass(this->_renderingDevice, this->_vulkanObjectsAllocator,
-                                                          this->_swapchain.get(), this->_instance,
-                                                          this->_physicalDevice.get(), this->_commandExecutor.get());
-
-    SwapchainPresentRenderpass *presentRenderpass = new SwapchainPresentRenderpass(this->_renderingDevice,
-                                                                                   this->_swapchain.get(),
-                                                                                   this->_engine);
-//    presentRenderpass->addInputRenderpass(sceneRenderpass);
-    presentRenderpass->addInputRenderpass(imguiRenderpass);
-
-    this->_renderpasses.push_back(shadowRenderpass);
-//    this->_renderpasses.push_back(sceneRenderpass);
-    this->_renderpasses.push_back(imguiRenderpass);
-    this->_renderpasses.push_back(presentRenderpass);
-
-    this->_engine->eventQueue()->addHandler([this](const Event &event) {
+    this->_eventQueue->addHandler([this](const Event &event) {
         switch (event.type) {
             case RENDERER_RELOADING_REQUESTED_EVENT:
-                this->cleanupRenderpasses();
+                this->destroyRenderpasses();
                 this->initRenderpasses();
                 break;
 
@@ -95,76 +62,50 @@ void Renderer::init() {
                 break;
         }
     });
+
+    for (uint32_t frameIdx = 0; frameIdx < MAX_INFLIGHT_FRAMES; frameIdx++) {
+        this->_syncObjectsGroups[frameIdx] = std::make_shared<SyncObjectsGroup>();
+        this->_syncObjectsGroups[frameIdx]->fence = FenceObject::create(this->_renderingManager->renderingDevice(),
+                                                                        this->_renderingManager->vulkanObjectsAllocator(),
+                                                                        true);
+        this->_syncObjectsGroups[frameIdx]->imageAvailableSemaphore = SemaphoreObject::create(
+                this->_renderingManager->vulkanObjectsAllocator());
+        this->_syncObjectsGroups[frameIdx]->renderFinishedSemaphore = SemaphoreObject::create(
+                this->_renderingManager->vulkanObjectsAllocator());
+    }
+
+
+    this->_renderingManager->swapchain()->create();
+
+    // TODO: init renderpasses
+
+    this->initRenderpasses();
 }
 
-void Renderer::cleanup() {
-    this->cleanupRenderpasses();
+void Renderer::destroy() {
+    this->_renderingManager->waitIdle();
 
-    this->_swapchain->destroy();
+    this->destroyRenderpasses();
 
-    for (RenderpassBase *renderpass: this->_renderpasses) {
-        delete renderpass;
-    }
+    // TODO: destroy renderpasses
+
+    this->_renderingManager->swapchain()->destroy();
 
     for (uint32_t frameIdx = 0; frameIdx < MAX_INFLIGHT_FRAMES; frameIdx++) {
         this->_syncObjectsGroups[frameIdx]->fence->destroy();
         this->_syncObjectsGroups[frameIdx]->imageAvailableSemaphore->destroy();
         this->_syncObjectsGroups[frameIdx]->renderFinishedSemaphore->destroy();
-        delete this->_syncObjectsGroups[frameIdx];
-    }
-
-    this->_commandExecutor->destroy();
-    this->_renderingDevice->destroy();
-
-    vkDestroySurfaceKHR(this->_instance, this->_surface, nullptr);
-    vkDestroyInstance(this->_instance, nullptr);
-}
-
-void Renderer::initRenderpasses() {
-    for (RenderpassBase *renderpass: this->_renderpasses) {
-        renderpass->initRenderpass();
-        renderpass->createFramebuffers();
-    }
-}
-
-void Renderer::cleanupRenderpasses() {
-    this->_renderingDevice->waitIdle();
-
-    for (RenderpassBase *renderpass: this->_renderpasses) {
-        renderpass->destroyFramebuffers();
-        renderpass->destroyRenderpass();
-    }
-}
-
-VkInstance Renderer::createInstance() {
-}
-
-VkSurfaceKHR Renderer::createSurface(GLFWwindow *window) {
-}
-
-void Renderer::handleResize() {
-    this->_renderingDevice->waitIdle();
-
-    for (RenderpassBase *renderpass: this->_renderpasses) {
-        renderpass->destroyFramebuffers();
-    }
-
-    this->_swapchain->create();
-
-    for (RenderpassBase *renderpass: this->_renderpasses) {
-        renderpass->createFramebuffers();
+        this->_syncObjectsGroups[frameIdx] = nullptr;
     }
 }
 
 void Renderer::render() {
-    SyncObjectsGroup *currentSyncObjects = this->_syncObjectsGroups[_currentFrameIdx];
+    std::shared_ptr<SyncObjectsGroup> currentSyncObjects = this->_syncObjectsGroups[this->_currentFrameIdx];
 
     currentSyncObjects->fence->wait(UINT64_MAX);
     currentSyncObjects->fence->reset();
 
-    std::optional<uint32_t> acquireResult = this->_renderingDevice
-            ->acquireNextSwapchainImageIdx(this->_swapchain->getHandle(), UINT64_MAX,
-                                           currentSyncObjects->imageAvailableSemaphore->getHandle());
+    std::optional<uint32_t> acquireResult = this->acquireNextImageIdx(currentSyncObjects->imageAvailableSemaphore);
 
     if (!acquireResult.has_value()) {
         handleResize();
@@ -173,25 +114,17 @@ void Renderer::render() {
 
     uint32_t imageIdx = acquireResult.value();
 
-    this->_commandExecutor->beginMainExecution(_currentFrameIdx, [this, &imageIdx](VkCommandBuffer cmdBuffer) {
-                VkExtent2D extent = this->_swapchain->getSwapchainExtent();
-
-                VkRect2D renderArea = {
-                        .offset = {0, 0},
-                        .extent = extent
-                };
-
-                for (RenderpassBase *renderpass: this->_renderpasses) {
-                    renderpass->recordCommands(cmdBuffer, renderArea, _currentFrameIdx, imageIdx);
-                }
-            })
+    this->_renderingManager->commandExecutor()->beginMainExecution(
+                    this->_currentFrameIdx, [&](VkCommandBuffer cmdBuffer) {
+                        // TODO: render
+                    })
             .withFence(currentSyncObjects->fence)
             .withWaitSemaphore(currentSyncObjects->imageAvailableSemaphore)
             .withSignalSemaphore(currentSyncObjects->renderFinishedSemaphore)
             .withWaitDstStageMask(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT)
             .submit(false);
 
-    VkSwapchainKHR swapchain = this->_swapchain->getHandle();
+    VkSwapchainKHR swapchain = this->_renderingManager->swapchain()->getHandle();
     VkSemaphore renderFinishedSemaphore = currentSyncObjects->renderFinishedSemaphore->getHandle();
 
     VkPresentInfoKHR presentInfo = {
@@ -205,7 +138,8 @@ void Renderer::render() {
             .pResults = nullptr
     };
 
-    VkResult presentResult = vkQueuePresentKHR(this->_renderingDevice->getPresentQueue(), &presentInfo);
+    VkResult presentResult = vkQueuePresentKHR(this->_renderingManager->renderingDevice()->getPresentQueue(),
+                                               &presentInfo);
 
     if (presentResult == VK_ERROR_OUT_OF_DATE_KHR || presentResult == VK_SUBOPTIMAL_KHR) {
         handleResize();
@@ -213,9 +147,5 @@ void Renderer::render() {
         throw std::runtime_error("Vulkan runtime error");
     }
 
-    _currentFrameIdx = (_currentFrameIdx + 1) % MAX_INFLIGHT_FRAMES;
-}
-
-void Renderer::wait() {
-    this->_renderingDevice->waitIdle();
+    this->_currentFrameIdx = (this->_currentFrameIdx + 1) % MAX_INFLIGHT_FRAMES;
 }

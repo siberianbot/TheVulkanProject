@@ -4,61 +4,43 @@
 #include <array>
 #include <memory>
 #include <optional>
-#include <vector>
 
-#include <vulkan/vulkan.hpp>
-#include <GLFW/glfw3.h>
+#include "src/Rendering/Constants.hpp"
 
-#include "Common.hpp"
-
-class Engine;
-class PhysicalDevice;
-class RenderingDevice;
-class CommandExecutor;
-class Swapchain;
+class EventQueue;
+class RenderingManager;
 class FenceObject;
 class SemaphoreObject;
-class RenderpassBase;
-class RenderingObjectsAllocator;
-class VulkanObjectsAllocator;
 
 class Renderer {
 private:
-    Engine *_engine;
-
-    VkInstance _instance = VK_NULL_HANDLE;
-    VkSurfaceKHR _surface = VK_NULL_HANDLE;
-
-    std::shared_ptr<PhysicalDevice> _physicalDevice;
-    std::shared_ptr<RenderingDevice> _renderingDevice;
-    std::shared_ptr<VulkanObjectsAllocator> _vulkanObjectsAllocator;
-    std::shared_ptr<CommandExecutor> _commandExecutor;
-    std::shared_ptr<RenderingObjectsAllocator> _renderingObjectsAllocator;
-    std::shared_ptr<Swapchain> _swapchain;
-
     struct SyncObjectsGroup {
         std::shared_ptr<FenceObject> fence;
         std::shared_ptr<SemaphoreObject> imageAvailableSemaphore;
         std::shared_ptr<SemaphoreObject> renderFinishedSemaphore;
     };
 
-    uint32_t _currentFrameIdx = 0;
-    std::array<SyncObjectsGroup *, MAX_INFLIGHT_FRAMES> _syncObjectsGroups;
-    std::vector<RenderpassBase *> _renderpasses;
+    std::shared_ptr<EventQueue> _eventQueue;
+    std::shared_ptr<RenderingManager> _renderingManager;
 
-    void cleanupRenderpasses();
+    uint32_t _currentFrameIdx = 0;
+    std::array<std::shared_ptr<SyncObjectsGroup>, MAX_INFLIGHT_FRAMES> _syncObjectsGroups;
+
+    void handleResize();
+
+    void initRenderpasses();
+    void destroyRenderpasses();
+
+    std::optional<uint32_t> acquireNextImageIdx(const std::shared_ptr<SemaphoreObject> &semaphore);
 
 public:
-    Renderer(Engine *engine);
+    Renderer(const std::shared_ptr<EventQueue> &eventQueue,
+             const std::shared_ptr<RenderingManager> &renderingManager);
 
     void init();
-    void initRenderpasses();
-    void cleanup();
+    void destroy();
 
     void render();
-    void wait();
-
-    [[nodiscard]] std::shared_ptr<RenderingObjectsAllocator> renderingObjectsAllocator() const { return this->_renderingObjectsAllocator; }
 };
 
 #endif // RENDERING_RENDERER_HPP

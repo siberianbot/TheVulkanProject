@@ -31,7 +31,7 @@ src = [
     'src/Rendering/CommandExecutor.cpp',
     'src/Rendering/VulkanObjectsAllocator.cpp',
     'src/Rendering/PhysicalDevice.cpp',
-    # TODO: 'src/Rendering/Renderer.cpp',
+    'src/Rendering/Renderer.cpp',
     'src/Rendering/RenderingDevice.cpp',
     'src/Rendering/RenderingManager.cpp',
     'src/Rendering/Swapchain.cpp',

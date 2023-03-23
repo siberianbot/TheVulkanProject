@@ -33,8 +33,6 @@ public:
 
     VkSwapchainKHR createSwapchain(VkExtent2D extent, uint32_t minImageCount);
     std::vector<VkImage> getSwapchainImages(VkSwapchainKHR swapchain);
-    std::optional<uint32_t> acquireNextSwapchainImageIdx(VkSwapchainKHR swapchain, uint64_t timeout,
-                                                         VkSemaphore signalSemaphore);
     void destroySwapchain(VkSwapchainKHR swapchain);
 
     VkFramebuffer createFramebuffer(VkRenderPass renderpass, VkExtent2D extent,

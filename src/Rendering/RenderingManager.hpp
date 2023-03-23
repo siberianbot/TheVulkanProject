@@ -46,9 +46,16 @@ public:
 
     void waitIdle();
 
-    [[nodiscard]] std::shared_ptr<RenderingObjectsAllocator> renderingObjectsAllocator() const {
+    [[nodiscard]] const std::shared_ptr<PhysicalDevice> &physicalDevice() const { return this->_physicalDevice; }
+    [[nodiscard]] const std::shared_ptr<RenderingDevice> &renderingDevice() const { return this->_renderingDevice; }
+    [[nodiscard]] const std::shared_ptr<CommandExecutor> &commandExecutor() const { return this->_commandExecutor; }
+    [[nodiscard]] const std::shared_ptr<RenderingObjectsAllocator> &renderingObjectsAllocator() const {
         return this->_renderingObjectsAllocator;
     }
+    [[nodiscard]] const std::shared_ptr<VulkanObjectsAllocator> &vulkanObjectsAllocator() const {
+        return this->_vulkanObjectsAllocator;
+    }
+    [[nodiscard]] const std::shared_ptr<Swapchain> &swapchain() const { return this->_swapchain; }
 };
 
 #endif // RENDERING_RENDERINGMANAGER_HPP

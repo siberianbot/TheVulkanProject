@@ -11,6 +11,7 @@ class Window;
 class RenderingManager;
 class ResourceManager;
 class SceneManager;
+class Renderer;
 class DebugUI;
 
 enum CameraControlState {
@@ -27,6 +28,7 @@ private:
     std::shared_ptr<RenderingManager> _renderingManager;
     std::shared_ptr<ResourceManager> _resourceManager;
     std::shared_ptr<SceneManager> _sceneManager;
+    std::shared_ptr<Renderer> _renderer;
     std::shared_ptr<DebugUI> _debugUI;
 
     bool _work = false;
@@ -47,13 +49,14 @@ public:
 
     void run();
 
-    [[nodiscard]] std::shared_ptr<EngineVars> engineVars() const { return this->_engineVars; }
-    [[nodiscard]] std::shared_ptr<EventQueue> eventQueue() const { return this->_eventQueue; }
-    [[nodiscard]] std::shared_ptr<InputProcessor> inputProcessor() const { return this->_inputProcessor; }
-    [[nodiscard]] std::shared_ptr<Window> window() const { return this->_window; }
-    [[nodiscard]] std::shared_ptr<RenderingManager> renderingManager() { return this->_renderingManager; }
-    [[nodiscard]] std::shared_ptr<ResourceManager> resourceManager() { return this->_resourceManager; }
-    [[nodiscard]] std::shared_ptr<SceneManager> sceneManager() { return this->_sceneManager; }
+    [[nodiscard]] const std::shared_ptr<EngineVars> engineVars() const { return this->_engineVars; }
+    [[nodiscard]] const std::shared_ptr<EventQueue> eventQueue() const { return this->_eventQueue; }
+    [[nodiscard]] const std::shared_ptr<InputProcessor> inputProcessor() const { return this->_inputProcessor; }
+    [[nodiscard]] const std::shared_ptr<Window> window() const { return this->_window; }
+    [[nodiscard]] const std::shared_ptr<RenderingManager> renderingManager() const { return this->_renderingManager; }
+    [[nodiscard]] const std::shared_ptr<ResourceManager> resourceManager() const { return this->_resourceManager; }
+    [[nodiscard]] const std::shared_ptr<SceneManager> sceneManager() const { return this->_sceneManager; }
+    [[nodiscard]] const std::shared_ptr<Renderer> renderer() const { return this->_renderer; }
 
     [[nodiscard]] float delta() { return this->_delta; }
 };

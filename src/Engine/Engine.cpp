@@ -8,6 +8,7 @@
 #include "src/Engine/InputProcessor.hpp"
 #include "src/System/Window.hpp"
 #include "src/Rendering/RenderingManager.hpp"
+#include "src/Rendering/Renderer.hpp"
 #include "src/Resources/MeshResource.hpp"
 #include "src/Resources/ImageResource.hpp"
 #include "src/Resources/ResourceManager.hpp"
@@ -31,6 +32,7 @@ Engine::Engine()
           _renderingManager(nullptr),
           _resourceManager(nullptr),
           _sceneManager(std::make_shared<SceneManager>(this->_eventQueue)),
+          _renderer(nullptr),
           _debugUI(nullptr) {
     //
 }
@@ -59,10 +61,11 @@ void Engine::init() {
     this->_resourceManager = std::make_shared<ResourceManager>(this->_renderingManager->renderingObjectsAllocator());
     this->_resourceManager->addDataDir("data");
 
-//  TODO:  this->_renderer->initRenderpasses();
-
     this->_debugUI = std::make_shared<DebugUI>(this->_engineVars, this->_eventQueue, this->_resourceManager,
                                                this->_sceneManager, this->_window);
+
+    this->_renderer = std::make_shared<Renderer>(this->_eventQueue, this->_renderingManager);
+    this->_renderer->init();
 
     this->_inputProcessor->addKeyboardPressHandler(GLFW_KEY_W, [this]() { this->_moveForward = true; });
     this->_inputProcessor->addKeyboardReleaseHandler(GLFW_KEY_W, [this]() { this->_moveForward = false; });
@@ -269,6 +272,8 @@ void Engine::init() {
 
 void Engine::cleanup() {
     this->_renderingManager->waitIdle();
+
+    this->_renderer->destroy();
 
     this->_resourceManager->removeAll();
     this->_renderingManager->destroy();
