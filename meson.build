@@ -27,14 +27,15 @@ src = [
     'src/Events/EventQueue.cpp',
 
     # Rendering
-    'src/Rendering/VulkanObjectsAllocator.cpp',
-    'src/Rendering/Renderer.cpp',
-    'src/Rendering/PhysicalDevice.cpp',
-    'src/Rendering/RenderingDevice.cpp',
     'src/Rendering/CommandExecution.cpp',
     'src/Rendering/CommandExecutor.cpp',
+    'src/Rendering/VulkanObjectsAllocator.cpp',
+    'src/Rendering/PhysicalDevice.cpp',
+    # TODO: 'src/Rendering/Renderer.cpp',
+    'src/Rendering/RenderingDevice.cpp',
+    'src/Rendering/RenderingManager.cpp',
     'src/Rendering/Swapchain.cpp',
-    'src/Rendering/RendererAllocator.cpp',
+    'src/Rendering/RenderingObjectsAllocator.cpp',
 
     'src/Rendering/Builders/AttachmentBuilder.cpp',
     'src/Rendering/Builders/BufferObjectBuilder.cpp',

@@ -19,20 +19,12 @@ class Swapchain;
 class FenceObject;
 class SemaphoreObject;
 class RenderpassBase;
-class RendererAllocator;
+class RenderingObjectsAllocator;
 class VulkanObjectsAllocator;
 
 class Renderer {
 private:
-    struct SyncObjectsGroup {
-        std::shared_ptr<FenceObject> fence;
-        std::shared_ptr<SemaphoreObject> imageAvailableSemaphore;
-        std::shared_ptr<SemaphoreObject> renderFinishedSemaphore;
-    };
-
     Engine *_engine;
-
-    uint32_t _currentFrameIdx = 0;
 
     VkInstance _instance = VK_NULL_HANDLE;
     VkSurfaceKHR _surface = VK_NULL_HANDLE;
@@ -41,21 +33,18 @@ private:
     std::shared_ptr<RenderingDevice> _renderingDevice;
     std::shared_ptr<VulkanObjectsAllocator> _vulkanObjectsAllocator;
     std::shared_ptr<CommandExecutor> _commandExecutor;
-    std::shared_ptr<RendererAllocator> _rendererAllocator;
+    std::shared_ptr<RenderingObjectsAllocator> _renderingObjectsAllocator;
     std::shared_ptr<Swapchain> _swapchain;
 
+    struct SyncObjectsGroup {
+        std::shared_ptr<FenceObject> fence;
+        std::shared_ptr<SemaphoreObject> imageAvailableSemaphore;
+        std::shared_ptr<SemaphoreObject> renderFinishedSemaphore;
+    };
+
+    uint32_t _currentFrameIdx = 0;
     std::array<SyncObjectsGroup *, MAX_INFLIGHT_FRAMES> _syncObjectsGroups;
     std::vector<RenderpassBase *> _renderpasses;
-
-    static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-                                                        VkDebugUtilsMessageTypeFlagsEXT messageType,
-                                                        const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
-                                                        void *pUserData);
-
-    VkInstance createInstance();
-    VkSurfaceKHR createSurface(GLFWwindow *window);
-
-    void handleResize();
 
     void cleanupRenderpasses();
 
@@ -69,7 +58,7 @@ public:
     void render();
     void wait();
 
-    [[nodiscard]] std::shared_ptr<RendererAllocator> rendererAllocator() const { return this->_rendererAllocator; }
+    [[nodiscard]] std::shared_ptr<RenderingObjectsAllocator> renderingObjectsAllocator() const { return this->_renderingObjectsAllocator; }
 };
 
 #endif // RENDERING_RENDERER_HPP

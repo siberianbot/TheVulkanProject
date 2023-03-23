@@ -18,10 +18,6 @@ void RenderingDevice::destroy() {
     vkDestroyDevice(this->_device, nullptr);
 }
 
-void RenderingDevice::waitIdle() {
-    vkEnsure(vkDeviceWaitIdle(this->_device));
-}
-
 VkSwapchainKHR RenderingDevice::createSwapchain(VkExtent2D extent, uint32_t minImageCount) {
     VkSurfaceFormatKHR surfaceFormat = this->_physicalDevice->getPreferredSurfaceFormat();
     VkPresentModeKHR presentMode = this->_physicalDevice->getPreferredPresentMode();

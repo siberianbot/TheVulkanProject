@@ -11,7 +11,7 @@ private:
 
 public:
     CubeImageResource(const std::string &id, const std::array<std::filesystem::path, 6> &paths,
-                      const std::shared_ptr<RendererAllocator> &rendererAllocator);
+                      const std::shared_ptr<RenderingObjectsAllocator> &renderingObjectsAllocator);
     ~CubeImageResource() override = default;
 
     [[nodiscard]] ResourceType type() const override { return CUBE_IMAGE_RESOURCE; }

@@ -3,7 +3,7 @@
 #include <fstream>
 #include <sstream>
 
-#include "src/Rendering/RendererAllocator.hpp"
+#include "src/Rendering/RenderingObjectsAllocator.hpp"
 #include "src/Rendering/Objects/ShaderObject.hpp"
 
 std::vector<char> ShaderResource::readContent(const std::filesystem::path &path) {
@@ -38,9 +38,9 @@ void ShaderResource::writeContent(const std::filesystem::path &path, const std::
 
 ShaderResource::ShaderResource(const std::string &id,
                                const std::filesystem::path &binPath, const std::filesystem::path &codePath,
-                               const std::shared_ptr<RendererAllocator> &rendererAllocator)
+                               const std::shared_ptr<RenderingObjectsAllocator> &renderingObjectsAllocator)
         : Resource(id, {binPath, codePath}),
-          _rendererAllocator(rendererAllocator) {
+          _renderingObjectsAllocator(renderingObjectsAllocator) {
     //
 }
 
@@ -49,7 +49,7 @@ void ShaderResource::load() {
         return;
     }
 
-    this->_shader = this->_rendererAllocator->uploadShaderBinary(this->readContent(this->_paths[0]));
+    this->_shader = this->_renderingObjectsAllocator->uploadShaderBinary(this->readContent(this->_paths[0]));
 
     Resource::load();
 }

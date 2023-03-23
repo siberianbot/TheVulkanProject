@@ -2,7 +2,7 @@
 
 #include <stb/stb_image.h>
 
-#include "src/Rendering/RendererAllocator.hpp"
+#include "src/Rendering/RenderingObjectsAllocator.hpp"
 
 std::shared_ptr<ImageObject> CubeImageResource::loadImage() {
     std::array<ImageData, 6> imageData;
@@ -19,7 +19,7 @@ std::shared_ptr<ImageObject> CubeImageResource::loadImage() {
         imageDataPtr[idx] = imageData[idx].data;
     }
 
-    std::shared_ptr<ImageObject> image = this->_rendererAllocator->uploadCubeImage(width, height, size, imageDataPtr);
+    std::shared_ptr<ImageObject> image = this->_renderingObjectsAllocator->uploadCubeImage(width, height, size, imageDataPtr);
 
     for (uint32_t idx = 0; idx < 6; idx++) {
         stbi_image_free(imageDataPtr[idx]);
@@ -29,7 +29,7 @@ std::shared_ptr<ImageObject> CubeImageResource::loadImage() {
 }
 
 CubeImageResource::CubeImageResource(const std::string &id, const std::array<std::filesystem::path, 6> &paths,
-                                     const std::shared_ptr<RendererAllocator> &rendererAllocator)
-        : ImageBaseResource(id, std::vector(paths.begin(), paths.end()), rendererAllocator) {
+                                     const std::shared_ptr<RenderingObjectsAllocator> &renderingObjectsAllocator)
+        : ImageBaseResource(id, std::vector(paths.begin(), paths.end()), renderingObjectsAllocator) {
     //
 }

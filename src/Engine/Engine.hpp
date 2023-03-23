@@ -8,7 +8,7 @@ class EventQueue;
 class EngineVars;
 class InputProcessor;
 class Window;
-class Renderer;
+class RenderingManager;
 class ResourceManager;
 class SceneManager;
 class DebugUI;
@@ -24,7 +24,7 @@ private:
     std::shared_ptr<EventQueue> _eventQueue;
     std::shared_ptr<InputProcessor> _inputProcessor;
     std::shared_ptr<Window> _window;
-    std::shared_ptr<Renderer> _renderer;
+    std::shared_ptr<RenderingManager> _renderingManager;
     std::shared_ptr<ResourceManager> _resourceManager;
     std::shared_ptr<SceneManager> _sceneManager;
     std::shared_ptr<DebugUI> _debugUI;
@@ -51,7 +51,7 @@ public:
     [[nodiscard]] std::shared_ptr<EventQueue> eventQueue() const { return this->_eventQueue; }
     [[nodiscard]] std::shared_ptr<InputProcessor> inputProcessor() const { return this->_inputProcessor; }
     [[nodiscard]] std::shared_ptr<Window> window() const { return this->_window; }
-    [[nodiscard]] std::shared_ptr<Renderer> renderer() { return this->_renderer; }
+    [[nodiscard]] std::shared_ptr<RenderingManager> renderingManager() { return this->_renderingManager; }
     [[nodiscard]] std::shared_ptr<ResourceManager> resourceManager() { return this->_resourceManager; }
     [[nodiscard]] std::shared_ptr<SceneManager> sceneManager() { return this->_sceneManager; }
 

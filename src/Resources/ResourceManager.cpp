@@ -26,8 +26,8 @@ std::shared_ptr<Resource> ResourceManager::getResource(const std::string &name, 
     return resource;
 }
 
-ResourceManager::ResourceManager(const std::shared_ptr<RendererAllocator> &rendererAllocator)
-        : _rendererAllocator(rendererAllocator) {
+ResourceManager::ResourceManager(const std::shared_ptr<RenderingObjectsAllocator> &renderingObjectsAllocator)
+        : _renderingObjectsAllocator(renderingObjectsAllocator) {
     //
 }
 
@@ -47,12 +47,12 @@ void ResourceManager::addDataDir(const std::filesystem::path &path) {
 
         switch (type) {
             case MESH_RESOURCE: {
-                resource = std::make_shared<MeshResource>(id, path / entry["path"], this->_rendererAllocator);
+                resource = std::make_shared<MeshResource>(id, path / entry["path"], this->_renderingObjectsAllocator);
                 break;
             }
 
             case IMAGE_RESOURCE: {
-                resource = std::make_shared<ImageResource>(id, path / entry["path"], this->_rendererAllocator);
+                resource = std::make_shared<ImageResource>(id, path / entry["path"], this->_renderingObjectsAllocator);
                 break;
             }
 
@@ -69,14 +69,14 @@ void ResourceManager::addDataDir(const std::filesystem::path &path) {
                     paths[idx] = path / pathsJson[idx];
                 }
 
-                resource = std::make_shared<CubeImageResource>(id, paths, this->_rendererAllocator);
+                resource = std::make_shared<CubeImageResource>(id, paths, this->_renderingObjectsAllocator);
                 break;
             }
 
             case SHADER_RESOURCE: {
                 resource = std::make_shared<ShaderResource>(id,
                                                             path / entry["bin-path"], path / entry["code-path"],
-                                                            this->_rendererAllocator);
+                                                            this->_renderingObjectsAllocator);
                 break;
             }
 

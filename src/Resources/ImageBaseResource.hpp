@@ -5,7 +5,7 @@
 
 #include "Resource.hpp"
 
-class RendererAllocator;
+class RenderingObjectsAllocator;
 class ImageObject;
 
 class ImageBaseResource : public Resource {
@@ -17,12 +17,12 @@ protected:
         void *data;
     };
 
-    std::shared_ptr<RendererAllocator> _rendererAllocator;
+    std::shared_ptr<RenderingObjectsAllocator> _renderingObjectsAllocator;
 
     std::shared_ptr<ImageObject> _image;
 
     ImageBaseResource(const std::string &id, const std::vector<std::filesystem::path> &paths,
-                      const std::shared_ptr<RendererAllocator> &rendererAllocator);
+                      const std::shared_ptr<RenderingObjectsAllocator> &renderingObjectsAllocator);
 
     ImageData loadImageData(const std::filesystem::path &path);
 

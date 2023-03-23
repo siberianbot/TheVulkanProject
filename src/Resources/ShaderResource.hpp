@@ -5,12 +5,12 @@
 
 #include "Resource.hpp"
 
-class RendererAllocator;
+class RenderingObjectsAllocator;
 class ShaderObject;
 
 class ShaderResource : public Resource {
 private:
-    std::shared_ptr<RendererAllocator> _rendererAllocator;
+    std::shared_ptr<RenderingObjectsAllocator> _renderingObjectsAllocator;
 
     std::shared_ptr<ShaderObject> _shader = nullptr;
     std::vector<char> _shaderCode;
@@ -21,7 +21,7 @@ private:
 public:
     ShaderResource(const std::string &id,
                    const std::filesystem::path &binPath, const std::filesystem::path &codePath,
-                   const std::shared_ptr<RendererAllocator> &rendererAllocator);
+                   const std::shared_ptr<RenderingObjectsAllocator> &renderingObjectsAllocator);
     ~ShaderResource() override = default;
 
     void load() override;

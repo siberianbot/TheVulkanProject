@@ -6,9 +6,9 @@
 #include "src/Rendering/CommandExecution.hpp"
 
 CommandExecutor::CommandExecutor(const std::shared_ptr<RenderingDevice> &renderingDevice,
-                                 const std::shared_ptr<VulkanObjectsAllocator> &renderingFunctions)
+                                 const std::shared_ptr<VulkanObjectsAllocator> &vulkanObjectsAllocator)
         : _renderingDevice(renderingDevice),
-          _vulkanObjectsAllocator(renderingFunctions) {
+          _vulkanObjectsAllocator(vulkanObjectsAllocator) {
     //
 }
 

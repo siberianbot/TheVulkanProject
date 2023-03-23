@@ -2,11 +2,11 @@
 
 #include <stb/stb_image.h>
 
-#include "src/Rendering/RendererAllocator.hpp"
+#include "src/Rendering/RenderingObjectsAllocator.hpp"
 
 std::shared_ptr<ImageObject> ImageResource::loadImage() {
     ImageData imageData = this->loadImageData(this->_paths[0]);
-    std::shared_ptr<ImageObject> image = this->_rendererAllocator->uploadImage(imageData.width, imageData.height,
+    std::shared_ptr<ImageObject> image = this->_renderingObjectsAllocator->uploadImage(imageData.width, imageData.height,
                                                                                imageData.width * imageData.height * 4,
                                                                                imageData.data);
 
@@ -16,7 +16,7 @@ std::shared_ptr<ImageObject> ImageResource::loadImage() {
 }
 
 ImageResource::ImageResource(const std::string &id, const std::filesystem::path &path,
-                             const std::shared_ptr<RendererAllocator> &rendererAllocator)
-        : ImageBaseResource(id, {path}, rendererAllocator) {
+                             const std::shared_ptr<RenderingObjectsAllocator> &renderingObjectsAllocator)
+        : ImageBaseResource(id, {path}, renderingObjectsAllocator) {
     //
 }

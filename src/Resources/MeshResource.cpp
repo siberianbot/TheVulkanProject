@@ -5,7 +5,7 @@
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <tiny_obj_loader.h>
 
-#include "src/Rendering/RendererAllocator.hpp"
+#include "src/Rendering/RenderingObjectsAllocator.hpp"
 #include "src/Rendering/Objects/BufferObject.hpp"
 
 std::tuple<std::vector<uint32_t>, std::vector<Vertex>> MeshResource::loadData() {
@@ -60,9 +60,9 @@ std::tuple<std::vector<uint32_t>, std::vector<Vertex>> MeshResource::loadData() 
 }
 
 MeshResource::MeshResource(const std::string &id, const std::filesystem::path &path,
-                           const std::shared_ptr<RendererAllocator> &rendererAllocator)
+                           const std::shared_ptr<RenderingObjectsAllocator> &renderingObjectsAllocator)
         : Resource(id, {path}),
-          _rendererAllocator(rendererAllocator) {
+          _renderingObjectsAllocator(renderingObjectsAllocator) {
     //
 }
 
@@ -73,8 +73,8 @@ void MeshResource::load() {
 
     const auto [indices, vertices] = this->loadData();
 
-    this->_vertexBuffer = this->_rendererAllocator->uploadVertices(vertices);
-    this->_indexBuffer = this->_rendererAllocator->uploadIndices(indices);
+    this->_vertexBuffer = this->_renderingObjectsAllocator->uploadVertices(vertices);
+    this->_indexBuffer = this->_renderingObjectsAllocator->uploadIndices(indices);
     this->_count = indices.size();
 
     Resource::load();

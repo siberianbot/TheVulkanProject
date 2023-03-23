@@ -1,4 +1,4 @@
-#include "RendererAllocator.hpp"
+#include "RenderingObjectsAllocator.hpp"
 
 #include "src/Rendering/CommandExecution.hpp"
 #include "src/Rendering/CommandExecutor.hpp"
@@ -8,8 +8,8 @@
 #include "src/Rendering/Objects/ImageObject.hpp"
 #include "src/Rendering/Objects/ShaderObject.hpp"
 
-void RendererAllocator::uploadBuffer(const std::shared_ptr<BufferObject> &targetBuffer, uint64_t size,
-                                     const void *data) {
+void RenderingObjectsAllocator::uploadBuffer(const std::shared_ptr<BufferObject> &targetBuffer, uint64_t size,
+                                             const void *data) {
     std::shared_ptr<BufferObject> staging = BufferObjectBuilder(this->_renderingDevice, this->_vulkanObjectsAllocator)
             .withSize(size)
             .withUsage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT)
@@ -32,8 +32,9 @@ void RendererAllocator::uploadBuffer(const std::shared_ptr<BufferObject> &target
     staging->destroy();
 }
 
-void RendererAllocator::uploadImage(const std::shared_ptr<ImageObject> &targetImage, uint32_t width, uint32_t height,
-                                    uint32_t size, const std::vector<void *> &data) {
+void RenderingObjectsAllocator::uploadImage(const std::shared_ptr<ImageObject> &targetImage,
+                                            uint32_t width, uint32_t height,
+                                            uint32_t size, const std::vector<void *> &data) {
     uint32_t count = data.size();
     uint64_t totalSize = size * count;
     std::shared_ptr<BufferObject> staging = BufferObjectBuilder(this->_renderingDevice, this->_vulkanObjectsAllocator)
@@ -116,16 +117,16 @@ void RendererAllocator::uploadImage(const std::shared_ptr<ImageObject> &targetIm
     staging->destroy();
 }
 
-RendererAllocator::RendererAllocator(const std::shared_ptr<RenderingDevice> &renderingDevice,
-                                     const std::shared_ptr<VulkanObjectsAllocator> &vulkanObjectsAllocator,
-                                     const std::shared_ptr<CommandExecutor> &commandExecutor)
+RenderingObjectsAllocator::RenderingObjectsAllocator(const std::shared_ptr<RenderingDevice> &renderingDevice,
+                                                     const std::shared_ptr<VulkanObjectsAllocator> &vulkanObjectsAllocator,
+                                                     const std::shared_ptr<CommandExecutor> &commandExecutor)
         : _renderingDevice(renderingDevice),
           _vulkanObjectsAllocator(vulkanObjectsAllocator),
           _commandExecutor(commandExecutor) {
     //
 }
 
-std::shared_ptr<BufferObject> RendererAllocator::uploadVertices(const std::vector<Vertex> &vertices) {
+std::shared_ptr<BufferObject> RenderingObjectsAllocator::uploadVertices(const std::vector<Vertex> &vertices) {
     VkDeviceSize size = sizeof(Vertex) * vertices.size();
     std::shared_ptr<BufferObject> buffer = BufferObjectBuilder(this->_renderingDevice, this->_vulkanObjectsAllocator)
             .withSize(size)
@@ -138,7 +139,7 @@ std::shared_ptr<BufferObject> RendererAllocator::uploadVertices(const std::vecto
     return buffer;
 }
 
-std::shared_ptr<BufferObject> RendererAllocator::uploadIndices(const std::vector<uint32_t> &indices) {
+std::shared_ptr<BufferObject> RenderingObjectsAllocator::uploadIndices(const std::vector<uint32_t> &indices) {
     VkDeviceSize size = sizeof(uint32_t) * indices.size();
     std::shared_ptr<BufferObject> buffer = BufferObjectBuilder(this->_renderingDevice, this->_vulkanObjectsAllocator)
             .withSize(size)
@@ -151,8 +152,8 @@ std::shared_ptr<BufferObject> RendererAllocator::uploadIndices(const std::vector
     return buffer;
 }
 
-std::shared_ptr<ImageObject> RendererAllocator::uploadImage(uint32_t width, uint32_t height, uint32_t size,
-                                                            void *data) {
+std::shared_ptr<ImageObject> RenderingObjectsAllocator::uploadImage(uint32_t width, uint32_t height, uint32_t size,
+                                                                    void *data) {
     std::shared_ptr<ImageObject> image = ImageObjectBuilder(this->_renderingDevice, this->_vulkanObjectsAllocator)
             .withExtent(width, height)
             .withFormat(VK_FORMAT_R8G8B8A8_SRGB)
@@ -164,8 +165,8 @@ std::shared_ptr<ImageObject> RendererAllocator::uploadImage(uint32_t width, uint
     return image;
 }
 
-std::shared_ptr<ImageObject> RendererAllocator::uploadCubeImage(uint32_t width, uint32_t height, uint32_t size,
-                                                                const std::array<void *, 6> &data) {
+std::shared_ptr<ImageObject> RenderingObjectsAllocator::uploadCubeImage(uint32_t width, uint32_t height, uint32_t size,
+                                                                        const std::array<void *, 6> &data) {
     std::shared_ptr<ImageObject> image = ImageObjectBuilder(this->_renderingDevice, this->_vulkanObjectsAllocator)
             .withExtent(width, height)
             .withFormat(VK_FORMAT_R8G8B8A8_SRGB)
@@ -178,6 +179,6 @@ std::shared_ptr<ImageObject> RendererAllocator::uploadCubeImage(uint32_t width, 
     return image;
 }
 
-std::shared_ptr<ShaderObject> RendererAllocator::uploadShaderBinary(const std::vector<char> &binary) {
+std::shared_ptr<ShaderObject> RenderingObjectsAllocator::uploadShaderBinary(const std::vector<char> &binary) {
     return ShaderObject::create(this->_vulkanObjectsAllocator, binary);
 }

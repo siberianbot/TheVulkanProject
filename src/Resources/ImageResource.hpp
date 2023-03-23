@@ -9,7 +9,7 @@ private:
 
 public:
     ImageResource(const std::string &id, const std::filesystem::path &path,
-                  const std::shared_ptr<RendererAllocator> &rendererAllocator);
+                  const std::shared_ptr<RenderingObjectsAllocator> &renderingObjectsAllocator);
     ~ImageResource() override = default;
 
     [[nodiscard]] ResourceType type() const override { return IMAGE_RESOURCE; }

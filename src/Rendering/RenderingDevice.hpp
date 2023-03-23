@@ -28,7 +28,6 @@ public:
     [[nodiscard]] VkQueue getPresentQueue() const { return this->_presentQueue; }
 
     void destroy();
-    void waitIdle();
 
 #pragma region OBSOLETE
 

@@ -7,8 +7,7 @@
 #include "src/Events/EventQueue.hpp"
 #include "src/Engine/InputProcessor.hpp"
 #include "src/System/Window.hpp"
-
-#include "src/Rendering/Renderer.hpp"
+#include "src/Rendering/RenderingManager.hpp"
 #include "src/Resources/MeshResource.hpp"
 #include "src/Resources/ImageResource.hpp"
 #include "src/Resources/ResourceManager.hpp"
@@ -29,7 +28,7 @@ Engine::Engine()
           _eventQueue(std::make_shared<EventQueue>()),
           _inputProcessor(std::make_shared<InputProcessor>(this->_eventQueue)),
           _window(std::make_shared<Window>(this->_engineVars, this->_eventQueue)),
-          _renderer(std::make_shared<Renderer>(this)),
+          _renderingManager(nullptr),
           _resourceManager(nullptr),
           _sceneManager(std::make_shared<SceneManager>(this->_eventQueue)),
           _debugUI(nullptr) {
@@ -54,12 +53,13 @@ void Engine::init() {
         this->_work = false;
     });
 
-    this->_renderer->init();
+    this->_renderingManager = std::make_shared<RenderingManager>(this->_engineVars, this->_window);
+    this->_renderingManager->init();
 
-    this->_resourceManager = std::make_shared<ResourceManager>(this->_renderer->rendererAllocator());
+    this->_resourceManager = std::make_shared<ResourceManager>(this->_renderingManager->renderingObjectsAllocator());
     this->_resourceManager->addDataDir("data");
 
-    this->_renderer->initRenderpasses();
+//  TODO:  this->_renderer->initRenderpasses();
 
     this->_debugUI = std::make_shared<DebugUI>(this->_engineVars, this->_eventQueue, this->_resourceManager,
                                                this->_sceneManager, this->_window);
@@ -268,10 +268,10 @@ void Engine::init() {
 }
 
 void Engine::cleanup() {
-    this->_renderer->wait();
+    this->_renderingManager->waitIdle();
 
     this->_resourceManager->removeAll();
-    this->_renderer->cleanup();
+    this->_renderingManager->destroy();
 
     ImGui::DestroyContext();
 
@@ -313,8 +313,8 @@ void Engine::run() {
 //            }
         }
 
-        this->_debugUI->render();
-        this->_renderer->render();
+//    TODO:        this->_debugUI->render();
+//    TODO:    this->_renderer->render();
 
         this->_delta = glfwGetTime() - startTime;
     }

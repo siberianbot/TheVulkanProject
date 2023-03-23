@@ -1,5 +1,5 @@
-#ifndef RENDERING_RENDERERALLOCATOR_HPP
-#define RENDERING_RENDERERALLOCATOR_HPP
+#ifndef RENDERING_RENDERERINGOBJECTSALLOCATOR_HPP
+#define RENDERING_RENDERERINGOBJECTSALLOCATOR_HPP
 
 #include <array>
 #include <cstdint>
@@ -18,7 +18,7 @@ class BufferObject;
 class ImageObject;
 class ShaderObject;
 
-class RendererAllocator {
+class RenderingObjectsAllocator {
 private:
     std::shared_ptr<RenderingDevice> _renderingDevice;
     std::shared_ptr<VulkanObjectsAllocator> _vulkanObjectsAllocator;
@@ -29,9 +29,9 @@ private:
                      const std::vector<void *> &data);
 
 public:
-    RendererAllocator(const std::shared_ptr<RenderingDevice> &renderingDevice,
-                      const std::shared_ptr<VulkanObjectsAllocator> &vulkanObjectsAllocator,
-                      const std::shared_ptr<CommandExecutor> &commandExecutor);
+    RenderingObjectsAllocator(const std::shared_ptr<RenderingDevice> &renderingDevice,
+                              const std::shared_ptr<VulkanObjectsAllocator> &vulkanObjectsAllocator,
+                              const std::shared_ptr<CommandExecutor> &commandExecutor);
 
     std::shared_ptr<BufferObject> uploadVertices(const std::vector<Vertex> &vertices);
     std::shared_ptr<BufferObject> uploadIndices(const std::vector<uint32_t> &indices);
@@ -43,4 +43,4 @@ public:
     std::shared_ptr<ShaderObject> uploadShaderBinary(const std::vector<char> &binary);
 };
 
-#endif // RENDERING_RENDERERALLOCATOR_HPP
+#endif // RENDERING_RENDERERINGOBJECTSALLOCATOR_HPP

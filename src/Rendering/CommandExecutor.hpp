@@ -22,7 +22,7 @@ private:
 
 public:
     CommandExecutor(const std::shared_ptr<RenderingDevice> &renderingDevice,
-                    const std::shared_ptr<VulkanObjectsAllocator> &renderingFunctions);
+                    const std::shared_ptr<VulkanObjectsAllocator> &vulkanObjectsAllocator);
 
     void init();
     void destroy();

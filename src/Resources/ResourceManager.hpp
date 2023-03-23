@@ -14,18 +14,18 @@ class CubeImageResource;
 class ImageResource;
 class MeshResource;
 class ShaderResource;
-class RendererAllocator;
+class RenderingObjectsAllocator;
 
 class ResourceManager {
 private:
-    std::shared_ptr<RendererAllocator> _rendererAllocator;
+    std::shared_ptr<RenderingObjectsAllocator> _renderingObjectsAllocator;
 
     std::map<std::string, std::shared_ptr<Resource>> _resources;
 
     std::shared_ptr<Resource> getResource(const std::string &name, ResourceType type);
 
 public:
-    ResourceManager(const std::shared_ptr<RendererAllocator> &rendererAllocator);
+    ResourceManager(const std::shared_ptr<RenderingObjectsAllocator> &renderingObjectsAllocator);
 
     void addDataDir(const std::filesystem::path &path);
 

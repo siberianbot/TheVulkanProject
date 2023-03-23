@@ -7,12 +7,12 @@
 #include "Resource.hpp"
 #include "src/Types/Vertex.hpp"
 
-class RendererAllocator;
+class RenderingObjectsAllocator;
 class BufferObject;
 
 class MeshResource : public Resource {
 private:
-    std::shared_ptr<RendererAllocator> _rendererAllocator;
+    std::shared_ptr<RenderingObjectsAllocator> _renderingObjectsAllocator;
 
     std::shared_ptr<BufferObject> _vertexBuffer = nullptr;
     std::shared_ptr<BufferObject> _indexBuffer = nullptr;
@@ -22,7 +22,7 @@ private:
 
 public:
     MeshResource(const std::string &id, const std::filesystem::path &path,
-                 const std::shared_ptr<RendererAllocator> &rendererAllocator);
+                 const std::shared_ptr<RenderingObjectsAllocator> &renderingObjectsAllocator);
     ~MeshResource() override = default;
 
     void load() override;

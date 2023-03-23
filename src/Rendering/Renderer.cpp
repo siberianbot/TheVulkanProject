@@ -9,7 +9,7 @@
 #include "CommandExecutor.hpp"
 #include "PhysicalDevice.hpp"
 #include "RenderingDevice.hpp"
-#include "RendererAllocator.hpp"
+#include "RenderingObjectsAllocator.hpp"
 #include "Swapchain.hpp"
 #include "src/Rendering/Objects/FenceObject.hpp"
 #include "src/Rendering/Objects/SemaphoreObject.hpp"
@@ -24,35 +24,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL Renderer::debugCallback(VkDebugUtilsMessageSeveri
                                                        VkDebugUtilsMessageTypeFlagsEXT messageType,
                                                        const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
                                                        void *pUserData) {
-    const char *type;
-    switch (messageType) {
-        case VkDebugUtilsMessageTypeFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT:
-            type = "vk validation";
-            break;
 
-        case VkDebugUtilsMessageTypeFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT:
-            type = "vk performance";
-            break;
-
-        case VkDebugUtilsMessageTypeFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_TYPE_DEVICE_ADDRESS_BINDING_BIT_EXT:
-            type = "vk binding";
-            break;
-
-        case VkDebugUtilsMessageTypeFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT:
-            type = "vk general";
-            break;
-
-        default:
-            throw std::runtime_error("not supported");
-    }
-
-    if (messageSeverity == VkDebugUtilsMessageSeverityFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
-        std::cerr << type << ": " << pCallbackData->pMessage << std::endl;
-    } else {
-        std::cout << type << ": " << pCallbackData->pMessage << std::endl;
-    }
-
-    return VK_FALSE;
 }
 
 Renderer::Renderer(Engine *engine) : _engine(engine) {
@@ -72,9 +44,9 @@ void Renderer::init() {
     this->_commandExecutor->init();
     this->_swapchain = std::make_shared<Swapchain>(this->_physicalDevice, this->_renderingDevice,
                                                    this->_vulkanObjectsAllocator);
-    this->_rendererAllocator = std::make_shared<RendererAllocator>(this->_renderingDevice,
-                                                                   this->_vulkanObjectsAllocator,
-                                                                   this->_commandExecutor);
+    this->_renderingObjectsAllocator = std::make_shared<RenderingObjectsAllocator>(this->_renderingDevice,
+                                                                           this->_vulkanObjectsAllocator,
+                                                                           this->_commandExecutor);
 
     for (uint32_t frameIdx = 0; frameIdx < MAX_INFLIGHT_FRAMES; frameIdx++) {
         this->_syncObjectsGroups[frameIdx] = new SyncObjectsGroup{
@@ -165,62 +137,9 @@ void Renderer::cleanupRenderpasses() {
 }
 
 VkInstance Renderer::createInstance() {
-    uint32_t count;
-    const char **extensionsPtr = glfwGetRequiredInstanceExtensions(&count);
-
-    std::vector<const char *> extensions(extensionsPtr, extensionsPtr + count);
-    extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-
-    uint32_t version = VK_MAKE_VERSION(0, 1, 0);
-
-    VkApplicationInfo appInfo = {
-            .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
-            .pNext = nullptr,
-            .pApplicationName = NAME,
-            .applicationVersion = version,
-            .pEngineName = NAME,
-            .engineVersion = version,
-            .apiVersion = VK_API_VERSION_1_3,
-    };
-
-    VkDebugUtilsMessengerCreateInfoEXT debugUtilsMessengerCreateInfoExt = {
-            .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
-            .pNext = nullptr,
-            .flags = 0,
-            .messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT |
-                               VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
-                               VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT |
-                               VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT,
-            .messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
-                           VK_DEBUG_UTILS_MESSAGE_TYPE_DEVICE_ADDRESS_BINDING_BIT_EXT |
-                           VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT |
-                           VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT,
-            .pfnUserCallback = debugCallback,
-            .pUserData = this
-    };
-
-    VkInstanceCreateInfo instanceCreateInfo = {
-            .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-            .pNext = &debugUtilsMessengerCreateInfoExt,
-            .flags = 0,
-            .pApplicationInfo = &appInfo,
-            .enabledLayerCount = static_cast<uint32_t>(VALIDATION_LAYERS.size()),
-            .ppEnabledLayerNames = VALIDATION_LAYERS.data(),
-            .enabledExtensionCount = static_cast<uint32_t>(extensions.size()),
-            .ppEnabledExtensionNames = extensions.data()
-    };
-
-    VkInstance instance;
-    vkEnsure(vkCreateInstance(&instanceCreateInfo, nullptr, &instance));
-
-    return instance;
 }
 
 VkSurfaceKHR Renderer::createSurface(GLFWwindow *window) {
-    VkSurfaceKHR surface;
-    vkEnsure(glfwCreateWindowSurface(this->_instance, window, nullptr, &surface));
-
-    return surface;
 }
 
 void Renderer::handleResize() {
