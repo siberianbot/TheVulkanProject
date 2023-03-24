@@ -15,12 +15,12 @@ private:
     std::vector<VkClearValue> _clearValues;
     std::map<std::shared_ptr<ImageViewObject>, VkFramebuffer> _framebuffers;
     VkFramebuffer _targetFramebuffer;
-    VkRect2D _targetRenderArea;
 
 protected:
     std::shared_ptr<RenderingDevice> _renderingDevice;
 
     VkRenderPass _renderpass = VK_NULL_HANDLE;
+    VkRect2D _targetRenderArea;
 
     RenderpassBase(const std::shared_ptr<RenderingDevice> &renderingDevice,
                    const std::vector<VkClearValue> &clearValues);
@@ -32,7 +32,7 @@ public:
 
     [[nodiscard]] VkRenderPass getHandle() { return this->_renderpass; }
 
-    void beginRenderpass(VkCommandBuffer commandBuffer);
+    virtual void beginRenderpass(VkCommandBuffer commandBuffer);
     void endRenderpass(VkCommandBuffer commandBuffer);
 
     virtual void initRenderpass() = 0;

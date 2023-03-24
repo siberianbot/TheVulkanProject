@@ -65,7 +65,8 @@ void Engine::init() {
     this->_debugUI = std::make_shared<DebugUI>(this->_engineVars, this->_eventQueue, this->_resourceManager,
                                                this->_sceneManager, this->_window);
 
-    this->_renderer = std::make_shared<Renderer>(this->_eventQueue, this->_renderingManager);
+    this->_renderer = std::make_shared<Renderer>(this->_engineVars, this->_eventQueue, this->_renderingManager,
+                                                 this->_resourceManager, this->_sceneManager);
     this->_renderer->init();
 
     this->_inputProcessor->addKeyboardPressHandler(GLFW_KEY_W, [this]() { this->_moveForward = true; });

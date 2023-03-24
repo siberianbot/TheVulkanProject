@@ -36,7 +36,7 @@ glm::mat4 LightSource::projection() const {
     switch (this->_type) {
         case POINT_LIGHT_SOURCE:
         case CONE_LIGHT_SOURCE:
-            projection = glm::perspective(glm::radians(this->_angle), 1.0f, NEAR, this->_range);
+            projection = glm::perspective(this->_angle, 1.0f, NEAR, this->_range);
             break;
 
         case RECTANGLE_LIGHT_SOURCE:

@@ -62,10 +62,11 @@ src = [
     'src/Rendering/Renderpasses/RenderpassBase.cpp',
     'src/Rendering/Renderpasses/DebugUIRenderpass.cpp',
     # TODO: 'src/Rendering/Renderpasses/SceneRenderpass.cpp',
-    # TODO: 'src/Rendering/Renderpasses/ShadowRenderpass.cpp',
+    'src/Rendering/Renderpasses/ShadowRenderpass.cpp',
     # TODO: 'src/Rendering/Renderpasses/SwapchainPresentRenderpass.cpp',
 
     'src/Rendering/Stages/DebugUIStage.cpp',
+    'src/Rendering/Stages/SceneStage.cpp',
 
     # Resources
     'src/Resources/Resource.cpp',

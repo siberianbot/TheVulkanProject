@@ -24,6 +24,8 @@ bool SceneIterator::moveNext() {
         for (auto it = node->descendants().rbegin(); it != node->descendants().rend(); it++) {
             this->_stack.push(*it);
         }
+
+        this->_discovered.push_back(node);
     }
 
     return !this->_stack.empty();

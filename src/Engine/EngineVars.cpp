@@ -60,7 +60,5 @@ Var *EngineVars::getOrDefault(const std::string &key, char *value) {
 EngineVars *EngineVars::defaults() {
     EngineVars *vars = new EngineVars();
 
-    vars->getOrDefault(RENDERER_SKYBOX_ENABLED_VAR, true);
-
     return vars;
 }

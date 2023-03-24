@@ -8,29 +8,20 @@
 #include "src/Rendering/CommandExecutor.hpp"
 #include "src/Rendering/PhysicalDevice.hpp"
 #include "src/Rendering/RenderingDevice.hpp"
+#include "src/Rendering/RenderingManager.hpp"
 #include "src/Rendering/Swapchain.hpp"
 #include "src/Rendering/Builders/DescriptorPoolBuilder.hpp"
 #include "src/Rendering/Renderpasses/DebugUIRenderpass.hpp"
 
 DebugUIStage::DebugUIStage(const std::shared_ptr<EventQueue> &eventQueue,
-                           const std::shared_ptr<PhysicalDevice> &physicalDevice,
-                           const std::shared_ptr<RenderingDevice> &renderingDevice,
-                           const std::shared_ptr<VulkanObjectsAllocator> &vulkanObjectsAllocator,
-                           const std::shared_ptr<Swapchain> &swapchain,
-                           const std::shared_ptr<CommandExecutor> &commandExecutor,
-                           VkInstance instance)
+                           const std::shared_ptr<RenderingManager> &renderingManager)
         : _eventQueue(eventQueue),
-          _physicalDevice(physicalDevice),
-          _renderingDevice(renderingDevice),
-          _vulkanObjectsAllocator(vulkanObjectsAllocator),
-          _swapchain(swapchain),
-          _commandExecutor(commandExecutor),
-          _instance(instance) {
+          _renderingManager(renderingManager) {
     //
 }
 
 void DebugUIStage::init() {
-    this->_descriptorPool = DescriptorPoolBuilder(this->_renderingDevice.get())
+    this->_descriptorPool = DescriptorPoolBuilder(this->_renderingManager->renderingDevice().get())
             .forType(VK_DESCRIPTOR_TYPE_SAMPLER)
             .forType(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
             .forType(VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE)
@@ -44,27 +35,27 @@ void DebugUIStage::init() {
             .forType(VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT)
             .build();
 
-    this->_debugUIRenderpass = std::make_shared<DebugUIRenderpass>(this->_renderingDevice);
+    this->_debugUIRenderpass = std::make_unique<DebugUIRenderpass>(this->_renderingManager->renderingDevice());
     this->_debugUIRenderpass->initRenderpass();
 
     ImGui_ImplVulkan_InitInfo initInfo = {
-            .Instance = this->_instance,
-            .PhysicalDevice = this->_physicalDevice->getHandle(),
-            .Device = this->_renderingDevice->getHandle(),
-            .QueueFamily = this->_physicalDevice->getGraphicsQueueFamilyIdx(),
-            .Queue = this->_renderingDevice->getGraphicsQueue(),
+            .Instance = this->_renderingManager->instance(),
+            .PhysicalDevice = this->_renderingManager->physicalDevice()->getHandle(),
+            .Device = this->_renderingManager->renderingDevice()->getHandle(),
+            .QueueFamily = this->_renderingManager->physicalDevice()->getGraphicsQueueFamilyIdx(),
+            .Queue = this->_renderingManager->renderingDevice()->getGraphicsQueue(),
             .PipelineCache = nullptr,
             .DescriptorPool = this->_descriptorPool,
             .Subpass = 0,
-            .MinImageCount = this->_swapchain->getMinImageCount(),
-            .ImageCount = this->_swapchain->getImageCount(),
+            .MinImageCount = this->_renderingManager->swapchain()->getMinImageCount(),
+            .ImageCount =  this->_renderingManager->swapchain()->getImageCount(),
             .MSAASamples = VK_SAMPLE_COUNT_1_BIT,
             .Allocator = nullptr,
             .CheckVkResultFn = vkEnsure,
     };
     ImGui_ImplVulkan_Init(&initInfo, this->_debugUIRenderpass->getHandle());
 
-    this->_commandExecutor->beginOneTimeExecution([](VkCommandBuffer cmdBuffer) {
+    this->_renderingManager->commandExecutor()->beginOneTimeExecution([](VkCommandBuffer cmdBuffer) {
                 ImGui_ImplVulkan_CreateFontsTexture(cmdBuffer);
             })
             .submit(true);
@@ -76,7 +67,7 @@ void DebugUIStage::init() {
             return;
         }
 
-        ImGui_ImplVulkan_SetMinImageCount(this->_swapchain->getMinImageCount());
+        ImGui_ImplVulkan_SetMinImageCount(this->_renderingManager->swapchain()->getMinImageCount());
 
         this->_debugUIRenderpass->destroyFramebuffers();
     });
@@ -88,16 +79,17 @@ void DebugUIStage::destroy() {
     this->_debugUIRenderpass->destroyFramebuffers();
     this->_debugUIRenderpass->destroyRenderpass();
 
-    vkDestroyDescriptorPool(this->_renderingDevice->getHandle(), this->_descriptorPool, nullptr);
+    vkDestroyDescriptorPool(this->_renderingManager->renderingDevice()->getHandle(), this->_descriptorPool, nullptr);
 }
 
 void DebugUIStage::record(VkCommandBuffer commandBuffer, uint32_t frameIdx, uint32_t imageIdx) {
     const VkRect2D renderArea = {
             .offset = {0, 0},
-            .extent = this->_swapchain->getSwapchainExtent()
+            .extent = this->_renderingManager->swapchain()->getSwapchainExtent()
     };
 
-    this->_debugUIRenderpass->setTargetImageView(this->_swapchain->getSwapchainImageView(imageIdx), renderArea);
+    this->_debugUIRenderpass->setTargetImageView(this->_renderingManager->swapchain()->getSwapchainImageView(imageIdx),
+                                                 renderArea);
 
     this->_debugUIRenderpass->beginRenderpass(commandBuffer);
     this->_debugUIRenderpass->record(commandBuffer);

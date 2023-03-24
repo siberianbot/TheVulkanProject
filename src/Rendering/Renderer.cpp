@@ -8,7 +8,10 @@
 #include "src/Rendering/Swapchain.hpp"
 #include "src/Rendering/Objects/FenceObject.hpp"
 #include "src/Rendering/Objects/SemaphoreObject.hpp"
+#include "src/Rendering/Renderpasses/DebugUIRenderpass.hpp"
+#include "src/Rendering/Renderpasses/ShadowRenderpass.hpp"
 #include "src/Rendering/Stages/DebugUIStage.hpp"
+#include "src/Rendering/Stages/SceneStage.hpp"
 
 void Renderer::handleResize() {
     this->_renderingManager->waitIdle();
@@ -33,10 +36,16 @@ std::optional<uint32_t> Renderer::acquireNextImageIdx(const std::shared_ptr<Sema
     throw std::runtime_error("Vulkan runtime error");
 }
 
-Renderer::Renderer(const std::shared_ptr<EventQueue> &eventQueue,
-                   const std::shared_ptr<RenderingManager> &renderingManager)
-        : _eventQueue(eventQueue),
-          _renderingManager(renderingManager) {
+Renderer::Renderer(const std::shared_ptr<EngineVars> &engineVars,
+                   const std::shared_ptr<EventQueue> &eventQueue,
+                   const std::shared_ptr<RenderingManager> &renderingManager,
+                   const std::shared_ptr<ResourceManager> &resourceManager,
+                   const std::shared_ptr<SceneManager> &sceneManager)
+        : _engineVars(engineVars),
+          _eventQueue(eventQueue),
+          _renderingManager(renderingManager),
+          _resourceManager(resourceManager),
+          _sceneManager(sceneManager) {
     //
 }
 
@@ -68,13 +77,14 @@ void Renderer::init() {
 
     this->_renderingManager->swapchain()->create();
 
+    this->_stages.emplace_back(std::make_shared<SceneStage>(this->_engineVars,
+                                                            this->_eventQueue,
+                                                            this->_renderingManager,
+                                                            this->_resourceManager,
+                                                            this->_sceneManager));
+
     this->_stages.emplace_back(std::make_shared<DebugUIStage>(this->_eventQueue,
-                                                              this->_renderingManager->physicalDevice(),
-                                                              this->_renderingManager->renderingDevice(),
-                                                              this->_renderingManager->vulkanObjectsAllocator(),
-                                                              this->_renderingManager->swapchain(),
-                                                              this->_renderingManager->commandExecutor(),
-                                                              this->_renderingManager->instance()));
+                                                              this->_renderingManager));
 
     for (const auto &stage: this->_stages) {
         stage->init();
