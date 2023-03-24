@@ -97,8 +97,9 @@ void DebugUIStage::record(VkCommandBuffer commandBuffer, uint32_t frameIdx, uint
             .extent = this->_swapchain->getSwapchainExtent()
     };
 
-    this->_debugUIRenderpass->setTargetImageView(this->_swapchain->getSwapchainImageView(imageIdx));
-    this->_debugUIRenderpass->beginRenderpass(commandBuffer, renderArea, frameIdx, imageIdx);
+    this->_debugUIRenderpass->setTargetImageView(this->_swapchain->getSwapchainImageView(imageIdx), renderArea);
+
+    this->_debugUIRenderpass->beginRenderpass(commandBuffer);
     this->_debugUIRenderpass->record(commandBuffer);
     this->_debugUIRenderpass->endRenderpass(commandBuffer);
 }
