@@ -16,4 +16,7 @@ static constexpr std::array<glm::vec3, 6> POINT_LIGHT_SOURCE_DIRECTIONS = {
         glm::vec3(0, 0, -1)
 };
 
+static constexpr const uint32_t DEFAULT_SET_COUNT = 1000;
+static constexpr const uint32_t DEFAULT_TYPE_COUNT = 1000;
+
 #endif // RENDERING_CONSTANTS_HPP

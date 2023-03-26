@@ -48,5 +48,6 @@ static constexpr const char *WINDOW_HEIGHT_VAR = "Window.Height";
 
 static constexpr const char *RENDERING_SCENE_STAGE_SHADOW_MAP_SIZE = "Rendering.SceneStage.ShadowMapSize";
 static constexpr const char *RENDERING_SCENE_STAGE_SHADOW_MAP_COUNT = "Rendering.SceneStage.ShadowMapCount";
+static constexpr const char *RENDERING_SCENE_STAGE_LIGHT_COUNT = "Rendering.SceneStage.LightCount";
 
 #endif // ENGINEVARS_HPP

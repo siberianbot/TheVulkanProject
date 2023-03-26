@@ -102,43 +102,42 @@ void Engine::init() {
     this->_x = this->_window->cursorX();
     this->_y = this->_window->cursorY();
     this->_inputProcessor->addCursorMoveHandler([this](double x, double y) {
-//        double dx = this->_x - x;
-//        double dy = this->_y - y;
-//
-//        this->_x = x;
-//        this->_y = y;
-//
-//        if (this->_state != Focused) {
-//            return;
-//        }
-//
-//        Camera *camera = this->_sceneManager->currentScene() != nullptr
-//                         ? this->_sceneManager->currentScene()->camera()
-//                         : nullptr;
-//
-//        if (camera == nullptr) {
-//            return;
-//        }
-//
-//        const float sensitivity = 0.0005f;
-//        camera->yaw() -= sensitivity * (float) dx;
-//        camera->pitch() += sensitivity * (float) dy;
-//
-//        static float pi = glm::radians(180.0f);
-//        static float twoPi = glm::radians(360.0f);
-//        const float eps = glm::radians(0.0001f);
-//
-//        if (camera->yaw() < 0) {
-//            camera->yaw() += twoPi;
-//        } else if (camera->yaw() > twoPi) {
-//            camera->yaw() -= twoPi;
-//        }
-//
-//        if (camera->pitch() < 0) {
-//            camera->pitch() = eps;
-//        } else if (camera->pitch() > pi) {
-//            camera->pitch() = pi - eps;
-//        }
+        double dx = this->_x - x;
+        double dy = this->_y - y;
+
+        this->_x = x;
+        this->_y = y;
+
+        if (this->_state != Focused ||
+            this->sceneManager()->currentCamera().expired()) {
+            return;
+        }
+
+        std::shared_ptr<Camera> camera = this->_sceneManager->currentCamera().lock();
+
+        if (camera == nullptr) {
+            return;
+        }
+
+        const float sensitivity = 0.0005f;
+        camera->position()->rotation.y -= sensitivity * (float) dx;
+        camera->position()->rotation.z += sensitivity * (float) dy;
+
+        static float pi = glm::radians(180.0f);
+        static float twoPi = glm::radians(360.0f);
+        const float eps = glm::radians(0.0001f);
+
+        if (camera->position()->rotation.y < 0) {
+            camera->position()->rotation.y += twoPi;
+        } else if (camera->position()->rotation.y > twoPi) {
+            camera->position()->rotation.y -= twoPi;
+        }
+
+        if (camera->position()->rotation.z < 0) {
+            camera->position()->rotation.z += twoPi;
+        } else if (camera->position()->rotation.z > twoPi) {
+            camera->position()->rotation.z -= twoPi;
+        }
     });
 
     std::shared_ptr<MeshResource> cubeMesh = this->_resourceManager->loadMesh("cube");
@@ -267,9 +266,10 @@ void Engine::init() {
     this->_sceneManager->addObject(light);
 
     std::shared_ptr<Camera> camera = std::make_shared<Camera>();
-    camera->position()->position = glm::vec3(2);
-    camera->position()->rotation = glm::vec3(glm::radians(-135.0f), glm::radians(45.0f), 0);
+    camera->position()->position = glm::vec3(2, 0, 2);
+    camera->position()->rotation = glm::vec3(0, 0, glm::radians(180.0f));
     this->_sceneManager->addObject(camera);
+    this->_sceneManager->currentCamera() = camera;
 }
 
 void Engine::cleanup() {
@@ -297,27 +297,27 @@ void Engine::run() {
 
         this->_eventQueue->process();
 
-        if (this->sceneManager()->currentScene() != nullptr) {
-//            auto camera = this->sceneManager()->currentScene()->camera();
-//
-//            auto forward = camera->getForwardVector();
-//            auto side = camera->getSideVector();
-//
-//            if (this->_moveForward) {
-//                camera->position() += 5 * this->_delta * forward;
-//            }
-//
-//            if (this->_moveBackward) {
-//                camera->position() -= 5 * this->_delta * forward;
-//            }
-//
-//            if (this->_strafeLeft) {
-//                camera->position() -= 5 * this->_delta * side;
-//            }
-//
-//            if (this->_strafeRight) {
-//                camera->position() += 5 * this->_delta * side;
-//            }
+        if (!this->_sceneManager->currentCamera().expired()) {
+            std::shared_ptr<Camera> camera = this->_sceneManager->currentCamera().lock();
+
+            auto forward = camera->forward();
+            auto side = camera->side();
+
+            if (this->_moveForward) {
+                camera->position()->position += 5 * this->_delta * forward;
+            }
+
+            if (this->_moveBackward) {
+                camera->position()->position -= 5 * this->_delta * forward;
+            }
+
+            if (this->_strafeLeft) {
+                camera->position()->position -= 5 * this->_delta * side;
+            }
+
+            if (this->_strafeRight) {
+                camera->position()->position += 5 * this->_delta * side;
+            }
         }
 
         this->_debugUI->render();

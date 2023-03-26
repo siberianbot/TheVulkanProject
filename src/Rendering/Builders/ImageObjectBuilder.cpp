@@ -46,7 +46,6 @@ ImageObjectBuilder &ImageObjectBuilder::cubeCompatible() {
 }
 
 ImageObjectBuilder &ImageObjectBuilder::arrayCompatible(uint32_t count) {
-    this->_flags = this->_flags.value_or(0) | VK_IMAGE_CREATE_2D_ARRAY_COMPATIBLE_BIT;
     this->_count = count;
 
     return *this;

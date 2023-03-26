@@ -8,22 +8,27 @@
 #include "src/Rendering/Types/ModelData.hpp"
 #include "src/Rendering/Types/ShadowData.hpp"
 
-class ResourceManager;
 class PhysicalDevice;
+class RenderingLayoutsManager;
+class VulkanObjectsAllocator;
+class ResourceManager;
 
 class ShadowRenderpass : public RenderpassBase {
 private:
     std::shared_ptr<PhysicalDevice> _physicalDevice;
+    std::shared_ptr<RenderingLayoutsManager> _renderingLayoutsManager;
+    std::shared_ptr<VulkanObjectsAllocator> _vulkanObjectsAllocator;
     std::shared_ptr<ResourceManager> _resourceManager;
 
-    VkPipelineLayout _pipelineLayout;
     VkPipeline _pipeline;
 
     VkFramebuffer createFramebuffer(const std::shared_ptr<ImageViewObject> &imageView, VkExtent2D extent) override;
 
 public:
-    ShadowRenderpass(const std::shared_ptr<PhysicalDevice> &physicalDevice,
-                     const std::shared_ptr<RenderingDevice> &renderingDevice,
+    ShadowRenderpass(const std::shared_ptr<RenderingDevice> &renderingDevice,
+                     const std::shared_ptr<PhysicalDevice> &physicalDevice,
+                     const std::shared_ptr<RenderingLayoutsManager> &renderingLayoutsManager,
+                     const std::shared_ptr<VulkanObjectsAllocator> &vulkanObjectsAllocator,
                      const std::shared_ptr<ResourceManager> &resourceManager);
     ~ShadowRenderpass() override = default;
 

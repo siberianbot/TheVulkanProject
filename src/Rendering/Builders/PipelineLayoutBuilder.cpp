@@ -1,9 +1,9 @@
 #include "PipelineLayoutBuilder.hpp"
 
-#include "src/Rendering/RenderingDevice.hpp"
+#include "src/Rendering/VulkanObjectsAllocator.hpp"
 
-PipelineLayoutBuilder::PipelineLayoutBuilder(RenderingDevice *renderingDevice)
-        : _renderingDevice(renderingDevice) {
+PipelineLayoutBuilder::PipelineLayoutBuilder(const std::shared_ptr<VulkanObjectsAllocator> &vulkanObjectsAllocator)
+        : _vulkanObjectsAllocator(vulkanObjectsAllocator) {
     //
 }
 
@@ -25,5 +25,15 @@ PipelineLayoutBuilder &PipelineLayoutBuilder::withPushConstant(VkShaderStageFlag
 }
 
 VkPipelineLayout PipelineLayoutBuilder::build() {
-    return this->_renderingDevice->createPipelineLayout(this->_descriptorSetLayouts, this->_pushConstants);
+    VkPipelineLayoutCreateInfo createInfo = {
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0,
+            .setLayoutCount = static_cast<uint32_t>(this->_descriptorSetLayouts.size()),
+            .pSetLayouts = this->_descriptorSetLayouts.data(),
+            .pushConstantRangeCount = static_cast<uint32_t>(this->_pushConstants.size()),
+            .pPushConstantRanges = this->_pushConstants.data()
+    };
+
+    return this->_vulkanObjectsAllocator->createPipelineLayout(&createInfo);
 }

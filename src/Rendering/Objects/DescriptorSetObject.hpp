@@ -6,6 +6,8 @@
 #include <vulkan/vulkan.hpp>
 
 class RenderingDevice;
+class BufferObject;
+class ImageViewObject;
 
 class DescriptorSetObject {
 private:
@@ -19,6 +21,12 @@ public:
                         VkDescriptorPool descriptorPool, VkDescriptorSet descriptorSet);
 
     [[nodiscard]] VkDescriptorSet getHandle() const { return this->_descriptorSet; }
+
+    void updateWithBuffer(uint32_t bindingIdx, VkDescriptorType descriptorType,
+                          const std::shared_ptr<BufferObject> buffer, uint32_t offset, uint32_t range);
+    void updateWithImageView(uint32_t bindingIdx, VkDescriptorType descriptorType,
+                             const std::shared_ptr<ImageViewObject> imageView,
+                             VkImageLayout imageLayout, VkSampler sampler = VK_NULL_HANDLE);
 
     void destroy();
 

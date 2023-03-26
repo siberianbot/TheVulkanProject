@@ -27,15 +27,16 @@ src = [
     'src/Events/EventQueue.cpp',
 
     # Rendering
+    'src/Rendering/RenderingManager.cpp',
     'src/Rendering/CommandExecution.cpp',
     'src/Rendering/CommandExecutor.cpp',
-    'src/Rendering/VulkanObjectsAllocator.cpp',
     'src/Rendering/PhysicalDevice.cpp',
     'src/Rendering/Renderer.cpp',
     'src/Rendering/RenderingDevice.cpp',
-    'src/Rendering/RenderingManager.cpp',
-    'src/Rendering/Swapchain.cpp',
+    'src/Rendering/RenderingLayoutsManager.cpp',
     'src/Rendering/RenderingObjectsAllocator.cpp',
+    'src/Rendering/Swapchain.cpp',
+    'src/Rendering/VulkanObjectsAllocator.cpp',
 
     'src/Rendering/Builders/AttachmentBuilder.cpp',
     'src/Rendering/Builders/BufferObjectBuilder.cpp',
@@ -61,9 +62,8 @@ src = [
 
     'src/Rendering/Renderpasses/RenderpassBase.cpp',
     'src/Rendering/Renderpasses/DebugUIRenderpass.cpp',
-    # TODO: 'src/Rendering/Renderpasses/SceneRenderpass.cpp',
+    'src/Rendering/Renderpasses/SceneRenderpass.cpp',
     'src/Rendering/Renderpasses/ShadowRenderpass.cpp',
-    # TODO: 'src/Rendering/Renderpasses/SwapchainPresentRenderpass.cpp',
 
     'src/Rendering/Stages/DebugUIStage.cpp',
     'src/Rendering/Stages/SceneStage.cpp',

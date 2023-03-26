@@ -1,552 +1,158 @@
 #include "SceneRenderpass.hpp"
 
-#include "src/Engine/Engine.hpp"
 #include "src/Engine/EngineVars.hpp"
-#include "src/Events/EventQueue.hpp"
-#include "src/Objects/Camera.hpp"
-#include "src/Objects/LightSource.hpp"
-#include "src/Objects/Components/ModelComponent.hpp"
-#include "src/Objects/Components/PositionComponent.hpp"
-#include "src/Objects/Components/SkyboxComponent.hpp"
-#include "src/Scene/Scene.hpp"
-#include "src/Scene/SceneManager.hpp"
-#include "src/Types/Vertex.hpp"
 #include "src/Rendering/PhysicalDevice.hpp"
-#include "src/Rendering/RenderingDevice.hpp"
+#include "src/Rendering/RenderingLayoutsManager.hpp"
 #include "src/Rendering/Swapchain.hpp"
+#include "src/Rendering/VulkanObjectsAllocator.hpp"
 #include "src/Rendering/Builders/BufferObjectBuilder.hpp"
-#include "src/Rendering/Builders/ImageObjectBuilder.hpp"
-#include "src/Rendering/Builders/RenderpassBuilder.hpp"
 #include "src/Rendering/Builders/FramebufferBuilder.hpp"
-#include "src/Rendering/Builders/PipelineBuilder.hpp"
+#include "src/Rendering/Builders/RenderpassBuilder.hpp"
 #include "src/Rendering/Builders/AttachmentBuilder.hpp"
 #include "src/Rendering/Builders/SubpassBuilder.hpp"
-#include "src/Rendering/Builders/DescriptorPoolBuilder.hpp"
-#include "src/Rendering/Builders/DescriptorSetLayoutBuilder.hpp"
-#include "src/Rendering/Builders/PipelineLayoutBuilder.hpp"
+#include "src/Rendering/Builders/PipelineBuilder.hpp"
+#include "src/Rendering/Builders/SpecializationInfoBuilder.hpp"
 #include "src/Rendering/Builders/SamplerBuilder.hpp"
 #include "src/Rendering/Objects/BufferObject.hpp"
-#include "src/Rendering/Objects/ImageObject.hpp"
-#include "src/Rendering/Objects/ImageViewObject.hpp"
 #include "src/Rendering/Objects/DescriptorSetObject.hpp"
+#include "src/Rendering/Objects/ImageViewObject.hpp"
+#include "src/Rendering/Types/MeshConstants.hpp"
 #include "src/Resources/ResourceManager.hpp"
-#include "src/Resources/CubeImageResource.hpp"
-#include "src/Resources/ImageResource.hpp"
-#include "src/Resources/MeshResource.hpp"
 #include "src/Resources/ShaderResource.hpp"
-#include "src/Rendering/Builders/ImageViewObjectBuilder.hpp"
+#include "src/Types/Vertex.hpp"
 
-std::shared_ptr<RenderingData> SceneRenderpass::getRenderData(Object *object) {
-    std::shared_ptr<RenderingData> renderData = std::dynamic_pointer_cast<RenderingData>(
-            object->data()[RENDERING_DATA_TYPE]);
-
-    if (renderData == nullptr) {
-        renderData = std::make_shared<RenderingData>();
-        for (uint32_t idx = 0; idx < MAX_INFLIGHT_FRAMES; ++idx) {
-            renderData->descriptorSets[idx] = DescriptorSetObject::create(this->_renderingDevice,
-                                                                          this->_descriptorPool,
-                                                                          this->_objectDescriptorSetLayout);
-        }
-
-        object->data()[RENDERING_DATA_TYPE] = renderData;
-    }
-
-    std::shared_ptr<ImageObject> albedoTexture = object->albedoTexture() == nullptr
-                                                 ? this->_engine->resourceManager()->loadDefaultImage()->image()
-                                                 : object->albedoTexture()->image();
-
-    if (renderData->albedoTextureView == nullptr ||
-        albedoTexture->getHandle() != renderData->albedoTextureView->getImage()) {
-        renderData->albedoTextureView = getImageView(albedoTexture);
-
-        updateDescriptorSetWithImage(renderData->descriptorSets, renderData->albedoTextureView, 0);
-    }
-
-    std::shared_ptr<ImageObject> specTexture = object->specTexture() == nullptr
-                                               ? this->_engine->resourceManager()->loadDefaultImage()->image()
-                                               : object->specTexture()->image();
-
-    if (renderData->specTextureView == nullptr ||
-        specTexture->getHandle() != renderData->specTextureView->getImage()) {
-        renderData->specTextureView = getImageView(specTexture);
-
-        updateDescriptorSetWithImage(renderData->descriptorSets, renderData->specTextureView, 1);
-    }
-
-    return renderData;
-}
-
-std::shared_ptr<ImageViewObject> SceneRenderpass::getImageView(const std::shared_ptr<ImageObject> &image) {
-    auto it = this->_imageViews.find(image);
-
-    if (it != this->_imageViews.end()) {
-        return it->second;
-    }
-
-    std::shared_ptr<ImageViewObject> imageView = ImageViewObjectBuilder(this->_vulkanObjectsAllocator)
-            .fromImageObject(image)
-            .withAspectFlags(VK_IMAGE_ASPECT_COLOR_BIT)
+VkFramebuffer SceneRenderpass::createFramebuffer(const std::shared_ptr<ImageViewObject> &imageView, VkExtent2D extent) {
+    return FramebufferBuilder(this->_renderingDevice.get(), this->_renderpass)
+            .withExtent(extent)
+            .addAttachment(this->_albedoImageView.lock()->getHandle())
+            .addAttachment(this->_positionImageView.lock()->getHandle())
+            .addAttachment(this->_normalImageView.lock()->getHandle())
+            .addAttachment(this->_specularImageView.lock()->getHandle())
+            .addAttachment(this->_depthImageView.lock()->getHandle())
+            .addAttachment(this->_compositionImageView.lock()->getHandle())
+            .addAttachment(imageView->getHandle())
             .build();
-
-    this->_imageViews[image] = imageView;
-
-    return imageView;
-}
-
-void SceneRenderpass::updateDescriptorSetWithImage(
-        const std::array<std::shared_ptr<DescriptorSetObject>, MAX_INFLIGHT_FRAMES> &descriptorSets,
-        const std::shared_ptr<ImageViewObject> &imageViewObject,
-        uint32_t binding) {
-    VkDescriptorImageInfo imageInfo = {
-            .sampler = this->_textureSampler,
-            .imageView = imageViewObject->getHandle(),
-            .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-    };
-
-    std::vector<VkWriteDescriptorSet> writes;
-    for (uint32_t idx = 0; idx < MAX_INFLIGHT_FRAMES; idx++) {
-        writes.push_back(VkWriteDescriptorSet{
-                .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                .pNext = nullptr,
-                .dstSet = descriptorSets[idx]->getHandle(),
-                .dstBinding = binding,
-                .dstArrayElement = 0,
-                .descriptorCount = 1,
-                .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                .pImageInfo = &imageInfo,
-                .pBufferInfo = nullptr,
-                .pTexelBufferView = nullptr
-        });
-    }
-
-    vkUpdateDescriptorSets(this->_renderingDevice->getHandle(), writes.size(), writes.data(), 0, nullptr);
-}
-
-void SceneRenderpass::initSkyboxPipeline() {
-    this->_skyboxPipelineLayout = PipelineLayoutBuilder(this->_renderingDevice.get())
-            .withDescriptorSetLayout(this->_objectDescriptorSetLayout)
-            .withPushConstant(VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshConstants))
-            .build();
-
-    std::shared_ptr<ShaderResource> vertexShader = this->_engine->resourceManager()->loadShader("default_vert");
-    std::shared_ptr<ShaderResource> fragmentShader = this->_engine->resourceManager()->loadShader("skybox_frag");
-
-    this->_skyboxPipeline = PipelineBuilder(this->_renderingDevice.get(), this->_renderpass,
-                                            this->_skyboxPipelineLayout)
-            .addVertexShader(vertexShader->shader())
-            .addFragmentShader(fragmentShader->shader())
-            .addBinding(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
-            .addAttribute(0, 0, offsetof(Vertex, pos), VK_FORMAT_R32G32B32_SFLOAT)
-            .addAttribute(0, 1, offsetof(Vertex, normal), VK_FORMAT_R32G32B32_SFLOAT)
-            .addAttribute(0, 2, offsetof(Vertex, color), VK_FORMAT_R32G32B32_SFLOAT)
-            .addAttribute(0, 3, offsetof(Vertex, uv), VK_FORMAT_R32G32_SFLOAT)
-            .withRasterizationSamples(this->_renderingDevice.get()->getPhysicalDevice()->getMsaaSamples())
-            .forSubpass(0)
-            .build();
-
-    vertexShader->unload();
-    fragmentShader->unload();
-
-    for (uint32_t idx = 0; idx < MAX_INFLIGHT_FRAMES; ++idx) {
-        this->_skyboxDescriptorSets[idx] = DescriptorSetObject::create(this->_renderingDevice,
-                                                                       this->_descriptorPool,
-                                                                       this->_objectDescriptorSetLayout);
-    }
-
-    Scene *currentScene = this->_engine->sceneManager()->currentScene();
-    if (currentScene != nullptr) {
-        this->_skyboxTextureView = ImageViewObjectBuilder(this->_vulkanObjectsAllocator)
-                .fromImageObject(currentScene->skybox()->texture()->image())
-                .withType(VK_IMAGE_VIEW_TYPE_CUBE)
-                .withAspectFlags(VK_IMAGE_ASPECT_COLOR_BIT)
-                .withLayers(0, 6)
-                .build();
-
-        updateDescriptorSetWithImage(this->_skyboxDescriptorSets, this->_skyboxTextureView, 0);
-    }
-}
-
-void SceneRenderpass::destroySkyboxPipeline() {
-    for (uint32_t idx = 0; idx < MAX_INFLIGHT_FRAMES; ++idx) {
-        this->_skyboxDescriptorSets[idx]->destroy();
-    }
-
-    if (this->_skyboxTextureView != nullptr) {
-        this->_skyboxTextureView->destroy();
-        this->_skyboxTextureView = nullptr;
-    }
-
-    this->_renderingDevice.get()->destroyPipeline(this->_skyboxPipeline);
-    this->_renderingDevice.get()->destroyPipelineLayout(this->_skyboxPipelineLayout);
-}
-
-void SceneRenderpass::initScenePipeline() {
-    this->_scenePipelineLayout = PipelineLayoutBuilder(this->_renderingDevice.get())
-            .withDescriptorSetLayout(this->_objectDescriptorSetLayout)
-            .withPushConstant(VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshConstants))
-            .build();
-
-    std::shared_ptr<ShaderResource> vertexShader = this->_engine->resourceManager()->loadShader("default_vert");
-    std::shared_ptr<ShaderResource> fragmentShader = this->_engine->resourceManager()->loadShader("default_frag");
-
-    this->_scenePipeline = PipelineBuilder(this->_renderingDevice.get(), this->_renderpass, this->_scenePipelineLayout)
-            .addVertexShader(vertexShader->shader())
-            .addFragmentShader(fragmentShader->shader())
-            .addBinding(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
-            .addAttribute(0, 0, offsetof(Vertex, pos), VK_FORMAT_R32G32B32_SFLOAT)
-            .addAttribute(0, 1, offsetof(Vertex, normal), VK_FORMAT_R32G32B32_SFLOAT)
-            .addAttribute(0, 2, offsetof(Vertex, color), VK_FORMAT_R32G32B32_SFLOAT)
-            .addAttribute(0, 3, offsetof(Vertex, uv), VK_FORMAT_R32G32_SFLOAT)
-            .withRasterizationSamples(this->_renderingDevice.get()->getPhysicalDevice()->getMsaaSamples())
-            .withColorBlendAttachmentCount(4)
-            .forSubpass(1)
-            .build();
-
-    vertexShader->unload();
-    fragmentShader->unload();
-}
-
-void SceneRenderpass::destroyScenePipeline() {
-    for (const auto &[image, imageView]: this->_imageViews) {
-        imageView->destroy();
-    }
-
-    this->_imageViews.clear();
-
-    this->_renderingDevice.get()->destroyPipeline(this->_scenePipeline);
-    this->_renderingDevice.get()->destroyPipelineLayout(this->_scenePipelineLayout);
-}
-
-void SceneRenderpass::initCompositionPipeline() {
-    this->_compositionGBufferDescriptorSetLayout = DescriptorSetLayoutBuilder(this->_renderingDevice.get())
-            .withBinding(0, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, VK_SHADER_STAGE_FRAGMENT_BIT)
-            .withBinding(1, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, VK_SHADER_STAGE_FRAGMENT_BIT)
-            .withBinding(2, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, VK_SHADER_STAGE_FRAGMENT_BIT)
-            .withBinding(3, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, VK_SHADER_STAGE_FRAGMENT_BIT)
-            .withBinding(4, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, VK_SHADER_STAGE_FRAGMENT_BIT)
-            .build();
-
-    this->_compositionSceneDataDescriptorSetLayout = DescriptorSetLayoutBuilder(this->_renderingDevice.get())
-            .withBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT)
-            .withBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, MAX_NUM_LIGHTS)
-            .build();
-
-    this->_compositionSceneDataBuffer = BufferObjectBuilder(this->_renderingDevice, this->_vulkanObjectsAllocator)
-            .withSize(sizeof(SceneData))
-            .withUsage(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT)
-            .hostAvailable()
-            .build();
-
-    this->_compositionSceneData = reinterpret_cast<SceneData *>(this->_compositionSceneDataBuffer->map());
-
-    for (uint32_t idx = 0; idx < MAX_INFLIGHT_FRAMES; ++idx) {
-        this->_compositionSceneDataDescriptorSets[idx] = DescriptorSetObject::create(
-                this->_renderingDevice,
-                this->_descriptorPool,
-                this->_compositionSceneDataDescriptorSetLayout);
-
-        VkDescriptorBufferInfo bufferInfo = {
-                .buffer = this->_compositionSceneDataBuffer->getHandle(),
-                .offset = 0,
-                .range = sizeof(SceneData)
-        };
-
-        std::vector<VkDescriptorImageInfo> imageInfo(MAX_NUM_LIGHTS);
-        for (uint32_t lightIdx = 0; lightIdx < MAX_NUM_LIGHTS; lightIdx++) {
-            imageInfo[lightIdx] = {
-                    .sampler = this->_textureSampler,
-                    .imageView = this->_shadowRenderpasses[0]->getResultImageView(lightIdx)->getHandle(),
-                    .imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL
-            };
-        }
-
-        std::vector<VkWriteDescriptorSet> writes = {
-                VkWriteDescriptorSet{
-                        .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                        .pNext = nullptr,
-                        .dstSet = this->_compositionSceneDataDescriptorSets[idx]->getHandle(),
-                        .dstBinding = 0,
-                        .dstArrayElement = 0,
-                        .descriptorCount = 1,
-                        .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                        .pImageInfo = nullptr,
-                        .pBufferInfo = &bufferInfo,
-                        .pTexelBufferView = nullptr
-                },
-                VkWriteDescriptorSet{
-                        .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                        .pNext = nullptr,
-                        .dstSet = this->_compositionSceneDataDescriptorSets[idx]->getHandle(),
-                        .dstBinding = 1,
-                        .dstArrayElement = 0,
-                        .descriptorCount = static_cast<uint32_t>(imageInfo.size()),
-                        .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                        .pImageInfo = imageInfo.data(),
-                        .pBufferInfo = nullptr,
-                        .pTexelBufferView = nullptr
-                }
-        };
-
-        vkUpdateDescriptorSets(this->_renderingDevice->getHandle(), writes.size(), writes.data(), 0, nullptr);
-    }
-
-    this->_compositionPipelineLayout = PipelineLayoutBuilder(this->_renderingDevice.get())
-            .withDescriptorSetLayout(this->_compositionGBufferDescriptorSetLayout)
-            .withDescriptorSetLayout(this->_compositionSceneDataDescriptorSetLayout)
-            .build();
-
-    std::shared_ptr<ShaderResource> vertexShader = this->_engine->resourceManager()->loadShader("composition_vert");
-    std::shared_ptr<ShaderResource> fragmentShader = this->_engine->resourceManager()->loadShader(
-            "scene_composition_frag");
-
-    this->_compositionPipeline = PipelineBuilder(this->_renderingDevice.get(), this->_renderpass,
-                                                 this->_compositionPipelineLayout)
-            .addVertexShader(vertexShader->shader())
-            .addFragmentShader(fragmentShader->shader())
-            .withRasterizationSamples(this->_renderingDevice.get()->getPhysicalDevice()->getMsaaSamples())
-            .withCullMode(VK_CULL_MODE_FRONT_BIT)
-            .forSubpass(2)
-            .build();
-
-    vertexShader->unload();
-    fragmentShader->unload();
-}
-
-void SceneRenderpass::destroyCompositionPipeline() {
-    this->_renderingDevice.get()->destroyPipeline(this->_compositionPipeline);
-    this->_renderingDevice.get()->destroyPipelineLayout(this->_compositionPipelineLayout);
-    this->_renderingDevice.get()->destroyDescriptorSetLayout(this->_compositionSceneDataDescriptorSetLayout);
-    this->_renderingDevice.get()->destroyDescriptorSetLayout(this->_compositionGBufferDescriptorSetLayout);
-
-    for (std::shared_ptr<DescriptorSetObject> &descriptorSet: this->_compositionSceneDataDescriptorSets) {
-        descriptorSet->destroy();
-    }
-
-    this->_compositionSceneDataBuffer->destroy();
 }
 
 SceneRenderpass::SceneRenderpass(const std::shared_ptr<RenderingDevice> &renderingDevice,
+                                 const std::shared_ptr<EngineVars> &engineVars,
                                  const std::shared_ptr<PhysicalDevice> &physicalDevice,
+                                 const std::shared_ptr<RenderingLayoutsManager> &renderingLayoutsManager,
                                  const std::shared_ptr<VulkanObjectsAllocator> &vulkanObjectsAllocator,
-                                 Swapchain *swapchain, Engine *engine)
-        : RenderpassBase(renderingDevice),
+                                 const std::shared_ptr<Swapchain> &swapchain,
+                                 const std::shared_ptr<ResourceManager> &resourceManager)
+        : RenderpassBase(renderingDevice,
+                         {
+                                 VkClearValue{.color = {{0, 0, 0, 0}}},
+                                 VkClearValue{.color = {{0, 0, 0, 0}}},
+                                 VkClearValue{.color = {{0, 0, 0, 0}}},
+                                 VkClearValue{.color = {{0, 0, 0, 0}}},
+                                 VkClearValue{.depthStencil = {1, 0}},
+                                 VkClearValue{.color = {{0, 0, 0, 0}}},
+                                 VkClearValue{.color = {{0, 0, 0, 0}}},
+                         }),
+          _engineVars(engineVars),
           _physicalDevice(physicalDevice),
+          _renderingLayoutsManager(renderingLayoutsManager),
           _vulkanObjectsAllocator(vulkanObjectsAllocator),
-          _engine(engine),
-          _swapchain(swapchain) {
-    this->_engine->eventQueue()->addHandler([this](const Event &event) {
-        if (event.type != SCENE_TRANSITION_EVENT) {
-            return;
-        }
-
-        if (this->_skyboxTextureView != nullptr) {
-            this->_skyboxTextureView->destroy();
-        }
-
-        this->_skyboxTextureView = ImageViewObjectBuilder(this->_vulkanObjectsAllocator)
-                .fromImageObject(event.scene->skybox()->texture()->image())
-                .withType(VK_IMAGE_VIEW_TYPE_CUBE)
-                .withAspectFlags(VK_IMAGE_ASPECT_COLOR_BIT)
-                .withLayers(0, 6)
-                .build();
-
-        updateDescriptorSetWithImage(this->_skyboxDescriptorSets, this->_skyboxTextureView, 0);
-    });
+          _swapchain(swapchain),
+          _resourceManager(resourceManager) {
+    //
 }
 
-void SceneRenderpass::recordCommands(VkCommandBuffer commandBuffer, VkRect2D renderArea,
-                                     uint32_t frameIdx, uint32_t imageIdx) {
-    std::shared_ptr<Scene> currentScene = this->_engine->sceneManager()->currentScene();
+void SceneRenderpass::record(VkCommandBuffer commandBuffer, uint32_t frameIdx,
+                             const SceneData &sceneData,
+                             const CameraData &cameraData,
+                             const std::vector<ShadowData> &shadowData,
+                             const std::vector<LightData> &lightData,
+                             const std::vector<ModelData> &models) {
+    *this->_sceneData = sceneData;
+    *this->_cameraData = cameraData;
 
-    // PREPARE SCENE DATA
-    {
-        std::vector<LightData> lightData;
-        if (currentScene != nullptr) {
-            glm::vec3 cameraPosition = currentScene->camera()->position();
-
-            for (uint32_t idx = 0; idx < currentScene->lights().size(); idx++) {
-                Light *light = currentScene->lights()[idx];
-
-                if (!light->enabled() || glm::distance(cameraPosition, light->position()) > 100) {
-                    continue;
-                }
-
-                glm::mat4 projection = light->getProjectionMatrix();
-                if (light->kind() == POINT_LIGHT) {
-                    for (glm::vec3 forward: POINT_LIGHT_DIRECTIONS) {
-                        glm::mat4 view = light->getViewMatrix(forward);
-                        lightData.push_back(LightData{
-                                projection * view,
-                                light->position(),
-                                light->color(),
-                                light->radius(),
-                                (int) light->kind()
-                        });
-                    }
-                } else {
-                    glm::mat4 view = light->getViewMatrix();
-                    lightData.push_back(LightData{
-                            projection * view,
-                            light->position(),
-                            light->color(),
-                            light->radius(),
-                            (int) light->kind()
-                    });
-                }
-            }
-
-            this->_compositionSceneData->cameraPosition = cameraPosition;
-        }
-
-        this->_compositionSceneData->numLights = std::min(MAX_NUM_LIGHTS, (int) lightData.size());
-        for (int idx = 0; idx < this->_compositionSceneData->numLights; idx++) {
-            this->_compositionSceneData->lights[idx] = lightData[idx];
-        }
+    for (uint32_t idx = 0; idx < this->_sceneData->shadowCount; idx++) {
+        this->_shadowData[idx] = shadowData[idx];
     }
 
-    const std::array<VkClearValue, 8> clearValues = {
-            VkClearValue{.color = {{0, 0, 0, 0}}}, // 0
-            VkClearValue{.color = {{0, 0, 0, 0}}}, // 1
-            VkClearValue{.color = {{0, 0, 0, 0}}}, // 2
-            VkClearValue{.color = {{0, 0, 0, 0}}}, // 3
-            VkClearValue{.color = {{0, 0, 0, 0}}}, // 4
-            VkClearValue{.depthStencil = {1, 0}},  // 5
-            VkClearValue{.color = {{0, 0, 0, 0}}}, // 6
-            VkClearValue{.color = {{0, 0, 0, 0}}}  // 7
-    };
+    for (uint32_t idx = 0; idx < this->_sceneData->lightCount; idx++) {
+        this->_lightData[idx] = lightData[idx];
+    }
 
-    const VkRenderPassBeginInfo renderPassBeginInfo = {
-            .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-            .pNext = nullptr,
-            .renderPass = this->_renderpass,
-            .framebuffer = this->_framebuffers[imageIdx],
-            .renderArea = renderArea,
-            .clearValueCount = static_cast<uint32_t>(clearValues.size()),
-            .pClearValues = clearValues.data()
-    };
+    VkDeviceSize offset = 0;
+    MeshConstants meshConstants;
+    VkDescriptorSet descriptorSet;
 
-    vkCmdBeginRenderPass(commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->_modelPipeline);
 
-    VkViewport viewport = {
+    for (uint32_t idx = 0; idx < models.size(); idx++) {
+        ModelData model = models[idx];
+
+        meshConstants.matrix = cameraData.matrixAll * model.model;
+        meshConstants.model = model.model;
+        meshConstants.modelRotation = model.modelRotation;
+        vkCmdPushConstants(commandBuffer, this->_renderingLayoutsManager->modelPipelineLayout(),
+                           VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshConstants), &meshConstants);
+
+        descriptorSet = model.descriptorSet->getHandle();
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                this->_renderingLayoutsManager->modelPipelineLayout(),
+                                0, 1, &descriptorSet, 0, nullptr);
+
+        VkBuffer vertexBuffer = model.vertices->getHandle();
+        vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer, &offset);
+        vkCmdBindIndexBuffer(commandBuffer, model.indices->getHandle(), 0, VK_INDEX_TYPE_UINT32);
+
+        vkCmdDrawIndexed(commandBuffer, model.count, 1, 0, 0, idx);
+    }
+
+    vkCmdNextSubpass(commandBuffer, VK_SUBPASS_CONTENTS_INLINE);
+
+    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->_compositionPipeline);
+
+    descriptorSet = this->_compositionDescriptorSets[frameIdx]->getHandle();
+    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                            this->_renderingLayoutsManager->compositionPipelineLayout(),
+                            0, 1, &descriptorSet, 0, nullptr);
+
+    vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+}
+
+void SceneRenderpass::beginRenderpass(VkCommandBuffer commandBuffer) {
+    RenderpassBase::beginRenderpass(commandBuffer);
+
+    const VkViewport viewport = {
             .x = 0,
             .y = 0,
-            .width = (float) renderArea.extent.width,
-            .height = (float) renderArea.extent.height,
+            .width = (float) this->_targetRenderArea.extent.width,
+            .height = (float) this->_targetRenderArea.extent.height,
             .minDepth = 0.0f,
             .maxDepth = 1.0f
     };
+
     vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
-
-    VkRect2D scissor = {
-            .offset = {0, 0},
-            .extent = renderArea.extent
-    };
-    vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
-
-    VkDeviceSize offset = 0;
-
-    // SKYBOX
-    if (this->_engine->engineVars()->getOrDefault(RENDERER_SKYBOX_ENABLED_VAR, true)->boolValue &&
-        currentScene != nullptr) {
-        glm::mat4 projection = currentScene->camera()->getProjectionMatrix(renderArea.extent.width,
-                                                                           renderArea.extent.height);
-        projection[1][1] *= -1;
-
-        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->_skyboxPipeline);
-
-        MeshConstants constants = {
-                .matrix = projection * currentScene->camera()->getViewMatrix(true) * glm::mat4(1),
-                .model = glm::mat4(1)
-        };
-        vkCmdPushConstants(commandBuffer, this->_skyboxPipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
-                           sizeof(MeshConstants), &constants);
-
-        VkDescriptorSet descriptorSet = this->_skyboxDescriptorSets[frameIdx]->getHandle();
-        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->_skyboxPipelineLayout,
-                                0, 1, &descriptorSet, 0, nullptr);
-
-        VkBuffer vertexBuffer = currentScene->skybox()->mesh()->vertexBuffer()->getHandle();
-        vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer, &offset);
-        vkCmdBindIndexBuffer(commandBuffer, currentScene->skybox()->mesh()->indexBuffer()->getHandle(), 0,
-                             VK_INDEX_TYPE_UINT32);
-
-        vkCmdDrawIndexed(commandBuffer, currentScene->skybox()->mesh()->count(), 1, 0, 0, 0);
-    }
-
-    vkCmdNextSubpass(commandBuffer, VK_SUBPASS_CONTENTS_INLINE);
-
-    // SCENE
-    if (currentScene != nullptr) {
-        glm::mat4 projection = currentScene->camera()->getProjectionMatrix(renderArea.extent.width,
-                                                                           renderArea.extent.height);
-        projection[1][1] *= -1;
-
-        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->_scenePipeline);
-
-        glm::mat4 view = currentScene->camera()->getViewMatrix(false);
-
-        uint32_t idx = 0;
-        for (Object *object: currentScene->objects()) {
-            if (object->mesh() == nullptr) {
-                continue;
-            }
-
-            glm::mat4 model = object->getModelMatrix(false);
-            glm::mat4 rot = object->getModelMatrix(true);
-            MeshConstants constants = {
-                    .matrix = projection * view * model,
-                    .model = model,
-                    .modelRotation = rot
-            };
-            vkCmdPushConstants(commandBuffer, this->_scenePipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
-                               sizeof(MeshConstants), &constants);
-
-            VkBuffer vertexBuffer = object->mesh()->vertexBuffer()->getHandle();
-            vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer, &offset);
-            vkCmdBindIndexBuffer(commandBuffer, object->mesh()->indexBuffer()->getHandle(), 0, VK_INDEX_TYPE_UINT32);
-
-            VkDescriptorSet descriptor = getRenderData(object)->descriptorSets[frameIdx]->getHandle();
-            vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->_scenePipelineLayout,
-                                    0, 1, &descriptor, 0, nullptr);
-
-            vkCmdDrawIndexed(commandBuffer, object->mesh()->count(), 1, 0, 0, idx++);
-        }
-    }
-
-    vkCmdNextSubpass(commandBuffer, VK_SUBPASS_CONTENTS_INLINE);
-
-    // COMPOSITION
-    {
-        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->_compositionPipeline);
-
-        VkDescriptorSet gBufferDescriptor = this->_compositionGBufferDescriptorSets[frameIdx]->getHandle();
-        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->_compositionPipelineLayout,
-                                0, 1, &gBufferDescriptor, 0, nullptr);
-
-        VkDescriptorSet sceneDataDescriptor = this->_compositionSceneDataDescriptorSets[frameIdx]->getHandle();
-        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, this->_compositionPipelineLayout,
-                                1, 1, &sceneDataDescriptor, 0, nullptr);
-
-        vkCmdDraw(commandBuffer, 3, 1, 0, 0);
-    }
-
-    vkCmdEndRenderPass(commandBuffer);
+    vkCmdSetScissor(commandBuffer, 0, 1, &this->_targetRenderArea);
 }
 
 void SceneRenderpass::initRenderpass() {
-    VkFormat format = this->_renderingDevice.get()->getPhysicalDevice()->getColorFormat();
-    VkSampleCountFlagBits samples = this->_renderingDevice.get()->getPhysicalDevice()->getMsaaSamples();
+    this->_sceneConstants.lightCount = this->_engineVars->getOrDefault(RENDERING_SCENE_STAGE_LIGHT_COUNT,
+                                                                       128)->intValue;
+    this->_sceneConstants.shadowCount = this->_engineVars->getOrDefault(RENDERING_SCENE_STAGE_SHADOW_MAP_COUNT,
+                                                                        32)->intValue;
+
+    VkFormat colorFormat = this->_physicalDevice->getColorFormat();
+    VkSampleCountFlagBits samples = this->_physicalDevice->getMsaaSamples();
+
+    this->_textureSampler = SamplerBuilder(this->_vulkanObjectsAllocator)
+            .enableAnisotropy(this->_physicalDevice->getMaxSamplerAnisotropy())
+            .build();
+
+    this->_shadowMapSampler = SamplerBuilder(this->_vulkanObjectsAllocator)
+            .withBorderColor(VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE)
+            .withAddressMode(VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER)
+            .build();
+
     this->_renderpass = RenderpassBuilder(this->_renderingDevice.get())
             .addAttachment([&](AttachmentBuilder &builder) {
-                // 0: skybox
-                builder
-                        .clear()
-                        .withFormat(format)
-                        .withSamples(samples)
-                        .withFinalLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-            })
-            .addAttachment([&](AttachmentBuilder &builder) {
-                // 1: scene albedo
+                // 0. Albedo
                 builder
                         .clear()
                         .withFormat(VK_FORMAT_R8G8B8A8_UNORM)
@@ -554,7 +160,7 @@ void SceneRenderpass::initRenderpass() {
                         .withFinalLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
             })
             .addAttachment([&](AttachmentBuilder &builder) {
-                // 2: scene position
+                // 1. Position
                 builder
                         .clear()
                         .withFormat(VK_FORMAT_R16G16B16A16_SFLOAT)
@@ -562,7 +168,7 @@ void SceneRenderpass::initRenderpass() {
                         .withFinalLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
             })
             .addAttachment([&](AttachmentBuilder &builder) {
-                // 3: scene normals
+                // 2. Normals
                 builder
                         .clear()
                         .withFormat(VK_FORMAT_R16G16B16A16_SFLOAT)
@@ -570,46 +176,43 @@ void SceneRenderpass::initRenderpass() {
                         .withFinalLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
             })
             .addAttachment([&](AttachmentBuilder &builder) {
-                // 4: scene specular
+                // 3. Specular
                 builder
                         .clear()
-                        .withFormat(VK_FORMAT_R8G8B8A8_UNORM)
+                        .withFormat(VK_FORMAT_R8_UNORM)
                         .withSamples(samples)
                         .withFinalLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
             })
             .addAttachment([&](AttachmentBuilder &builder) {
-                // 5: scene depth
+                // 4. Depth
                 builder
                         .clear()
-                        .withFormat(this->_renderingDevice.get()->getPhysicalDevice()->getDepthFormat())
+                        .withFormat(this->_physicalDevice->getDepthFormat())
                         .withSamples(samples)
                         .withFinalLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
             })
             .addAttachment([&](AttachmentBuilder &builder) {
-                // 6: composition
+                // 5. Composition
                 builder
                         .clear()
-                        .withFormat(format)
+                        .withFormat(colorFormat)
                         .withSamples(samples)
                         .withFinalLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
             })
             .addAttachment([&](AttachmentBuilder &builder) {
-                // 7: resolve
+                // 6. Resolve
                 builder
                         .clear()
-                        .withFormat(format)
-                        .withFinalLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-            })
-            .addSubpass([](SubpassBuilder &builder) {
-                builder.withColorAttachment(0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+                        .withFormat(colorFormat)
+                        .withFinalLayout(VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
             })
             .addSubpass([](SubpassBuilder &builder) {
                 builder
+                        .withColorAttachment(0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
                         .withColorAttachment(1, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
                         .withColorAttachment(2, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
                         .withColorAttachment(3, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
-                        .withColorAttachment(4, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
-                        .withDepthAttachment(5, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+                        .withDepthAttachment(4, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
             })
             .addSubpass([](SubpassBuilder &builder) {
                 builder
@@ -617,9 +220,8 @@ void SceneRenderpass::initRenderpass() {
                         .withInputAttachment(1, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
                         .withInputAttachment(2, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
                         .withInputAttachment(3, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
-                        .withInputAttachment(4, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
-                        .withColorAttachment(6, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
-                        .withResolveAttachment(7, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+                        .withColorAttachment(5, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
+                        .withResolveAttachment(6, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
             })
             .addSubpassDependency(VK_SUBPASS_EXTERNAL, 0,
                                   VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
@@ -631,233 +233,147 @@ void SceneRenderpass::initRenderpass() {
                                   VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
                                   VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
                                   VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT)
-            .addSubpassDependency(1, 2,
-                                  VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                                  VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                                  VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-                                  VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT)
             .build();
 
-    this->_descriptorPool = DescriptorPoolBuilder(this->_renderingDevice.get())
-            .forType(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
-            .forType(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
+    this->_modelPipeline = PipelineBuilder(this->_vulkanObjectsAllocator, this->_renderpass,
+                                           this->_renderingLayoutsManager->modelPipelineLayout())
+            .addVertexShader(this->_resourceManager->loadShader("shaders/scene-model.vert")->shader())
+            .addFragmentShader(this->_resourceManager->loadShader("shaders/scene-model.frag")->shader())
+            .addBinding(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
+            .addAttribute(0, 0, offsetof(Vertex, pos), VK_FORMAT_R32G32B32_SFLOAT)
+            .addAttribute(0, 1, offsetof(Vertex, normal), VK_FORMAT_R32G32B32_SFLOAT)
+            .addAttribute(0, 2, offsetof(Vertex, color), VK_FORMAT_R32G32B32_SFLOAT)
+            .addAttribute(0, 3, offsetof(Vertex, uv), VK_FORMAT_R32G32_SFLOAT)
+            .withRasterizationSamples(this->_physicalDevice->getMsaaSamples())
+            .withColorBlendAttachmentCount(4)
+            .forSubpass(0)
             .build();
 
-    this->_objectDescriptorSetLayout = DescriptorSetLayoutBuilder(this->_renderingDevice.get())
-            .withBinding(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
-            .withBinding(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
+    this->_compositionPipeline = PipelineBuilder(this->_vulkanObjectsAllocator, this->_renderpass,
+                                                 this->_renderingLayoutsManager->compositionPipelineLayout())
+            .addVertexShader(this->_resourceManager->loadShader("shaders/passthrough.vert")->shader())
+            .addFragmentShader(this->_resourceManager->loadShader("shaders/scene-composition.frag")->shader())
+            .withFragmentShaderSpecialization([&](SpecializationInfoBuilder &builder) {
+                builder
+                        .withSize(sizeof(SceneConstants))
+                        .withEntry(0, offsetof(SceneConstants, shadowCount), sizeof(uint32_t))
+                        .withEntry(1, offsetof(SceneConstants, lightCount), sizeof(uint32_t))
+                        .withData(&this->_sceneConstants);
+            })
+            .withRasterizationSamples(this->_physicalDevice->getMsaaSamples())
+            .withCullMode(VK_CULL_MODE_FRONT_BIT)
+            .forSubpass(1)
             .build();
 
-    this->_textureSampler = SamplerBuilder(this->_renderingDevice)
-            .withAddressMode(VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER)
-            .withBorderColor(VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE)
-            .enableAnisotropy(this->_renderingDevice.get()->getPhysicalDevice()->getMaxSamplerAnisotropy())
+    this->_shadowDataBuffer = BufferObjectBuilder(this->_renderingDevice, this->_vulkanObjectsAllocator)
+            .withSize(sizeof(ShadowData) * this->_sceneConstants.shadowCount)
+            .withUsage(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT)
+            .hostAvailable()
             .build();
 
-    this->initSkyboxPipeline();
-    this->initScenePipeline();
-    this->initCompositionPipeline();
+    this->_shadowData = reinterpret_cast<ShadowData *>(this->_shadowDataBuffer->map());
+
+    this->_lightDataBuffer = BufferObjectBuilder(this->_renderingDevice, this->_vulkanObjectsAllocator)
+            .withSize(sizeof(LightData) * this->_sceneConstants.lightCount)
+            .withUsage(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT)
+            .hostAvailable()
+            .build();
+
+    this->_lightData = reinterpret_cast<LightData *>(this->_lightDataBuffer->map());
+
+    this->_cameraDataBuffer = BufferObjectBuilder(this->_renderingDevice, this->_vulkanObjectsAllocator)
+            .withSize(sizeof(CameraData))
+            .withUsage(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT)
+            .hostAvailable()
+            .build();
+
+    this->_cameraData = reinterpret_cast<CameraData *>(this->_cameraDataBuffer->map());
+
+    this->_sceneDataBuffer = BufferObjectBuilder(this->_renderingDevice, this->_vulkanObjectsAllocator)
+            .withSize(sizeof(SceneData))
+            .withUsage(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT)
+            .hostAvailable()
+            .build();
+
+    this->_sceneData = reinterpret_cast<SceneData *>(this->_sceneDataBuffer->map());
+
+    for (uint32_t imageIdx = 0; imageIdx < MAX_INFLIGHT_FRAMES; imageIdx++) {
+        this->_compositionDescriptorSets[imageIdx] = DescriptorSetObject::create(
+                this->_renderingDevice,
+                this->_renderingLayoutsManager->descriptorPool(),
+                this->_renderingLayoutsManager->compositionDescriptorSetLayout());
+
+        this->_compositionDescriptorSets[imageIdx]->updateWithBuffer(
+                5, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                this->_shadowDataBuffer, 0, sizeof(ShadowData) * this->_sceneConstants.shadowCount);
+
+        this->_compositionDescriptorSets[imageIdx]->updateWithBuffer(
+                6, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                this->_lightDataBuffer, 0, sizeof(LightData) * this->_sceneConstants.lightCount);
+
+        this->_compositionDescriptorSets[imageIdx]->updateWithBuffer(
+                7, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, this->_cameraDataBuffer, 0, sizeof(CameraData));
+
+        this->_compositionDescriptorSets[imageIdx]->updateWithBuffer(
+                8, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, this->_sceneDataBuffer, 0, sizeof(SceneData));
+    }
 }
 
 void SceneRenderpass::destroyRenderpass() {
-    this->destroyCompositionPipeline();
-    this->destroyScenePipeline();
-    this->destroySkyboxPipeline();
-
-    if (this->_engine->sceneManager()->currentScene() != nullptr) {
-        for (Object *object: this->_engine->sceneManager()->currentScene()->objects()) {
-            object->data()[RENDERING_DATA_TYPE] = nullptr;
-        }
+    for (uint32_t imageIdx = 0; imageIdx < MAX_INFLIGHT_FRAMES; imageIdx++) {
+        this->_compositionDescriptorSets[imageIdx]->destroy();
     }
 
-    this->_renderingDevice.get()->destroyDescriptorSetLayout(this->_objectDescriptorSetLayout);
-    this->_renderingDevice.get()->destroyDescriptorPool(this->_descriptorPool);
-    this->_renderingDevice.get()->destroySampler(this->_textureSampler);
+    this->_sceneDataBuffer->destroy();
+    this->_cameraDataBuffer->destroy();
+    this->_lightDataBuffer->destroy();
+    this->_shadowDataBuffer->destroy();
+
+    this->_vulkanObjectsAllocator->destroyPipeline(this->_compositionPipeline);
+    this->_vulkanObjectsAllocator->destroyPipeline(this->_modelPipeline);
 
     RenderpassBase::destroyRenderpass();
+
+    this->_vulkanObjectsAllocator->destroySampler(this->_textureSampler);
+    this->_vulkanObjectsAllocator->destroySampler(this->_shadowMapSampler);
 }
 
-void SceneRenderpass::createFramebuffers() {
-    VkExtent2D extent = this->_swapchain->getSwapchainExtent();
-    VkSampleCountFlagBits samples = this->_renderingDevice.get()->getPhysicalDevice()->getMsaaSamples();
-    VkFormat colorFormat = this->_renderingDevice.get()->getPhysicalDevice()->getColorFormat();
+void SceneRenderpass::setGBufferImageViews(const std::shared_ptr<ImageViewObject> &albedoImageView,
+                                           const std::shared_ptr<ImageViewObject> &positionImageView,
+                                           const std::shared_ptr<ImageViewObject> &normalImageView,
+                                           const std::shared_ptr<ImageViewObject> &specularImageView,
+                                           const std::shared_ptr<ImageViewObject> &depthImageView,
+                                           const std::shared_ptr<ImageViewObject> &compositionImageView) {
+    this->_albedoImageView = albedoImageView;
+    this->_positionImageView = positionImageView;
+    this->_normalImageView = normalImageView;
+    this->_specularImageView = specularImageView;
+    this->_depthImageView = depthImageView;
+    this->_compositionImageView = compositionImageView;
 
-    this->_skyboxImage = ImageObjectBuilder(this->_renderingDevice, this->_vulkanObjectsAllocator)
-            .withExtent(extent.width, extent.height)
-            .withFormat(colorFormat)
-            .withUsage(VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT |
-                       VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
-            .withSamples(samples)
-            .build();
-    this->_skyboxImageView = ImageViewObjectBuilder(this->_vulkanObjectsAllocator)
-            .fromImageObject(this->_skyboxImage)
-            .withAspectFlags(VK_IMAGE_ASPECT_COLOR_BIT)
-            .build();
+    for (uint32_t imageIdx = 0; imageIdx < MAX_INFLIGHT_FRAMES; imageIdx++) {
+        this->_compositionDescriptorSets[imageIdx]->updateWithImageView(
+                0, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, albedoImageView,
+                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-    this->_albedoImage = ImageObjectBuilder(this->_renderingDevice, this->_vulkanObjectsAllocator)
-            .withExtent(extent.width, extent.height)
-            .withFormat(VK_FORMAT_R8G8B8A8_UNORM)
-            .withUsage(VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT |
-                       VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
-            .withSamples(samples)
-            .build();
-    this->_albedoImageView = ImageViewObjectBuilder(this->_vulkanObjectsAllocator)
-            .fromImageObject(this->_albedoImage)
-            .withAspectFlags(VK_IMAGE_ASPECT_COLOR_BIT)
-            .build();
+        this->_compositionDescriptorSets[imageIdx]->updateWithImageView(
+                1, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, positionImageView,
+                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-    this->_positionImage = ImageObjectBuilder(this->_renderingDevice, this->_vulkanObjectsAllocator)
-            .withExtent(extent.width, extent.height)
-            .withFormat(VK_FORMAT_R16G16B16A16_SFLOAT)
-            .withUsage(VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT |
-                       VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
-            .withSamples(samples)
-            .build();
-    this->_positionImageView = ImageViewObjectBuilder(this->_vulkanObjectsAllocator)
-            .fromImageObject(this->_positionImage)
-            .withAspectFlags(VK_IMAGE_ASPECT_COLOR_BIT)
-            .build();
+        this->_compositionDescriptorSets[imageIdx]->updateWithImageView(
+                2, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, normalImageView,
+                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-    this->_normalImage = ImageObjectBuilder(this->_renderingDevice, this->_vulkanObjectsAllocator)
-            .withExtent(extent.width, extent.height)
-            .withFormat(VK_FORMAT_R16G16B16A16_SFLOAT)
-            .withUsage(VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT |
-                       VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
-            .withSamples(samples)
-            .build();
-    this->_normalImageView = ImageViewObjectBuilder(this->_vulkanObjectsAllocator)
-            .fromImageObject(this->_normalImage)
-            .withAspectFlags(VK_IMAGE_ASPECT_COLOR_BIT)
-            .build();
-
-    this->_specularImage = ImageObjectBuilder(this->_renderingDevice, this->_vulkanObjectsAllocator)
-            .withExtent(extent.width, extent.height)
-            .withFormat(VK_FORMAT_R8G8B8A8_UNORM)
-            .withUsage(VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT |
-                       VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
-            .withSamples(samples)
-            .build();
-    this->_specularImageView = ImageViewObjectBuilder(this->_vulkanObjectsAllocator)
-            .fromImageObject(this->_specularImage)
-            .withAspectFlags(VK_IMAGE_ASPECT_COLOR_BIT)
-            .build();
-
-    this->_depthImage = ImageObjectBuilder(this->_renderingDevice, this->_vulkanObjectsAllocator)
-            .withExtent(extent.width, extent.height)
-            .withFormat(this->_physicalDevice->getDepthFormat())
-            .withUsage(VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT)
-            .withSamples(samples)
-            .build();
-    this->_depthImageView = ImageViewObjectBuilder(this->_vulkanObjectsAllocator)
-            .fromImageObject(this->_depthImage)
-            .withAspectFlags(VK_IMAGE_ASPECT_DEPTH_BIT)
-            .build();
-
-    this->_compositionImage = ImageObjectBuilder(this->_renderingDevice, this->_vulkanObjectsAllocator)
-            .withExtent(extent.width, extent.height)
-            .withFormat(colorFormat)
-            .withUsage(VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
-            .withSamples(samples)
-            .build();
-    this->_compositionImageView = ImageViewObjectBuilder(this->_vulkanObjectsAllocator)
-            .fromImageObject(this->_compositionImage)
-            .withAspectFlags(VK_IMAGE_ASPECT_COLOR_BIT)
-            .build();
-
-    this->_resultImage = ImageObjectBuilder(this->_renderingDevice, this->_vulkanObjectsAllocator)
-            .withExtent(extent.width, extent.height)
-            .withFormat(colorFormat)
-            .withUsage(VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT |
-                       VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
-            .build();
-    this->_resultImageView = ImageViewObjectBuilder(this->_vulkanObjectsAllocator)
-            .fromImageObject(this->_resultImage)
-            .withAspectFlags(VK_IMAGE_ASPECT_COLOR_BIT)
-            .build();
-
-    std::array<VkImageView, 5> compositionImages = {
-            this->_skyboxImageView->getHandle(),
-            this->_albedoImageView->getHandle(),
-            this->_positionImageView->getHandle(),
-            this->_normalImageView->getHandle(),
-            this->_specularImageView->getHandle()
-    };
-
-    for (uint32_t frameIdx = 0; frameIdx < MAX_INFLIGHT_FRAMES; frameIdx++) {
-        this->_compositionGBufferDescriptorSets[frameIdx] = DescriptorSetObject::create(
-                this->_renderingDevice, this->_descriptorPool, this->_compositionGBufferDescriptorSetLayout);
-
-        for (uint32_t imageIdx = 0; imageIdx < compositionImages.size(); imageIdx++) {
-            VkDescriptorImageInfo imageInfo = {
-                    .sampler = VK_NULL_HANDLE,
-                    .imageView = compositionImages[imageIdx],
-                    .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-            };
-
-            std::vector<VkWriteDescriptorSet> writes = {
-                    VkWriteDescriptorSet{
-                            .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                            .pNext = nullptr,
-                            .dstSet = this->_compositionGBufferDescriptorSets[frameIdx]->getHandle(),
-                            .dstBinding = imageIdx,
-                            .dstArrayElement = 0,
-                            .descriptorCount = 1,
-                            .descriptorType = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT,
-                            .pImageInfo = &imageInfo,
-                            .pBufferInfo = nullptr,
-                            .pTexelBufferView = nullptr
-                    }
-            };
-
-            vkUpdateDescriptorSets(this->_renderingDevice->getHandle(), writes.size(), writes.data(), 0, nullptr);
-        }
-    }
-
-    FramebufferBuilder builder = FramebufferBuilder(this->_renderingDevice.get(), this->_renderpass)
-            .withExtent(extent)
-            .addAttachment(this->_skyboxImageView->getHandle())
-            .addAttachment(this->_albedoImageView->getHandle())
-            .addAttachment(this->_positionImageView->getHandle())
-            .addAttachment(this->_normalImageView->getHandle())
-            .addAttachment(this->_specularImageView->getHandle())
-            .addAttachment(this->_depthImageView->getHandle())
-            .addAttachment(this->_compositionImageView->getHandle())
-            .addAttachment(this->_resultImageView->getHandle());
-
-    uint32_t count = this->_swapchain->getImageCount();
-    this->_framebuffers.resize(count);
-
-    for (uint32_t idx = 0; idx < count; idx++) {
-        this->_framebuffers[idx] = builder.build();
+        this->_compositionDescriptorSets[imageIdx]->updateWithImageView(
+                3, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, specularImageView,
+                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     }
 }
 
-void SceneRenderpass::destroyFramebuffers() {
-    RenderpassBase::destroyFramebuffers();
-
-    for (uint32_t idx = 0; idx < MAX_INFLIGHT_FRAMES; ++idx) {
-        this->_compositionGBufferDescriptorSets[idx]->destroy();
+void SceneRenderpass::setShadowMapArrayView(const std::shared_ptr<ImageViewObject> &shadowMapArrayView) {
+    for (uint32_t imageIdx = 0; imageIdx < MAX_INFLIGHT_FRAMES; imageIdx++) {
+        this->_compositionDescriptorSets[imageIdx]->updateWithImageView(
+                4, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, shadowMapArrayView,
+                VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL, this->_shadowMapSampler);
     }
-
-    this->_compositionImageView->destroy();
-    this->_compositionImage->destroy();
-    this->_specularImageView->destroy();
-    this->_specularImage->destroy();
-    this->_normalImageView->destroy();
-    this->_normalImage->destroy();
-    this->_positionImageView->destroy();
-    this->_positionImage->destroy();
-    this->_albedoImageView->destroy();
-    this->_albedoImage->destroy();
-    this->_depthImageView->destroy();
-    this->_depthImage->destroy();
-    this->_skyboxImageView->destroy();
-    this->_skyboxImage->destroy();
-
-    this->_resultImageView->destroy();
-    this->_resultImage->destroy();
-}
-
-void SceneRenderpass::addShadowRenderpass(RenderpassBase *renderpass) {
-    this->_shadowRenderpasses.push_back(renderpass);
 }

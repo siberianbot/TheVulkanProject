@@ -10,6 +10,7 @@
 #include "src/Rendering/CommandExecutor.hpp"
 #include "src/Rendering/PhysicalDevice.hpp"
 #include "src/Rendering/RenderingDevice.hpp"
+#include "src/Rendering/RenderingLayoutsManager.hpp"
 #include "src/Rendering/RenderingObjectsAllocator.hpp"
 #include "src/Rendering/VulkanObjectsAllocator.hpp"
 #include "src/Rendering/Swapchain.hpp"
@@ -127,6 +128,11 @@ void RenderingManager::init() {
     this->_vulkanObjectsAllocator = std::make_shared<VulkanObjectsAllocator>(this->_physicalDevice,
                                                                              this->_renderingDevice);
 
+    this->_renderingLayoutsManager = std::make_shared<RenderingLayoutsManager>(this->_engineVars,
+                                                                               this->_renderingDevice,
+                                                                               this->_vulkanObjectsAllocator);
+    this->_renderingLayoutsManager->init();
+
     this->_commandExecutor = std::make_shared<CommandExecutor>(this->_renderingDevice, this->_vulkanObjectsAllocator);
     this->_commandExecutor->init();
 
@@ -141,6 +147,7 @@ void RenderingManager::init() {
 void RenderingManager::destroy() {
     this->_swapchain->destroy();
     this->_commandExecutor->destroy();
+    this->_renderingLayoutsManager->destroy();
     this->_renderingDevice->destroy();
 
     vkDestroySurfaceKHR(this->_instance, this->_surface, nullptr);

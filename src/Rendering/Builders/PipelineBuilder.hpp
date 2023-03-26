@@ -8,7 +8,7 @@
 
 #include <vulkan/vulkan.hpp>
 
-class RenderingDevice;
+class VulkanObjectsAllocator;
 class SpecializationInfoBuilder;
 class ShaderObject;
 
@@ -16,7 +16,7 @@ using ShaderSpecializationFunc = std::function<void(SpecializationInfoBuilder &)
 
 class PipelineBuilder {
 private:
-    RenderingDevice *_renderingDevice;
+    std::shared_ptr<VulkanObjectsAllocator> _vulkanObjectsAllocator;
     VkRenderPass _renderpass;
     VkPipelineLayout _pipelineLayout;
 
@@ -33,7 +33,9 @@ private:
     uint32_t _subpassIdx = 0;
 
 public:
-    PipelineBuilder(RenderingDevice *renderingDevice, VkRenderPass renderpass, VkPipelineLayout pipelineLayout);
+    PipelineBuilder(const std::shared_ptr<VulkanObjectsAllocator> &vulkanObjectsAllocator,
+                    VkRenderPass renderpass, VkPipelineLayout pipelineLayout);
+    ~PipelineBuilder();
 
     PipelineBuilder &addVertexShader(const std::shared_ptr<ShaderObject> &shader);
     PipelineBuilder &addFragmentShader(const std::shared_ptr<ShaderObject> &shader);

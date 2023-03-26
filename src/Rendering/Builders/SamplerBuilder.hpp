@@ -6,11 +6,11 @@
 
 #include <vulkan/vulkan.hpp>
 
-class RenderingDevice;
+class VulkanObjectsAllocator;
 
 class SamplerBuilder {
 private:
-    std::shared_ptr<RenderingDevice> _renderingDevice;
+    std::shared_ptr<VulkanObjectsAllocator> _vulkanObjectsAllocator;
 
     std::optional<float> _maxAnisotropy;
     std::optional<VkCompareOp> _compareOp;
@@ -18,7 +18,7 @@ private:
     std::optional<VkBorderColor> _borderColor;
 
 public:
-    SamplerBuilder(const std::shared_ptr<RenderingDevice> &renderingDevice);
+    SamplerBuilder(const std::shared_ptr<VulkanObjectsAllocator> &vulkanObjectsAllocator);
 
     SamplerBuilder &enableAnisotropy(float maxAnisotropy);
     SamplerBuilder &enableComparison(VkCompareOp compareOp);

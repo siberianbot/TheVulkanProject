@@ -111,27 +111,6 @@ void RenderingDevice::destroySampler(VkSampler sampler) {
     vkDestroySampler(this->_device, sampler, nullptr);
 }
 
-VkDescriptorPool RenderingDevice::createDescriptorPool(const std::vector<VkDescriptorPoolSize> &sizes,
-                                                       uint32_t maxSets) {
-    VkDescriptorPoolCreateInfo createInfo = {
-            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-            .pNext = nullptr,
-            .flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
-            .maxSets = maxSets,
-            .poolSizeCount = static_cast<uint32_t>(sizes.size()),
-            .pPoolSizes = sizes.data()
-    };
-
-    VkDescriptorPool descriptorPool;
-    vkEnsure(vkCreateDescriptorPool(this->_device, &createInfo, nullptr, &descriptorPool));
-
-    return descriptorPool;
-}
-
-void RenderingDevice::destroyDescriptorPool(VkDescriptorPool descriptorPool) {
-    vkDestroyDescriptorPool(this->_device, descriptorPool, nullptr);
-}
-
 VkDescriptorSetLayout RenderingDevice::createDescriptorSetLayout(
         const std::vector<VkDescriptorSetLayoutBinding> &bindings) {
     VkDescriptorSetLayoutCreateInfo createInfo = {
@@ -164,10 +143,7 @@ VkPipelineLayout RenderingDevice::createPipelineLayout(const std::vector<VkDescr
             .pPushConstantRanges = pushConstants.data()
     };
 
-    VkPipelineLayout pipelineLayout;
-    vkEnsure(vkCreatePipelineLayout(this->_device, &createInfo, nullptr, &pipelineLayout));
 
-    return pipelineLayout;
 }
 
 void RenderingDevice::destroyPipelineLayout(VkPipelineLayout pipelineLayout) {

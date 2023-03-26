@@ -26,37 +26,37 @@
     "bin-path": "shaders/composition.frag.spv"
   },
   {
-    "id": "composition_vert",
+    "id": "shaders/passthrough.vert",
     "type": "shader",
     "code-path": "shaders/composition.vert",
     "bin-path": "shaders/composition.vert.spv"
   },
   {
-    "id": "default_frag",
+    "id": "shaders/scene-model.frag",
     "type": "shader",
     "code-path": "shaders/default.frag",
     "bin-path": "shaders/default.frag.spv"
   },
   {
-    "id": "default_vert",
+    "id": "shaders/scene-model.vert",
     "type": "shader",
     "code-path": "shaders/default.vert",
     "bin-path": "shaders/default.vert.spv"
   },
   {
-    "id": "scene_composition_frag",
+    "id": "shaders/scene-composition.frag",
     "type": "shader",
     "code-path": "shaders/scene_composition.frag",
     "bin-path": "shaders/scene_composition.frag.spv"
   },
   {
-    "id": "shadow_frag",
+    "id": "shaders/shadow.frag",
     "type": "shader",
     "code-path": "shaders/shadow.frag",
     "bin-path": "shaders/shadow.frag.spv"
   },
   {
-    "id": "shadow_vert",
+    "id": "shaders/shadow.vert",
     "type": "shader",
     "code-path": "shaders/shadow.vert",
     "bin-path": "shaders/shadow.vert.spv"

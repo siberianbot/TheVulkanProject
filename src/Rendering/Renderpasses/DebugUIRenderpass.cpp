@@ -32,7 +32,7 @@ void DebugUIRenderpass::initRenderpass() {
     this->_renderpass = RenderpassBuilder(this->_renderingDevice.get())
             .addAttachment([](AttachmentBuilder &builder) {
                 builder
-                        .clear()
+                        .load()
                         .withFinalLayout(VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
             })
             .addSubpass([](SubpassBuilder &builder) {

@@ -1,15 +1,25 @@
 #include "PipelineBuilder.hpp"
 
-#include "src/Rendering/RenderingDevice.hpp"
+#include "src/Rendering/VulkanObjectsAllocator.hpp"
 #include "src/Rendering/Builders/SpecializationInfoBuilder.hpp"
 #include "src/Rendering/Objects/ShaderObject.hpp"
 
-PipelineBuilder::PipelineBuilder(RenderingDevice *renderingDevice,
+PipelineBuilder::PipelineBuilder(const std::shared_ptr<VulkanObjectsAllocator> &vulkanObjectsAllocator,
                                  VkRenderPass renderpass, VkPipelineLayout pipelineLayout)
-        : _renderingDevice(renderingDevice),
+        : _vulkanObjectsAllocator(vulkanObjectsAllocator),
           _renderpass(renderpass),
           _pipelineLayout(pipelineLayout) {
     //
+}
+
+PipelineBuilder::~PipelineBuilder() {
+    if (this->_vertexShaderSpecialization.has_value()) {
+        delete[] this->_vertexShaderSpecialization.value().pMapEntries;
+    }
+
+    if (this->_fragmentShaderSpecialization.has_value()) {
+        delete[] this->_fragmentShaderSpecialization.value().pMapEntries;
+    }
 }
 
 PipelineBuilder &PipelineBuilder::addVertexShader(const std::shared_ptr<ShaderObject> &shader) {
@@ -266,5 +276,5 @@ VkPipeline PipelineBuilder::build() {
             .basePipelineIndex = 0
     };
 
-    return this->_renderingDevice->createPipeline(&pipelineInfo);
+    return this->_vulkanObjectsAllocator->createGraphicsPipeline(&pipelineInfo);
 }

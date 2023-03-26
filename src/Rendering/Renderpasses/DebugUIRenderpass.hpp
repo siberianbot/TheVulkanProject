@@ -1,7 +1,7 @@
 #ifndef RENDERING_RENDERPASSES_IMGUIRENDERPASS_HPP
 #define RENDERING_RENDERPASSES_IMGUIRENDERPASS_HPP
 
-#include "RenderpassBase.hpp"
+#include "src/Rendering/Renderpasses/RenderpassBase.hpp"
 
 class DebugUIRenderpass : public RenderpassBase {
 private:

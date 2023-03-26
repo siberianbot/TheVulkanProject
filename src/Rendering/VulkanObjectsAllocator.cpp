@@ -166,3 +166,60 @@ VkShaderModule VulkanObjectsAllocator::createShader(const std::vector<char> &con
 void VulkanObjectsAllocator::destroyShader(VkShaderModule shader) {
     vkDestroyShaderModule(this->_renderingDevice->getHandle(), shader, nullptr);
 }
+
+VkDescriptorPool VulkanObjectsAllocator::createDescriptorPool(VkDescriptorPoolCreateInfo *createInfo) {
+    VkDescriptorPool descriptorPool;
+    vkEnsure(vkCreateDescriptorPool(this->_renderingDevice->getHandle(), createInfo, nullptr, &descriptorPool));
+
+    return descriptorPool;
+}
+
+void VulkanObjectsAllocator::destroyDescriptorPool(VkDescriptorPool descriptorPool) {
+    vkDestroyDescriptorPool(this->_renderingDevice->getHandle(), descriptorPool, nullptr);
+}
+
+VkDescriptorSetLayout VulkanObjectsAllocator::createDescriptorSetLayout(VkDescriptorSetLayoutCreateInfo *createInfo) {
+    VkDescriptorSetLayout descriptorSetLayout;
+    vkEnsure(vkCreateDescriptorSetLayout(this->_renderingDevice->getHandle(), createInfo, nullptr,
+                                         &descriptorSetLayout));
+
+    return descriptorSetLayout;
+}
+
+void VulkanObjectsAllocator::destroyDescriptorSetLayout(VkDescriptorSetLayout descriptorSetLayout) {
+    vkDestroyDescriptorSetLayout(this->_renderingDevice->getHandle(), descriptorSetLayout, nullptr);
+}
+
+VkPipelineLayout VulkanObjectsAllocator::createPipelineLayout(VkPipelineLayoutCreateInfo *createInfo) {
+    VkPipelineLayout pipelineLayout;
+    vkEnsure(vkCreatePipelineLayout(this->_renderingDevice->getHandle(), createInfo, nullptr, &pipelineLayout));
+
+    return pipelineLayout;
+}
+
+void VulkanObjectsAllocator::destroyPipelineLayout(VkPipelineLayout pipelineLayout) {
+    vkDestroyPipelineLayout(this->_renderingDevice->getHandle(), pipelineLayout, nullptr);
+}
+
+VkPipeline VulkanObjectsAllocator::createGraphicsPipeline(VkGraphicsPipelineCreateInfo *createInfo) {
+    VkPipeline pipeline;
+    vkEnsure(vkCreateGraphicsPipelines(this->_renderingDevice->getHandle(), VK_NULL_HANDLE, 1, createInfo, nullptr,
+                                       &pipeline));
+
+    return pipeline;
+}
+
+void VulkanObjectsAllocator::destroyPipeline(VkPipeline pipeline) {
+    vkDestroyPipeline(this->_renderingDevice->getHandle(), pipeline, nullptr);
+}
+
+VkSampler VulkanObjectsAllocator::createSampler(VkSamplerCreateInfo *createInfo) {
+    VkSampler sampler;
+    vkEnsure(vkCreateSampler(this->_renderingDevice->getHandle(), createInfo, nullptr, &sampler));
+
+    return sampler;
+}
+
+void VulkanObjectsAllocator::destroySampler(VkSampler sampler) {
+    vkDestroySampler(this->_renderingDevice->getHandle(), sampler, nullptr);
+}

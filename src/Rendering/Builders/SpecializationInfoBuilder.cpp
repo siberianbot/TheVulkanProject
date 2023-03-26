@@ -27,9 +27,14 @@ VkSpecializationInfo SpecializationInfoBuilder::build() {
         throw std::runtime_error("Size and pointer to data are required");
     }
 
+    VkSpecializationMapEntry *entries = new VkSpecializationMapEntry[this->_entries.size()];
+    for (uint32_t idx = 0; idx < this->_entries.size(); idx++) {
+        entries[idx] = this->_entries[idx];
+    }
+
     return VkSpecializationInfo{
             .mapEntryCount = static_cast<uint32_t>(this->_entries.size()),
-            .pMapEntries = this->_entries.data(),
+            .pMapEntries = entries,
             .dataSize = this->_size.value(),
             .pData = this->_ptr.value()
     };

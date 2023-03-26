@@ -1,15 +1,20 @@
 #include "Renderer.hpp"
 
 #include "src/Events/EventQueue.hpp"
+#include "src/Objects/Object.hpp"
+#include "src/Objects/Components/ModelComponent.hpp"
 #include "src/Rendering/CommandExecution.hpp"
 #include "src/Rendering/CommandExecutor.hpp"
 #include "src/Rendering/RenderingDevice.hpp"
+#include "src/Rendering/RenderingLayoutsManager.hpp"
 #include "src/Rendering/RenderingManager.hpp"
 #include "src/Rendering/Swapchain.hpp"
+#include "src/Rendering/Objects/DescriptorSetObject.hpp"
 #include "src/Rendering/Objects/FenceObject.hpp"
 #include "src/Rendering/Objects/SemaphoreObject.hpp"
 #include "src/Rendering/Renderpasses/DebugUIRenderpass.hpp"
 #include "src/Rendering/Renderpasses/ShadowRenderpass.hpp"
+#include "src/Rendering/Renderpasses/SceneRenderpass.hpp"
 #include "src/Rendering/Stages/DebugUIStage.hpp"
 #include "src/Rendering/Stages/SceneStage.hpp"
 
@@ -54,9 +59,30 @@ void Renderer::init() {
         switch (event.type) {
             // TODO: reload stages, renderpasses, framebuffers
 
-            case RESIZE_WINDOW_EVENT:
+            case RESIZE_WINDOW_EVENT: {
                 this->handleResize();
                 break;
+            }
+
+            case CREATED_OBJECT_EVENT: {
+                std::shared_ptr<Object> object = std::get<std::shared_ptr<Object>>(event.value);
+                std::weak_ptr<ModelComponent> modelComponentWeak = object->getComponent<ModelComponent>();
+
+                if (modelComponentWeak.expired()) {
+                    return;
+                }
+
+                std::shared_ptr<ModelComponent> modelComponent = modelComponentWeak.lock();
+
+                for (uint32_t idx = 0; idx < MAX_INFLIGHT_FRAMES; idx++) {
+                    modelComponent->descriptorSets()[idx] = DescriptorSetObject::create(
+                            this->_renderingManager->renderingDevice(),
+                            this->_renderingManager->renderingLayoutsManager()->descriptorPool(),
+                            this->_renderingManager->renderingLayoutsManager()->modelDescriptorSetLayout());
+                }
+
+                break;
+            }
 
             default:
                 break;

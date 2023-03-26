@@ -45,6 +45,21 @@ public:
 
     VkShaderModule createShader(const std::vector<char> &content);
     void destroyShader(VkShaderModule shader);
+
+    VkDescriptorPool createDescriptorPool(VkDescriptorPoolCreateInfo *createInfo);
+    void destroyDescriptorPool(VkDescriptorPool descriptorPool);
+
+    VkDescriptorSetLayout createDescriptorSetLayout(VkDescriptorSetLayoutCreateInfo *createInfo);
+    void destroyDescriptorSetLayout(VkDescriptorSetLayout descriptorSetLayout);
+
+    VkPipelineLayout createPipelineLayout(VkPipelineLayoutCreateInfo *createInfo);
+    void destroyPipelineLayout(VkPipelineLayout pipelineLayout);
+
+    VkPipeline createGraphicsPipeline(VkGraphicsPipelineCreateInfo *createInfo);
+    void destroyPipeline(VkPipeline pipeline);
+
+    VkSampler createSampler(VkSamplerCreateInfo *createInfo);
+    void destroySampler(VkSampler sampler);
 };
 
 #endif // RENDERING_VULKANOBJECTSALLOCATOR_HPP

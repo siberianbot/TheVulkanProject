@@ -10,6 +10,7 @@ class Window;
 class PhysicalDevice;
 class RenderingDevice;
 class CommandExecutor;
+class RenderingLayoutsManager;
 class RenderingObjectsAllocator;
 class VulkanObjectsAllocator;
 class Swapchain;
@@ -25,6 +26,7 @@ private:
     std::shared_ptr<PhysicalDevice> _physicalDevice;
     std::shared_ptr<RenderingDevice> _renderingDevice;
     std::shared_ptr<CommandExecutor> _commandExecutor;
+    std::shared_ptr<RenderingLayoutsManager> _renderingLayoutsManager;
     std::shared_ptr<RenderingObjectsAllocator> _renderingObjectsAllocator;
     std::shared_ptr<VulkanObjectsAllocator> _vulkanObjectsAllocator;
     std::shared_ptr<Swapchain> _swapchain;
@@ -50,6 +52,9 @@ public:
     [[nodiscard]] const std::shared_ptr<PhysicalDevice> &physicalDevice() const { return this->_physicalDevice; }
     [[nodiscard]] const std::shared_ptr<RenderingDevice> &renderingDevice() const { return this->_renderingDevice; }
     [[nodiscard]] const std::shared_ptr<CommandExecutor> &commandExecutor() const { return this->_commandExecutor; }
+    [[nodiscard]] const std::shared_ptr<RenderingLayoutsManager> &renderingLayoutsManager() const {
+        return this->_renderingLayoutsManager;
+    }
     [[nodiscard]] const std::shared_ptr<RenderingObjectsAllocator> &renderingObjectsAllocator() const {
         return this->_renderingObjectsAllocator;
     }

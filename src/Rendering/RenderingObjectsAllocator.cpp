@@ -6,6 +6,7 @@
 #include "src/Rendering/Builders/ImageObjectBuilder.hpp"
 #include "src/Rendering/Objects/BufferObject.hpp"
 #include "src/Rendering/Objects/ImageObject.hpp"
+#include "src/Rendering/Objects/ImageViewObject.hpp"
 #include "src/Rendering/Objects/ShaderObject.hpp"
 
 void RenderingObjectsAllocator::uploadBuffer(const std::shared_ptr<BufferObject> &targetBuffer, uint64_t size,
@@ -30,6 +31,12 @@ void RenderingObjectsAllocator::uploadBuffer(const std::shared_ptr<BufferObject>
             .submit(true);
 
     staging->destroy();
+}
+
+void RenderingObjectsAllocator::destroy() {
+    for (const auto &[id, imageView]: this->_imageViews) {
+        imageView->destroy();
+    }
 }
 
 void RenderingObjectsAllocator::uploadImage(const std::shared_ptr<ImageObject> &targetImage,

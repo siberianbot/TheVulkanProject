@@ -2,10 +2,11 @@
 
 #include "src/Rendering/PhysicalDevice.hpp"
 #include "src/Rendering/RenderingDevice.hpp"
+#include "src/Rendering/RenderingLayoutsManager.hpp"
+#include "src/Rendering/VulkanObjectsAllocator.hpp"
 #include "src/Rendering/Builders/RenderpassBuilder.hpp"
 #include "src/Rendering/Builders/AttachmentBuilder.hpp"
 #include "src/Rendering/Builders/SubpassBuilder.hpp"
-#include "src/Rendering/Builders/PipelineLayoutBuilder.hpp"
 #include "src/Rendering/Builders/PipelineBuilder.hpp"
 #include "src/Rendering/Builders/FramebufferBuilder.hpp"
 #include "src/Rendering/Objects/BufferObject.hpp"
@@ -20,14 +21,18 @@ VkFramebuffer ShadowRenderpass::createFramebuffer(const std::shared_ptr<ImageVie
     return FramebufferBuilder(this->_renderingDevice.get(), this->_renderpass)
             .withExtent(extent)
             .addAttachment(imageView->getHandle())
-            .build();;
+            .build();
 }
 
-ShadowRenderpass::ShadowRenderpass(const std::shared_ptr<PhysicalDevice> &physicalDevice,
-                                   const std::shared_ptr<RenderingDevice> &renderingDevice,
+ShadowRenderpass::ShadowRenderpass(const std::shared_ptr<RenderingDevice> &renderingDevice,
+                                   const std::shared_ptr<PhysicalDevice> &physicalDevice,
+                                   const std::shared_ptr<RenderingLayoutsManager> &renderingLayoutsManager,
+                                   const std::shared_ptr<VulkanObjectsAllocator> &vulkanObjectsAllocator,
                                    const std::shared_ptr<ResourceManager> &resourceManager)
         : RenderpassBase(renderingDevice, {VkClearValue{.depthStencil = {1, 0}},}),
           _physicalDevice(physicalDevice),
+          _renderingLayoutsManager(renderingLayoutsManager),
+          _vulkanObjectsAllocator(vulkanObjectsAllocator),
           _resourceManager(resourceManager) {
     //
 }
@@ -44,8 +49,8 @@ void ShadowRenderpass::record(VkCommandBuffer commandBuffer, const ShadowData &s
         meshConstants.matrix = shadow.matrix * model.model;
         meshConstants.model = model.model;
         meshConstants.modelRotation = model.modelRotation;
-        vkCmdPushConstants(commandBuffer, this->_pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0,
-                           sizeof(MeshConstants), &meshConstants);
+        vkCmdPushConstants(commandBuffer, this->_renderingLayoutsManager->shadowPipelineLayout(),
+                           VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshConstants), &meshConstants);
 
         VkBuffer vertexBuffer = model.vertices->getHandle();
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer, &offset);
@@ -77,7 +82,7 @@ void ShadowRenderpass::initRenderpass() {
             .addAttachment([&](AttachmentBuilder &builder) {
                 builder
                         .clear()
-                        .withFormat(this->_renderingDevice->getPhysicalDevice()->getDepthFormat())
+                        .withFormat(this->_physicalDevice->getDepthFormat())
                         .withFinalLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL);
             })
             .addSubpass([](SubpassBuilder &builder) {
@@ -95,14 +100,11 @@ void ShadowRenderpass::initRenderpass() {
                                   VK_ACCESS_SHADER_READ_BIT)
             .build();
 
-    this->_pipelineLayout = PipelineLayoutBuilder(this->_renderingDevice.get())
-            .withPushConstant(VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(MeshConstants))
-            .build();
+    std::shared_ptr<ShaderResource> vertexShader = this->_resourceManager->loadShader("shaders/shadow.vert");
+    std::shared_ptr<ShaderResource> fragmentShader = this->_resourceManager->loadShader("shaders/shadow.frag");
 
-    std::shared_ptr<ShaderResource> vertexShader = this->_resourceManager->loadShader("shadow_vert");
-    std::shared_ptr<ShaderResource> fragmentShader = this->_resourceManager->loadShader("shadow_frag");
-
-    this->_pipeline = PipelineBuilder(this->_renderingDevice.get(), this->_renderpass, this->_pipelineLayout)
+    this->_pipeline = PipelineBuilder(this->_vulkanObjectsAllocator, this->_renderpass,
+                                      this->_renderingLayoutsManager->shadowPipelineLayout())
             .addVertexShader(vertexShader->shader())
             .addFragmentShader(fragmentShader->shader())
             .addBinding(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
@@ -116,8 +118,7 @@ void ShadowRenderpass::initRenderpass() {
 }
 
 void ShadowRenderpass::destroyRenderpass() {
-    this->_renderingDevice->destroyPipeline(this->_pipeline);
-    this->_renderingDevice->destroyPipelineLayout(this->_pipelineLayout);
+    this->_vulkanObjectsAllocator->destroyPipeline(this->_pipeline);
 
     RenderpassBase::destroyRenderpass();
 }

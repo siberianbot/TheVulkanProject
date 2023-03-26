@@ -21,7 +21,7 @@ DebugUIStage::DebugUIStage(const std::shared_ptr<EventQueue> &eventQueue,
 }
 
 void DebugUIStage::init() {
-    this->_descriptorPool = DescriptorPoolBuilder(this->_renderingManager->renderingDevice().get())
+    this->_descriptorPool = DescriptorPoolBuilder(this->_renderingManager->vulkanObjectsAllocator())
             .forType(VK_DESCRIPTOR_TYPE_SAMPLER)
             .forType(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
             .forType(VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE)

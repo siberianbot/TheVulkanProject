@@ -1,19 +1,21 @@
 #ifndef RENDERING_BUILDERS_DESCRIPTORSETLAYOUTBUILDER_HPP
 #define RENDERING_BUILDERS_DESCRIPTORSETLAYOUTBUILDER_HPP
 
+#include <memory>
 #include <vector>
 
 #include <vulkan/vulkan.hpp>
 
-class RenderingDevice;
+class VulkanObjectsAllocator;
 
 class DescriptorSetLayoutBuilder {
 private:
-    RenderingDevice *_renderingDevice;
+    std::shared_ptr<VulkanObjectsAllocator> _vulkanObjectsAllocator;
+
     std::vector<VkDescriptorSetLayoutBinding> _bindings;
 
 public:
-    explicit DescriptorSetLayoutBuilder(RenderingDevice *renderingDevice);
+    DescriptorSetLayoutBuilder(const std::shared_ptr<VulkanObjectsAllocator> &vulkanObjectsAllocator);
 
     DescriptorSetLayoutBuilder &withBinding(uint32_t idx, VkDescriptorType type, VkShaderStageFlags stages,
                                             uint32_t count = 1);

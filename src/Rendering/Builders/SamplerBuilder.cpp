@@ -1,9 +1,9 @@
 #include "SamplerBuilder.hpp"
 
-#include "src/Rendering/RenderingDevice.hpp"
+#include "src/Rendering/VulkanObjectsAllocator.hpp"
 
-SamplerBuilder::SamplerBuilder(const std::shared_ptr<RenderingDevice> &renderingDevice)
-        : _renderingDevice(renderingDevice) {
+SamplerBuilder::SamplerBuilder(const std::shared_ptr<VulkanObjectsAllocator> &vulkanObjectsAllocator)
+        : _vulkanObjectsAllocator(vulkanObjectsAllocator) {
     //
 }
 
@@ -55,5 +55,5 @@ VkSampler SamplerBuilder::build() {
             .unnormalizedCoordinates = VK_FALSE
     };
 
-    return this->_renderingDevice->createSampler(createInfo);
+    return this->_vulkanObjectsAllocator->createSampler(&createInfo);
 }

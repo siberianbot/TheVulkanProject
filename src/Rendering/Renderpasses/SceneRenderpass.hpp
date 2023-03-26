@@ -1,139 +1,100 @@
 #ifndef RENDERING_RENDERPASSES_SCENERENDERPASS_HPP
 #define RENDERING_RENDERPASSES_SCENERENDERPASS_HPP
 
-#include <array>
-#include <map>
 #include <memory>
 
-#include <glm/vec3.hpp>
-#include <glm/mat4x4.hpp>
+#include "src/Rendering/Constants.hpp"
+#include "src/Rendering/Renderpasses/RenderpassBase.hpp"
+#include "src/Rendering/Types/CameraData.hpp"
+#include "src/Rendering/Types/LightData.hpp"
+#include "src/Rendering/Types/ModelData.hpp"
+#include "src/Rendering/Types/SceneData.hpp"
+#include "src/Rendering/Types/ShadowData.hpp"
+#include "src/Rendering/Types/SkyboxData.hpp"
 
-#include "RenderpassBase.hpp"
-#include "src/Rendering/Common.hpp"
-
-class Engine;
-class Object;
-class Swapchain;
-struct RenderingData;
-class DescriptorSetObject;
-class BufferObject;
-class ImageObject;
-class ImageViewObject;
+class EngineVars;
 class PhysicalDevice;
+class RenderingLayoutsManager;
 class VulkanObjectsAllocator;
+class Swapchain;
+class BufferObject;
+class DescriptorSetObject;
+class ImageViewObject;
+class ResourceManager;
 
 class SceneRenderpass : public RenderpassBase {
 private:
-    struct LightData {
-        alignas(16) glm::mat4 projection;
-        alignas(16) glm::vec3 position;
-        alignas(16) glm::vec3 color;
-        alignas(4) float radius;
-        alignas(4) int kind;
+    struct SceneConstants {
+        uint32_t shadowCount;
+        uint32_t lightCount;
     };
 
-    struct SceneData {
-        alignas(16) glm::vec3 cameraPosition;
-        alignas(4) int numLights;
-        alignas(16) LightData lights[MAX_NUM_LIGHTS];
-    };
+    SceneConstants _sceneConstants;
 
-    struct MeshConstants {
-        glm::mat4 matrix;
-        glm::mat4 model;
-        glm::mat4 modelRotation;
-    };
-
+    std::shared_ptr<EngineVars> _engineVars;
     std::shared_ptr<PhysicalDevice> _physicalDevice;
+    std::shared_ptr<RenderingLayoutsManager> _renderingLayoutsManager;
     std::shared_ptr<VulkanObjectsAllocator> _vulkanObjectsAllocator;
-    Engine *_engine;
-    Swapchain *_swapchain;
+    std::shared_ptr<Swapchain> _swapchain;
+    std::shared_ptr<ResourceManager> _resourceManager;
+
+    std::weak_ptr<ImageViewObject> _albedoImageView;
+    std::weak_ptr<ImageViewObject> _positionImageView;
+    std::weak_ptr<ImageViewObject> _normalImageView;
+    std::weak_ptr<ImageViewObject> _specularImageView;
+    std::weak_ptr<ImageViewObject> _depthImageView;
+    std::weak_ptr<ImageViewObject> _compositionImageView;
+
+    std::array<std::shared_ptr<DescriptorSetObject>, MAX_INFLIGHT_FRAMES> _compositionDescriptorSets;
+    std::shared_ptr<BufferObject> _shadowDataBuffer;
+    std::shared_ptr<BufferObject> _lightDataBuffer;
+    std::shared_ptr<BufferObject> _cameraDataBuffer;
+    std::shared_ptr<BufferObject> _sceneDataBuffer;
+    ShadowData *_shadowData;
+    LightData *_lightData;
+    CameraData *_cameraData;
+    SceneData *_sceneData;
 
     VkSampler _textureSampler;
-    std::map<std::shared_ptr<ImageObject>, std::shared_ptr<ImageViewObject>> _imageViews;
-    std::array<std::shared_ptr<DescriptorSetObject>, MAX_INFLIGHT_FRAMES> _skyboxDescriptorSets;
-    std::shared_ptr<ImageViewObject> _skyboxTextureView = nullptr;
+    VkSampler _shadowMapSampler;
 
-    std::shared_ptr<ImageObject> _skyboxImage;
-    std::shared_ptr<ImageViewObject> _skyboxImageView;
-
-    std::shared_ptr<ImageObject> _albedoImage;
-    std::shared_ptr<ImageViewObject> _albedoImageView;
-
-    std::shared_ptr<ImageObject> _positionImage;
-    std::shared_ptr<ImageViewObject> _positionImageView;
-
-    std::shared_ptr<ImageObject> _normalImage;
-    std::shared_ptr<ImageViewObject> _normalImageView;
-
-    std::shared_ptr<ImageObject> _specularImage;
-    std::shared_ptr<ImageViewObject> _specularImageView;
-
-    std::shared_ptr<ImageObject> _depthImage;
-    std::shared_ptr<ImageViewObject> _depthImageView;
-
-    std::shared_ptr<ImageObject> _compositionImage;
-    std::shared_ptr<ImageViewObject> _compositionImageView;
-
-    std::shared_ptr<ImageObject> _resultImage;
-    std::shared_ptr<ImageViewObject> _resultImageView;
-
-    VkDescriptorPool _descriptorPool;
-
-    VkDescriptorSetLayout _objectDescriptorSetLayout;
-    VkPipelineLayout _skyboxPipelineLayout;
-    VkPipeline _skyboxPipeline;
-    VkPipelineLayout _scenePipelineLayout;
-    VkPipeline _scenePipeline;
-
-    VkDescriptorSetLayout _compositionGBufferDescriptorSetLayout;
-    std::array<std::shared_ptr<DescriptorSetObject>, MAX_INFLIGHT_FRAMES> _compositionGBufferDescriptorSets;
-    VkDescriptorSetLayout _compositionSceneDataDescriptorSetLayout;
-    std::array<std::shared_ptr<DescriptorSetObject>, MAX_INFLIGHT_FRAMES> _compositionSceneDataDescriptorSets;
-    std::shared_ptr<BufferObject> _compositionSceneDataBuffer;
-    SceneData *_compositionSceneData;
-    VkPipelineLayout _compositionPipelineLayout;
+    VkPipeline _modelPipeline;
     VkPipeline _compositionPipeline;
 
-    std::vector<RenderpassBase *> _shadowRenderpasses;
-
-    std::shared_ptr<RenderingData> getRenderData(Object *object);
-    std::shared_ptr<ImageViewObject> getImageView(const std::shared_ptr<ImageObject> &image);
-
-    void updateDescriptorSetWithImage(
-            const std::array<std::shared_ptr<DescriptorSetObject>, MAX_INFLIGHT_FRAMES> &descriptorSets,
-            const std::shared_ptr<ImageViewObject> &imageViewObject,
-            uint32_t binding);
-
-    void initSkyboxPipeline();
-    void destroySkyboxPipeline();
-
-    void initScenePipeline();
-    void destroyScenePipeline();
-
-    void initCompositionPipeline();
-    void destroyCompositionPipeline();
+    VkFramebuffer createFramebuffer(const std::shared_ptr<ImageViewObject> &imageView, VkExtent2D extent) override;
 
 public:
     SceneRenderpass(const std::shared_ptr<RenderingDevice> &renderingDevice,
+                    const std::shared_ptr<EngineVars> &engineVars,
                     const std::shared_ptr<PhysicalDevice> &physicalDevice,
+                    const std::shared_ptr<RenderingLayoutsManager> &renderingLayoutsManager,
                     const std::shared_ptr<VulkanObjectsAllocator> &vulkanObjectsAllocator,
-                    Swapchain *swapchain, Engine *engine);
+                    const std::shared_ptr<Swapchain> &swapchain,
+                    const std::shared_ptr<ResourceManager> &resourceManager);
     ~SceneRenderpass() override = default;
 
-    void recordCommands(VkCommandBuffer commandBuffer, VkRect2D renderArea,
-                        uint32_t frameIdx, uint32_t imageIdx) override;
+    void record(VkCommandBuffer commandBuffer, uint32_t frameIdx,
+                const SceneData &sceneData,
+                const CameraData &cameraData,
+                const std::vector<ShadowData> &shadowData,
+                const std::vector<LightData> &lightData,
+                const std::vector<ModelData> &models);
+
+    void beginRenderpass(VkCommandBuffer commandBuffer) override;
 
     void initRenderpass() override;
     void destroyRenderpass() override;
 
-    void createFramebuffers() override;
-    void destroyFramebuffers() override;
+    void setGBufferImageViews(const std::shared_ptr<ImageViewObject> &albedoImageView,
+                              const std::shared_ptr<ImageViewObject> &positionImageView,
+                              const std::shared_ptr<ImageViewObject> &normalImageView,
+                              const std::shared_ptr<ImageViewObject> &specularImageView,
+                              const std::shared_ptr<ImageViewObject> &depthImageView,
+                              const std::shared_ptr<ImageViewObject> &compositionImageView);
 
-    std::shared_ptr<ImageViewObject> getResultImageView(uint32_t imageIdx) override { return this->_resultImageView; }
+    void setShadowMapArrayView(const std::shared_ptr<ImageViewObject> &shadowMapArrayView);
 
-    // TODO: very stupid way
-    void addShadowRenderpass(RenderpassBase *renderpass);
+    [[nodiscard]] VkSampler textureSampler() const { return this->_textureSampler; }
 };
 
 #endif // RENDERING_RENDERPASSES_SCENERENDERPASS_HPP
