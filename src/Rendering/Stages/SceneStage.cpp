@@ -285,12 +285,14 @@ void SceneStage::record(VkCommandBuffer commandBuffer, uint32_t frameIdx, uint32
                     glm::mat4 matrix = projection * lightSource->view(dir);
 
                     shadows.push_back(ShadowData{
-                            .matrix = matrix
+                            .matrix = matrix,
+                            .position = lightSource->position()->position,
+                            .range = lightSource->range()
                     });
 
                     lights.push_back(LightData{
                             .matrix = matrix,
-                            .position = lightSource->position()->rotation,
+                            .position = lightSource->position()->position,
                             .color = lightSource->color(),
                             .range = lightSource->range()
                     });
@@ -299,12 +301,14 @@ void SceneStage::record(VkCommandBuffer commandBuffer, uint32_t frameIdx, uint32
                 glm::mat4 matrix = projection * lightSource->view();
 
                 shadows.push_back(ShadowData{
-                        .matrix = matrix
+                        .matrix = matrix,
+                        .position = lightSource->position()->position,
+                        .range = lightSource->range()
                 });
 
                 lights.push_back(LightData{
                         .matrix = matrix,
-                        .position = lightSource->position()->rotation,
+                        .position = lightSource->position()->position,
                         .color = lightSource->color(),
                         .range = lightSource->range()
                 });
@@ -401,11 +405,15 @@ void SceneStage::record(VkCommandBuffer commandBuffer, uint32_t frameIdx, uint32
             .extent = {this->_shadowMapSize, this->_shadowMapSize}
     };
 
-    for (uint32_t idx = 0; idx < targetShadowCount; idx++) {
+    for (uint32_t idx = 0; idx < this->_shadowMapCount; idx++) {
         this->_shadowRenderpass->setTargetImageView(this->_shadowMapImageViews[idx], renderArea);
 
         this->_shadowRenderpass->beginRenderpass(commandBuffer);
-        this->_shadowRenderpass->record(commandBuffer, shadows[idx], models);
+
+        if (idx < targetShadowCount) {
+            this->_shadowRenderpass->record(commandBuffer, shadows[idx], models);
+        }
+
         this->_shadowRenderpass->endRenderpass(commandBuffer);
     }
 

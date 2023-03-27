@@ -275,6 +275,8 @@ void Engine::init() {
 void Engine::cleanup() {
     this->_renderingManager->waitIdle();
 
+    this->_sceneManager->setScene(nullptr);
+
     this->_renderer->destroy();
 
     this->_resourceManager->removeAll();

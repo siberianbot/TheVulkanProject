@@ -18,9 +18,6 @@ RenderingLayoutsManager::RenderingLayoutsManager(
 }
 
 void RenderingLayoutsManager::init() {
-    uint32_t shadowMapCount = this->_engineVars->getOrDefault(RENDERING_SCENE_STAGE_SHADOW_MAP_COUNT, 32)->intValue;
-    uint32_t lightCount = this->_engineVars->getOrDefault(RENDERING_SCENE_STAGE_LIGHT_COUNT, 128)->intValue;
-
     this->_descriptorPool = DescriptorPoolBuilder(this->_vulkanObjectsAllocator)
             .forType(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER)
             .forType(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER)
@@ -47,9 +44,9 @@ void RenderingLayoutsManager::init() {
             .withBinding(1, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, VK_SHADER_STAGE_FRAGMENT_BIT)
             .withBinding(2, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, VK_SHADER_STAGE_FRAGMENT_BIT)
             .withBinding(3, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, VK_SHADER_STAGE_FRAGMENT_BIT)
-            .withBinding(4, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, shadowMapCount)
-            .withBinding(5, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, shadowMapCount)
-            .withBinding(6, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, lightCount)
+            .withBinding(4, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT)
+            .withBinding(5, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT)
+            .withBinding(6, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT)
             .withBinding(7, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT)
             .withBinding(8, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT)
             .build();

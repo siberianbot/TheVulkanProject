@@ -38,6 +38,12 @@ ImageObjectBuilder &ImageObjectBuilder::withUsage(VkImageUsageFlags usage) {
     return *this;
 }
 
+ImageObjectBuilder &ImageObjectBuilder::withInitialLayout(VkImageLayout initialLayout) {
+    this->_initialLayout = initialLayout;
+
+    return *this;
+}
+
 ImageObjectBuilder &ImageObjectBuilder::cubeCompatible() {
     this->_flags = this->_flags.value_or(0) | VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
     this->_count = 6;
@@ -67,7 +73,7 @@ std::shared_ptr<ImageObject> ImageObjectBuilder::build() {
             .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
             .queueFamilyIndexCount = 0,
             .pQueueFamilyIndices = nullptr,
-            .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+            .initialLayout = this->_initialLayout.value_or(VK_IMAGE_LAYOUT_UNDEFINED),
     };
 
     VkImage image = this->_vulkanObjectsAllocator->createImage(&imageCreateInfo);

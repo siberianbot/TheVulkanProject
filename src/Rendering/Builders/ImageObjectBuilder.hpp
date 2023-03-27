@@ -21,6 +21,7 @@ private:
     std::optional<uint32_t> _count;
     std::optional<VkSampleCountFlagBits> _samples;
     std::optional<VkImageUsageFlags> _usage;
+    std::optional<VkImageLayout> _initialLayout;
 
 public:
     ImageObjectBuilder(const std::shared_ptr<RenderingDevice> &renderingDevice,
@@ -30,6 +31,7 @@ public:
     ImageObjectBuilder &withFormat(VkFormat format);
     ImageObjectBuilder &withSamples(VkSampleCountFlagBits samples);
     ImageObjectBuilder &withUsage(VkImageUsageFlags usage);
+    ImageObjectBuilder &withInitialLayout(VkImageLayout initialLayout);
 
     ImageObjectBuilder &cubeCompatible();
     ImageObjectBuilder &arrayCompatible(uint32_t count);

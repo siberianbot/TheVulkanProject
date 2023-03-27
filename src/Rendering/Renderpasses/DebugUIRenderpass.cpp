@@ -33,6 +33,8 @@ void DebugUIRenderpass::initRenderpass() {
             .addAttachment([](AttachmentBuilder &builder) {
                 builder
                         .load()
+                        .withFormat(VK_FORMAT_B8G8R8A8_SRGB)
+                        .withInitialLayout(VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
                         .withFinalLayout(VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
             })
             .addSubpass([](SubpassBuilder &builder) {

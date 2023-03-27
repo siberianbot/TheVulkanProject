@@ -1,6 +1,7 @@
 #include "SkyboxComponent.hpp"
 
 #include "src/Rendering/Objects/DescriptorSetObject.hpp"
+#include "src/Rendering/Objects/ImageViewObject.hpp"
 
 SkyboxComponent::~SkyboxComponent() {
     for (const auto &descriptorSet: this->_descriptorSets) {
@@ -9,6 +10,10 @@ SkyboxComponent::~SkyboxComponent() {
         }
 
         descriptorSet->destroy();
+    }
+
+    if (this->_textureView != nullptr) {
+        this->_textureView->destroy();
     }
 }
 

@@ -1,6 +1,7 @@
 #include "ModelComponent.hpp"
 
 #include "src/Rendering/Objects/DescriptorSetObject.hpp"
+#include "src/Rendering/Objects/ImageViewObject.hpp"
 
 ModelComponent::~ModelComponent() {
     for (const auto &descriptorSet: this->_descriptorSets) {
@@ -9,6 +10,14 @@ ModelComponent::~ModelComponent() {
         }
 
         descriptorSet->destroy();
+    }
+
+    if (this->_albedoTextureView != nullptr) {
+        this->_albedoTextureView->destroy();
+    }
+
+    if (this->_specularTextureView != nullptr) {
+        this->_specularTextureView->destroy();
     }
 }
 
