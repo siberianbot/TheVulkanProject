@@ -12,7 +12,7 @@
 #include "src/Rendering/Types/ShadowData.hpp"
 #include "src/Rendering/Types/SkyboxData.hpp"
 
-class EngineVars;
+class VarCollection;
 class PhysicalDevice;
 class RenderingLayoutsManager;
 class VulkanObjectsAllocator;
@@ -31,7 +31,7 @@ private:
 
     SceneConstants _sceneConstants;
 
-    std::shared_ptr<EngineVars> _engineVars;
+    std::shared_ptr<VarCollection> _vars;
     std::shared_ptr<PhysicalDevice> _physicalDevice;
     std::shared_ptr<RenderingLayoutsManager> _renderingLayoutsManager;
     std::shared_ptr<VulkanObjectsAllocator> _vulkanObjectsAllocator;
@@ -65,7 +65,7 @@ private:
 
 public:
     SceneRenderpass(const std::shared_ptr<RenderingDevice> &renderingDevice,
-                    const std::shared_ptr<EngineVars> &engineVars,
+                    const std::shared_ptr<VarCollection> &vars,
                     const std::shared_ptr<PhysicalDevice> &physicalDevice,
                     const std::shared_ptr<RenderingLayoutsManager> &renderingLayoutsManager,
                     const std::shared_ptr<VulkanObjectsAllocator> &vulkanObjectsAllocator,

@@ -1,6 +1,6 @@
 #include "RenderingLayoutsManager.hpp"
 
-#include "src/Engine/EngineVars.hpp"
+#include "src/Engine/VarCollection.hpp"
 #include "src/Rendering/VulkanObjectsAllocator.hpp"
 #include "src/Rendering/Builders/DescriptorPoolBuilder.hpp"
 #include "src/Rendering/Builders/DescriptorSetLayoutBuilder.hpp"
@@ -8,10 +8,10 @@
 #include "src/Rendering/Types/MeshConstants.hpp"
 
 RenderingLayoutsManager::RenderingLayoutsManager(
-        const std::shared_ptr<EngineVars> &engineVars,
+        const std::shared_ptr<VarCollection> &vars,
         const std::shared_ptr<RenderingDevice> &renderingDevice,
         const std::shared_ptr<VulkanObjectsAllocator> &vulkanObjectsAllocator)
-        : _engineVars(engineVars),
+        : _vars(vars),
           _renderingDevice(renderingDevice),
           _vulkanObjectsAllocator(vulkanObjectsAllocator) {
     //

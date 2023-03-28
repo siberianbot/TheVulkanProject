@@ -6,7 +6,8 @@
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 
-#include "src/Engine/EngineVars.hpp"
+#include "src/Engine/VarCollection.hpp"
+#include "src/Engine/Vars.hpp"
 #include "src/Events/EventQueue.hpp"
 
 void Window::mouseButtonCallback(GLFWwindow *window, int button, int action, int mods) {
@@ -115,8 +116,8 @@ void Window::closeCallback(GLFWwindow *window) {
     that->_eventQueue->pushEvent(event);
 }
 
-Window::Window(const std::shared_ptr<EngineVars> &engineVars, const std::shared_ptr<EventQueue> &eventQueue)
-        : _engineVars(engineVars),
+Window::Window(const std::shared_ptr<VarCollection> &vars, const std::shared_ptr<EventQueue> &eventQueue)
+        : _vars(vars),
           _eventQueue(eventQueue) {
     //
 }
@@ -128,11 +129,11 @@ void Window::create() {
 
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
-    this->_width = this->_engineVars->getOrDefault(WINDOW_WIDTH_VAR, 1280)->intValue;
-    this->_height = this->_engineVars->getOrDefault(WINDOW_HEIGHT_VAR, 720)->intValue;
-    char *title = this->_engineVars->getOrDefault(WINDOW_TITLE_VAR, "Unknown")->stringValue;
+    this->_width = this->_vars->getOrDefault(WINDOW_WIDTH_VAR, 1280);
+    this->_height = this->_vars->getOrDefault(WINDOW_HEIGHT_VAR, 720);
+    std::string title = this->_vars->getOrDefault(WINDOW_TITLE_VAR, "Unknown");
 
-    this->_handle = glfwCreateWindow(this->_width, this->_height, title, nullptr, nullptr);
+    this->_handle = glfwCreateWindow(this->_width, this->_height, title.c_str(), nullptr, nullptr);
 
     if (this->_handle == nullptr) {
         throw std::runtime_error("Failed to create window");

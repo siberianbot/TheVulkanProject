@@ -8,7 +8,7 @@
 
 #include "src/Rendering/Constants.hpp"
 
-class EngineVars;
+class VarCollection;
 class EventQueue;
 class RenderingManager;
 class FenceObject;
@@ -25,7 +25,7 @@ private:
         std::shared_ptr<SemaphoreObject> renderFinishedSemaphore;
     };
 
-    std::shared_ptr<EngineVars> _engineVars;
+    std::shared_ptr<VarCollection> _vars;
     std::shared_ptr<EventQueue> _eventQueue;
     std::shared_ptr<RenderingManager> _renderingManager;
     std::shared_ptr<ResourceManager> _resourceManager;
@@ -41,7 +41,7 @@ private:
     std::optional<uint32_t> acquireNextImageIdx(const std::shared_ptr<SemaphoreObject> &semaphore);
 
 public:
-    Renderer(const std::shared_ptr<EngineVars> &engineVars,
+    Renderer(const std::shared_ptr<VarCollection> &vars,
              const std::shared_ptr<EventQueue> &eventQueue,
              const std::shared_ptr<RenderingManager> &renderingManager,
              const std::shared_ptr<ResourceManager> &resourceManager,

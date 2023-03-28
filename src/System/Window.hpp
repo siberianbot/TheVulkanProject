@@ -4,12 +4,12 @@
 #include <memory>
 
 struct GLFWwindow;
-class EngineVars;
+class VarCollection;
 class EventQueue;
 
 class Window {
 private:
-    std::shared_ptr<EngineVars> _engineVars;
+    std::shared_ptr<VarCollection> _vars;
     std::shared_ptr<EventQueue> _eventQueue;
 
     GLFWwindow *_handle = nullptr;
@@ -25,7 +25,7 @@ private:
     static void closeCallback(GLFWwindow *window);
 
 public:
-    Window(const std::shared_ptr<EngineVars> &engineVars, const std::shared_ptr<EventQueue> &eventQueue);
+    Window(const std::shared_ptr<VarCollection> &vars, const std::shared_ptr<EventQueue> &eventQueue);
 
     void create();
     void destroy();

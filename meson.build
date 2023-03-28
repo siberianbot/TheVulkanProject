@@ -19,7 +19,7 @@ src = [
 
     # Engine
     'src/Engine/Engine.cpp',
-    'src/Engine/EngineVars.cpp',
+    'src/Engine/VarCollection.cpp',
     'src/Engine/InputProcessor.cpp',
 
     # Events
@@ -95,7 +95,12 @@ src = [
     'src/Scene/SceneManager.cpp',
 
     # Debug
-    'src/Debug/DebugUI.cpp',
+    'src/Debug/DebugUIRoot.cpp',
+    'src/Debug/UI/MainMenuBar.cpp',
+    'src/Debug/UI/ResourcesListWindow.cpp',
+    'src/Debug/UI/SceneTreeWindow.cpp',
+    'src/Debug/UI/ShaderCodeEditorWindow.cpp',
+    'src/Debug/UI/VariablesWindow.cpp',
 
     # Types
     'src/Types/LightSourceType.cpp',

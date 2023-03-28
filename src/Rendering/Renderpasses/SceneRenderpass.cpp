@@ -1,6 +1,7 @@
 #include "SceneRenderpass.hpp"
 
-#include "src/Engine/EngineVars.hpp"
+#include "src/Engine/VarCollection.hpp"
+#include "src/Engine/Vars.hpp"
 #include "src/Rendering/PhysicalDevice.hpp"
 #include "src/Rendering/RenderingLayoutsManager.hpp"
 #include "src/Rendering/Swapchain.hpp"
@@ -35,7 +36,7 @@ VkFramebuffer SceneRenderpass::createFramebuffer(const std::shared_ptr<ImageView
 }
 
 SceneRenderpass::SceneRenderpass(const std::shared_ptr<RenderingDevice> &renderingDevice,
-                                 const std::shared_ptr<EngineVars> &engineVars,
+                                 const std::shared_ptr<VarCollection> &vars,
                                  const std::shared_ptr<PhysicalDevice> &physicalDevice,
                                  const std::shared_ptr<RenderingLayoutsManager> &renderingLayoutsManager,
                                  const std::shared_ptr<VulkanObjectsAllocator> &vulkanObjectsAllocator,
@@ -51,7 +52,7 @@ SceneRenderpass::SceneRenderpass(const std::shared_ptr<RenderingDevice> &renderi
                                  VkClearValue{.color = {{0, 0, 0, 0}}},
                                  VkClearValue{.color = {{0, 0, 0, 0}}},
                          }),
-          _engineVars(engineVars),
+          _vars(vars),
           _physicalDevice(physicalDevice),
           _renderingLayoutsManager(renderingLayoutsManager),
           _vulkanObjectsAllocator(vulkanObjectsAllocator),
@@ -133,10 +134,8 @@ void SceneRenderpass::beginRenderpass(VkCommandBuffer commandBuffer) {
 }
 
 void SceneRenderpass::initRenderpass() {
-    this->_sceneConstants.lightCount = this->_engineVars->getOrDefault(RENDERING_SCENE_STAGE_LIGHT_COUNT,
-                                                                       128)->intValue;
-    this->_sceneConstants.shadowCount = this->_engineVars->getOrDefault(RENDERING_SCENE_STAGE_SHADOW_MAP_COUNT,
-                                                                        32)->intValue;
+    this->_sceneConstants.lightCount = this->_vars->getOrDefault(RENDERING_SCENE_STAGE_LIGHT_COUNT, 128);
+    this->_sceneConstants.shadowCount = this->_vars->getOrDefault(RENDERING_SCENE_STAGE_SHADOW_MAP_COUNT, 32);
 
     VkFormat colorFormat = this->_physicalDevice->getColorFormat();
     VkSampleCountFlagBits samples = this->_physicalDevice->getMsaaSamples();

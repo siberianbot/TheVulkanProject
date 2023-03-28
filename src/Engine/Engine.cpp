@@ -3,7 +3,8 @@
 #include <GLFW/glfw3.h>
 #include "subprojects/imgui-1.89.2/imgui.h"
 
-#include "src/Engine/EngineVars.hpp"
+#include "src/Engine/VarCollection.hpp"
+#include "src/Engine/Vars.hpp"
 #include "src/Events/EventQueue.hpp"
 #include "src/Engine/InputProcessor.hpp"
 #include "src/System/Window.hpp"
@@ -22,13 +23,13 @@
 #include "src/Scene/Scene.hpp"
 #include "src/Scene/SceneNode.hpp"
 #include "src/Scene/SceneManager.hpp"
-#include "src/Debug/DebugUI.hpp"
+#include "src/Debug/DebugUIRoot.hpp"
 
 Engine::Engine()
-        : _engineVars(std::make_shared<EngineVars>()),
+        : _vars(std::make_shared<VarCollection>()),
           _eventQueue(std::make_shared<EventQueue>()),
           _inputProcessor(std::make_shared<InputProcessor>(this->_eventQueue)),
-          _window(std::make_shared<Window>(this->_engineVars, this->_eventQueue)),
+          _window(std::make_shared<Window>(this->_vars, this->_eventQueue)),
           _renderingManager(nullptr),
           _resourceManager(nullptr),
           _sceneManager(std::make_shared<SceneManager>(this->_eventQueue)),
@@ -38,6 +39,13 @@ Engine::Engine()
 }
 
 void Engine::init() {
+    this->_vars->set(WINDOW_TITLE_VAR, "TheVulkanProject");
+    this->_vars->set(WINDOW_WIDTH_VAR, 1280);
+    this->_vars->set(WINDOW_HEIGHT_VAR, 720);
+    this->_vars->set(RENDERING_SCENE_STAGE_LIGHT_COUNT, 128);
+    this->_vars->set(RENDERING_SCENE_STAGE_SHADOW_MAP_COUNT, 32);
+    this->_vars->set(RENDERING_SCENE_STAGE_SHADOW_MAP_SIZE, 1024);
+
     if (glfwInit() != GLFW_TRUE) {
         throw std::runtime_error("Failed to initilalize GLFW");
     }
@@ -56,16 +64,16 @@ void Engine::init() {
         this->_work = false;
     });
 
-    this->_renderingManager = std::make_shared<RenderingManager>(this->_engineVars, this->_window);
+    this->_renderingManager = std::make_shared<RenderingManager>(this->_vars, this->_window);
     this->_renderingManager->init();
 
     this->_resourceManager = std::make_shared<ResourceManager>(this->_renderingManager->renderingObjectsAllocator());
     this->_resourceManager->addDataDir("data");
 
-    this->_debugUI = std::make_shared<DebugUI>(this->_engineVars, this->_eventQueue, this->_resourceManager,
-                                               this->_sceneManager, this->_window);
+    this->_debugUI = std::make_shared<DebugUIRoot>(this->_eventQueue, this->_vars, this->_resourceManager,
+                                                   this->_sceneManager);
 
-    this->_renderer = std::make_shared<Renderer>(this->_engineVars, this->_eventQueue, this->_renderingManager,
+    this->_renderer = std::make_shared<Renderer>(this->_vars, this->_eventQueue, this->_renderingManager,
                                                  this->_resourceManager, this->_sceneManager);
     this->_renderer->init();
 

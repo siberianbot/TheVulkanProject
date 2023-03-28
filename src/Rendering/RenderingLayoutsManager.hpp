@@ -5,14 +5,14 @@
 
 #include <vulkan/vulkan.hpp>
 
-class EngineVars;
+class VarCollection;
 class RenderingDevice;
 class VulkanObjectsAllocator;
 class DescriptorSetObject;
 
 class RenderingLayoutsManager {
 private:
-    std::shared_ptr<EngineVars> _engineVars;
+    std::shared_ptr<VarCollection> _vars;
     std::shared_ptr<RenderingDevice> _renderingDevice;
     std::shared_ptr<VulkanObjectsAllocator> _vulkanObjectsAllocator;
 
@@ -24,7 +24,7 @@ private:
     VkPipelineLayout _compositionPipelineLayout;
 
 public:
-    RenderingLayoutsManager(const std::shared_ptr<EngineVars> &engineVars,
+    RenderingLayoutsManager(const std::shared_ptr<VarCollection> &vars,
                             const std::shared_ptr<RenderingDevice> &renderingDevice,
                             const std::shared_ptr<VulkanObjectsAllocator> &vulkanObjectsAllocator);
 

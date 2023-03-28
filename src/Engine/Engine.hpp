@@ -5,14 +5,14 @@
 #include <vector>
 
 class EventQueue;
-class EngineVars;
+class VarCollection;
 class InputProcessor;
 class Window;
 class RenderingManager;
 class ResourceManager;
 class SceneManager;
 class Renderer;
-class DebugUI;
+class DebugUIRoot;
 
 enum CameraControlState {
     NotFocused,
@@ -21,7 +21,7 @@ enum CameraControlState {
 
 class Engine {
 private:
-    std::shared_ptr<EngineVars> _engineVars;
+    std::shared_ptr<VarCollection> _vars;
     std::shared_ptr<EventQueue> _eventQueue;
     std::shared_ptr<InputProcessor> _inputProcessor;
     std::shared_ptr<Window> _window;
@@ -29,7 +29,7 @@ private:
     std::shared_ptr<ResourceManager> _resourceManager;
     std::shared_ptr<SceneManager> _sceneManager;
     std::shared_ptr<Renderer> _renderer;
-    std::shared_ptr<DebugUI> _debugUI;
+    std::shared_ptr<DebugUIRoot> _debugUI;
 
     bool _work = false;
     float _delta = 0;
@@ -49,7 +49,7 @@ public:
 
     void run();
 
-    [[nodiscard]] const std::shared_ptr<EngineVars> engineVars() const { return this->_engineVars; }
+    [[nodiscard]] const std::shared_ptr<VarCollection> vars() const { return this->_vars; }
     [[nodiscard]] const std::shared_ptr<EventQueue> eventQueue() const { return this->_eventQueue; }
     [[nodiscard]] const std::shared_ptr<InputProcessor> inputProcessor() const { return this->_inputProcessor; }
     [[nodiscard]] const std::shared_ptr<Window> window() const { return this->_window; }

@@ -6,7 +6,7 @@
 
 #include "src/Rendering/Stages/StageBase.hpp"
 
-class EngineVars;
+class VarCollection;
 class EventQueue;
 class RenderingManager;
 class ImageObject;
@@ -18,7 +18,7 @@ class SceneManager;
 
 class SceneStage : public StageBase {
 private:
-    std::shared_ptr<EngineVars> _engineVars;
+    std::shared_ptr<VarCollection> _vars;
     std::shared_ptr<EventQueue> _eventQueue;
     std::shared_ptr<RenderingManager> _renderingManager;
     std::shared_ptr<ResourceManager> _resourceManager;
@@ -50,7 +50,7 @@ private:
     void destroyGBuffer();
 
 public:
-    SceneStage(const std::shared_ptr<EngineVars> &engineVars,
+    SceneStage(const std::shared_ptr<VarCollection> &vars,
                const std::shared_ptr<EventQueue> &eventQueue,
                const std::shared_ptr<RenderingManager> &renderingManager,
                const std::shared_ptr<ResourceManager> &resourceManager,

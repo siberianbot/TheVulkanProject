@@ -5,7 +5,7 @@
 
 #include <GLFW/glfw3.h>
 
-#include "src/Engine/EngineVars.hpp"
+#include "src/Engine/VarCollection.hpp"
 #include "src/Rendering/Common.hpp"
 #include "src/Rendering/CommandExecutor.hpp"
 #include "src/Rendering/PhysicalDevice.hpp"
@@ -111,9 +111,9 @@ VkSurfaceKHR RenderingManager::createSurface() {
     return surface;
 }
 
-RenderingManager::RenderingManager(const std::shared_ptr<EngineVars> &engineVars,
+RenderingManager::RenderingManager(const std::shared_ptr<VarCollection> &vars,
                                    const std::shared_ptr<Window> &window)
-        : _engineVars(engineVars),
+        : _vars(vars),
           _window(window) {
     //
 }
@@ -128,7 +128,7 @@ void RenderingManager::init() {
     this->_vulkanObjectsAllocator = std::make_shared<VulkanObjectsAllocator>(this->_physicalDevice,
                                                                              this->_renderingDevice);
 
-    this->_renderingLayoutsManager = std::make_shared<RenderingLayoutsManager>(this->_engineVars,
+    this->_renderingLayoutsManager = std::make_shared<RenderingLayoutsManager>(this->_vars,
                                                                                this->_renderingDevice,
                                                                                this->_vulkanObjectsAllocator);
     this->_renderingLayoutsManager->init();

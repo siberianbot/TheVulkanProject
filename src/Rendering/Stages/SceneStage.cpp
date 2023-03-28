@@ -1,6 +1,7 @@
 #include "SceneStage.hpp"
 
-#include "src/Engine/EngineVars.hpp"
+#include "src/Engine/VarCollection.hpp"
+#include "src/Engine/Vars.hpp"
 #include "src/Events/EventQueue.hpp"
 #include "src/Objects/Camera.hpp"
 #include "src/Objects/LightSource.hpp"
@@ -136,12 +137,12 @@ void SceneStage::destroyGBuffer() {
     this->_albedoGBufferImage->destroy();
 }
 
-SceneStage::SceneStage(const std::shared_ptr<EngineVars> &engineVars,
+SceneStage::SceneStage(const std::shared_ptr<VarCollection> &vars,
                        const std::shared_ptr<EventQueue> &eventQueue,
                        const std::shared_ptr<RenderingManager> &renderingManager,
                        const std::shared_ptr<ResourceManager> &resourceManager,
                        const std::shared_ptr<SceneManager> &sceneManager)
-        : _engineVars(engineVars),
+        : _vars(vars),
           _eventQueue(eventQueue),
           _renderingManager(renderingManager),
           _resourceManager(resourceManager),
@@ -150,9 +151,9 @@ SceneStage::SceneStage(const std::shared_ptr<EngineVars> &engineVars,
 }
 
 void SceneStage::init() {
-    this->_shadowMapSize = this->_engineVars->getOrDefault(RENDERING_SCENE_STAGE_SHADOW_MAP_SIZE, 1024)->intValue;
-    this->_shadowMapCount = this->_engineVars->getOrDefault(RENDERING_SCENE_STAGE_SHADOW_MAP_COUNT, 32)->intValue;
-    this->_lightCount = this->_engineVars->getOrDefault(RENDERING_SCENE_STAGE_LIGHT_COUNT, 128)->intValue;
+    this->_shadowMapSize = this->_vars->getOrDefault(RENDERING_SCENE_STAGE_SHADOW_MAP_SIZE, 1024);
+    this->_shadowMapCount = this->_vars->getOrDefault(RENDERING_SCENE_STAGE_SHADOW_MAP_COUNT, 32);
+    this->_lightCount = this->_vars->getOrDefault(RENDERING_SCENE_STAGE_LIGHT_COUNT, 128);
 
     this->_shadowMapImage = ImageObjectBuilder(this->_renderingManager->renderingDevice(),
                                                this->_renderingManager->vulkanObjectsAllocator())
@@ -188,7 +189,7 @@ void SceneStage::init() {
     this->_shadowRenderpass->initRenderpass();
 
     this->_sceneRenderpass = std::make_unique<SceneRenderpass>(this->_renderingManager->renderingDevice(),
-                                                               this->_engineVars,
+                                                               this->_vars,
                                                                this->_renderingManager->physicalDevice(),
                                                                this->_renderingManager->renderingLayoutsManager(),
                                                                this->_renderingManager->vulkanObjectsAllocator(),

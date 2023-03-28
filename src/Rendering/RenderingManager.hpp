@@ -5,7 +5,7 @@
 
 #include <vulkan/vulkan.hpp>
 
-class EngineVars;
+class VarCollection;
 class Window;
 class PhysicalDevice;
 class RenderingDevice;
@@ -17,7 +17,7 @@ class Swapchain;
 
 class RenderingManager {
 private:
-    std::shared_ptr<EngineVars> _engineVars;
+    std::shared_ptr<VarCollection> _vars;
     std::shared_ptr<Window> _window;
 
     VkInstance _instance = VK_NULL_HANDLE;
@@ -40,7 +40,7 @@ private:
     VkSurfaceKHR createSurface();
 
 public:
-    RenderingManager(const std::shared_ptr<EngineVars> &engineVars,
+    RenderingManager(const std::shared_ptr<VarCollection> &vars,
                      const std::shared_ptr<Window> &window);
 
     void init();

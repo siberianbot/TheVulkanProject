@@ -41,12 +41,12 @@ std::optional<uint32_t> Renderer::acquireNextImageIdx(const std::shared_ptr<Sema
     throw std::runtime_error("Vulkan runtime error");
 }
 
-Renderer::Renderer(const std::shared_ptr<EngineVars> &engineVars,
+Renderer::Renderer(const std::shared_ptr<VarCollection> &vars,
                    const std::shared_ptr<EventQueue> &eventQueue,
                    const std::shared_ptr<RenderingManager> &renderingManager,
                    const std::shared_ptr<ResourceManager> &resourceManager,
                    const std::shared_ptr<SceneManager> &sceneManager)
-        : _engineVars(engineVars),
+        : _vars(vars),
           _eventQueue(eventQueue),
           _renderingManager(renderingManager),
           _resourceManager(resourceManager),
@@ -103,7 +103,7 @@ void Renderer::init() {
 
     this->_renderingManager->swapchain()->create();
 
-    this->_stages.emplace_back(std::make_shared<SceneStage>(this->_engineVars,
+    this->_stages.emplace_back(std::make_shared<SceneStage>(this->_vars,
                                                             this->_eventQueue,
                                                             this->_renderingManager,
                                                             this->_resourceManager,
