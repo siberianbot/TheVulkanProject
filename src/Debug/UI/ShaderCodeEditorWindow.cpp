@@ -104,6 +104,8 @@ void ShaderCodeEditorWindow::draw(bool *visible) {
         }
     }
 
+    ImGui::Separator();
+
     ImGui::InputTextMultiline("##shader-code", this->_selectedShaderCode.data(), this->_selectedShaderCode.size(),
                               ImVec2(-1, -1));
 

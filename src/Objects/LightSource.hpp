@@ -43,6 +43,8 @@ public:
     [[nodiscard]] glm::mat4 view(const glm::vec3 &forward) const;
 
     [[nodiscard]] const std::shared_ptr<PositionComponent> position() const { return this->_position; }
+
+    void acceptEdit(const std::shared_ptr<ObjectEditVisitor> &visitor) override;
 };
 
 

@@ -26,5 +26,7 @@ static constexpr const char *SHADER_CODE_EDITOR_BUILD = "Build";
 static constexpr const char *VARIABLES_WINDOW_TITLE = "Variables";
 static constexpr const char *VARIABLES_KEY = "Key";
 static constexpr const char *VARIABLES_VALUE = "Value";
+static constexpr const char *VARIABLES_OK = "OK";
+static constexpr const char *VARIABLES_EDIT = "Edit";
 
 #endif // DEBUG_STRINGS_HPP

@@ -5,6 +5,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/quaternion.hpp>
 
+#include "src/Debug/UI/ObjectEditVisitor.hpp"
 #include "src/Objects/Components/PositionComponent.hpp"
 
 Camera::Camera()
@@ -46,4 +47,8 @@ glm::mat4 Camera::view(bool ignorePosition) const {
     return ignorePosition
            ? glm::lookAt(glm::vec3(0), forward, up)
            : glm::lookAt(this->_position->position, this->_position->position + forward, up);
+}
+
+void Camera::acceptEdit(const std::shared_ptr<ObjectEditVisitor> &visitor) {
+    visitor->drawCameraObject(this);
 }

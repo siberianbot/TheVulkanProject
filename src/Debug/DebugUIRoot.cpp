@@ -6,6 +6,7 @@
 
 #include "src/Debug/DebugUIState.hpp"
 #include "src/Debug/UI/MainMenuBar.hpp"
+#include "src/Debug/UI/ObjectEditorWindow.hpp"
 #include "src/Debug/UI/ResourcesListWindow.hpp"
 #include "src/Debug/UI/SceneTreeWindow.hpp"
 #include "src/Debug/UI/ShaderCodeEditorWindow.hpp"
@@ -17,8 +18,9 @@ DebugUIRoot::DebugUIRoot(const std::shared_ptr<EventQueue> &eventQueue,
                          const std::shared_ptr<SceneManager> &sceneManager)
         : _state(std::make_shared<DebugUIState>()),
           _mainMenuBar(std::make_shared<MainMenuBar>(this->_state, eventQueue)),
+          _objectEditorWindow(std::make_shared<ObjectEditorWindow>(this->_state, resourceManager)),
           _resourceListWindow(std::make_shared<ResourcesListWindow>(resourceManager)),
-          _sceneTreeWindow(std::make_shared<SceneTreeWindow>(sceneManager)),
+          _sceneTreeWindow(std::make_shared<SceneTreeWindow>(this->_state, sceneManager)),
           _shaderCodeEditorWindow(std::make_shared<ShaderCodeEditorWindow>(resourceManager)),
           _variablesWindow(std::make_shared<VariablesWindow>(vars)) {
     //
@@ -30,6 +32,10 @@ void DebugUIRoot::render() {
     ImGui::NewFrame();
 
     this->_mainMenuBar->draw();
+
+    if (this->_state->objectEditorWindowVisible) {
+        this->_objectEditorWindow->draw(&this->_state->objectEditorWindowVisible);
+    }
 
     if (this->_state->resourceListWindowVisible) {
         this->_resourceListWindow->draw(&this->_state->resourceListWindowVisible);

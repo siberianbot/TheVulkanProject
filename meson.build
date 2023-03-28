@@ -97,6 +97,8 @@ src = [
     # Debug
     'src/Debug/DebugUIRoot.cpp',
     'src/Debug/UI/MainMenuBar.cpp',
+    'src/Debug/UI/ObjectEditorWindow.cpp',
+    'src/Debug/UI/ObjectEditVisitor.cpp',
     'src/Debug/UI/ResourcesListWindow.cpp',
     'src/Debug/UI/SceneTreeWindow.cpp',
     'src/Debug/UI/ShaderCodeEditorWindow.cpp',

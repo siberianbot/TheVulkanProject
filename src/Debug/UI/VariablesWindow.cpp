@@ -43,7 +43,25 @@ void VariablesWindow::draw(bool *visible) {
             }
 
             if (std::string *str = std::get_if<std::string>(&var)) {
-                ImGui::Text("%s", str->c_str());
+                auto it = this->_varEditState.find(key);
+
+                if (it != this->_varEditState.end() && it->second) {
+                    if (ImGui::Button(VARIABLES_OK)) {
+                        str->shrink_to_fit();
+                        this->_varEditState[key] = false;
+                    }
+
+                    ImGui::SameLine();
+                    ImGui::InputText(id.c_str(), str->data(), str->size());
+                } else {
+                    if (ImGui::Button(VARIABLES_EDIT)) {
+                        this->_varEditState[key] = true;
+                        str->resize(1024);
+                    }
+
+                    ImGui::SameLine();
+                    ImGui::Text("%s", str->c_str());
+                }
             }
         }
 

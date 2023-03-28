@@ -33,6 +33,8 @@ public:
         return this->_descriptorSets;
     }
     [[nodiscard]] std::shared_ptr<ImageViewObject> &textureView() { return this->_textureView; }
+
+    void acceptEdit(const std::shared_ptr<ObjectEditVisitor> &visitor) override;
 };
 
 

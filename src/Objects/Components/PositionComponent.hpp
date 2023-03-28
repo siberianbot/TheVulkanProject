@@ -18,6 +18,8 @@ public:
     glm::mat4 rotationMat4() const;
 
     glm::mat4 model() const;
+
+    void acceptEdit(const std::shared_ptr<ObjectEditVisitor> &visitor) override;
 };
 
 #endif // OBJECTS_COMPONENTS_POSITIONCOMPONENT_HPP

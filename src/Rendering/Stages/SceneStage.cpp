@@ -319,6 +319,10 @@ void SceneStage::record(VkCommandBuffer commandBuffer, uint32_t frameIdx, uint32
         if (prop != nullptr) {
             auto mesh = prop->model()->mesh().lock();
 
+            if (prop->model()->mesh().expired()) {
+                continue;
+            }
+
             if (prop->model()->isDirty()) {
                 if (prop->model()->albedoTextureView() != nullptr) {
                     prop->model()->albedoTextureView()->destroy();

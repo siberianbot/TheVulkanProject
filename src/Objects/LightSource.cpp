@@ -5,6 +5,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/quaternion.hpp>
 
+#include "src/Debug/UI/ObjectEditVisitor.hpp"
 #include "src/Objects/Components/PositionComponent.hpp"
 
 static constexpr const float NEAR = 0.01;
@@ -58,4 +59,8 @@ glm::mat4 LightSource::view() const {
 
 glm::mat4 LightSource::view(const glm::vec3 &forward) const {
     return glm::lookAt(this->_position->position, this->_position->position + forward, glm::vec3(0, 1, 0));
+}
+
+void LightSource::acceptEdit(const std::shared_ptr<ObjectEditVisitor> &visitor) {
+    visitor->drawLightSourceObject(this);
 }

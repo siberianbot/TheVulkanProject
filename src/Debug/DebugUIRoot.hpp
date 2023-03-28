@@ -8,6 +8,7 @@
 
 struct DebugUIState;
 class MainMenuBar;
+class ObjectEditorWindow;
 class ResourcesListWindow;
 class SceneTreeWindow;
 class ShaderCodeEditorWindow;
@@ -22,6 +23,7 @@ private:
     std::shared_ptr<DebugUIState> _state;
 
     std::shared_ptr<MainMenuBar> _mainMenuBar;
+    std::shared_ptr<ObjectEditorWindow> _objectEditorWindow;
     std::shared_ptr<ResourcesListWindow> _resourceListWindow;
     std::shared_ptr<SceneTreeWindow> _sceneTreeWindow;
     std::shared_ptr<ShaderCodeEditorWindow> _shaderCodeEditorWindow;

@@ -29,15 +29,17 @@ public:
     [[nodiscard]] const std::weak_ptr<ImageResource> &albedoTexture() const { return this->_albedoTexture; }
     [[nodiscard]] const std::weak_ptr<ImageResource> &specularTexture() const { return this->_specularTexture; }
 
-    void setMesh(const std::weak_ptr<MeshResource> &mesh);
-    void setAlbedoTexture(const std::weak_ptr<ImageResource> &texture);
-    void setSpecularTexture(const std::weak_ptr<ImageResource> &texture);
+    void setMesh(const std::shared_ptr<MeshResource> &mesh);
+    void setAlbedoTexture(const std::shared_ptr<ImageResource> &texture);
+    void setSpecularTexture(const std::shared_ptr<ImageResource> &texture);
 
     [[nodiscard]] std::array<std::shared_ptr<DescriptorSetObject>, MAX_INFLIGHT_FRAMES> &descriptorSets() {
         return this->_descriptorSets;
     }
     [[nodiscard]] std::shared_ptr<ImageViewObject> &albedoTextureView() { return this->_albedoTextureView; }
     [[nodiscard]] std::shared_ptr<ImageViewObject> &specularTextureView() { return this->_specularTextureView; }
+
+    void acceptEdit(const std::shared_ptr<ObjectEditVisitor> &visitor) override;
 };
 
 #endif // OBJECTS_COMPONENTS_MODELCOMPONENT_HPP

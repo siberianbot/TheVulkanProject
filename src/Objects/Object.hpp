@@ -9,6 +9,7 @@
 #include <vector>
 #include <string>
 
+class ObjectEditVisitor;
 class Component;
 
 class Object {
@@ -27,6 +28,8 @@ public:
 
     [[nodiscard]] const uint64_t &id() const { return this->_id; }
     [[nodiscard]] const std::vector<std::shared_ptr<Component>> &components() const { return this->_components; }
+
+    virtual void acceptEdit(const std::shared_ptr<ObjectEditVisitor> &visitor);
 
     template<typename T>
     [[nodiscard]] std::weak_ptr<T> getComponent();

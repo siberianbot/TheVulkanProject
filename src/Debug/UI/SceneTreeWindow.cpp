@@ -2,12 +2,13 @@
 
 #include <imgui.h>
 
+#include "src/Debug/DebugUIState.hpp"
 #include "src/Debug/Strings.hpp"
 #include "src/Scene/Scene.hpp"
 #include "src/Scene/SceneManager.hpp"
 #include "src/Scene/SceneNode.hpp"
 
-void SceneTreeWindow::renderItem(const std::shared_ptr<SceneNode> &node) {
+std::shared_ptr<SceneNode> SceneTreeWindow::drawItem(const std::shared_ptr<SceneNode> &node) {
     const bool isSelected = !this->_selectedNode.expired() && this->_selectedNode.lock() == node;
 
     ImGuiTreeNodeFlags flags = 0;
@@ -18,24 +19,35 @@ void SceneTreeWindow::renderItem(const std::shared_ptr<SceneNode> &node) {
 
     if (node->descendants().empty()) {
         flags |= ImGuiTreeNodeFlags_Leaf;
+    } else {
+        flags |= ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick;
     }
+
+    std::shared_ptr<SceneNode> selected = nullptr;
 
     if (ImGui::TreeNodeEx(node->displayName().c_str(), flags)) {
         for (const auto &child: node->descendants()) {
-            renderItem(child);
-        }
+            std::shared_ptr<SceneNode> nodeSelection = drawItem(child);
 
-        if (ImGui::IsItemClicked()) {
-            // TODO: misclick
-            this->_selectedNode = node;
+            if (nodeSelection != nullptr) {
+                selected = nodeSelection;
+            }
         }
 
         ImGui::TreePop();
     }
+
+    if (selected == nullptr && ImGui::IsItemClicked()) {
+        return node;
+    }
+
+    return selected;
 }
 
-SceneTreeWindow::SceneTreeWindow(const std::shared_ptr<SceneManager> &sceneManager)
-        : _sceneManager(sceneManager) {
+SceneTreeWindow::SceneTreeWindow(const std::shared_ptr<DebugUIState> &debugUIState,
+                                 const std::shared_ptr<SceneManager> &sceneManager)
+        : _debugUIState(debugUIState),
+          _sceneManager(sceneManager) {
     //
 }
 
@@ -52,15 +64,25 @@ void SceneTreeWindow::draw(bool *visible) {
         ImGui::SetCursorPos(ImVec2(0.5f * (windowSize.x - labelSize.x),
                                    0.5f * (windowSize.y - labelSize.y)));
 
+        ImGui::Text(SCENE_TREE_SCENE_NOT_AVAILABLE);
+
         ImGui::End();
 
         return;
     }
 
+    std::shared_ptr<SceneNode> selected;
+
     if (ImGui::BeginListBox("##scene_tree", ImVec2(-1, -1))) {
-        this->renderItem(this->_sceneManager->currentScene()->root());
+        selected = this->drawItem(this->_sceneManager->currentScene()->root());
 
         ImGui::EndListBox();
+    }
+
+    if (selected != nullptr) {
+        this->_selectedNode = selected;
+        this->_debugUIState->object = selected->object();
+        this->_debugUIState->objectEditorWindowVisible = true;
     }
 
     ImGui::End();
