@@ -132,9 +132,9 @@ void ObjectEditVisitor::drawModelComponent(ModelComponent *component) {
 void ObjectEditVisitor::drawPositionComponent(PositionComponent *component) {
     ImGui::Text("Position Component");
 
-    ImGui::InputScalarN("Position", ImGuiDataType_Float, &component->position, 3);
-    ImGui::SliderFloat3("Rotation", reinterpret_cast<float *>(&component->rotation), 0, glm::radians(360.0f));
-    ImGui::InputScalarN("Scale", ImGuiDataType_Float, &component->scale, 3);
+    ImGui::InputScalarN("Position", ImGuiDataType_Float, &component->position(), 3);
+    ImGui::SliderFloat3("Rotation", reinterpret_cast<float *>(&component->rotation()), 0, glm::radians(360.0f));
+    ImGui::InputScalarN("Scale", ImGuiDataType_Float, &component->scale(), 3);
 }
 
 void ObjectEditVisitor::drawSkyboxComponent(SkyboxComponent *component) {

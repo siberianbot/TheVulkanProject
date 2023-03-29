@@ -1,5 +1,7 @@
 #include "Engine.hpp"
 
+#include <cmath>
+
 #include <GLFW/glfw3.h>
 #include "subprojects/imgui-1.89.2/imgui.h"
 
@@ -128,24 +130,18 @@ void Engine::init() {
         }
 
         const float sensitivity = 0.0005f;
-        camera->position()->rotation.y -= sensitivity * (float) dx;
-        camera->position()->rotation.z += sensitivity * (float) dy;
+        const auto normalize = [](float value) -> float {
+            if (value < 0) {
+                return value + 2 * M_PI;
+            } else if (value > 2 * M_PI) {
+                return value - 2 * M_PI;
+            }
 
-        static float pi = glm::radians(180.0f);
-        static float twoPi = glm::radians(360.0f);
-        const float eps = glm::radians(0.0001f);
+            return value;
+        };
 
-        if (camera->position()->rotation.y < 0) {
-            camera->position()->rotation.y += twoPi;
-        } else if (camera->position()->rotation.y > twoPi) {
-            camera->position()->rotation.y -= twoPi;
-        }
-
-        if (camera->position()->rotation.z < 0) {
-            camera->position()->rotation.z += twoPi;
-        } else if (camera->position()->rotation.z > twoPi) {
-            camera->position()->rotation.z -= twoPi;
-        }
+        camera->position()->rotation().x = normalize(camera->position()->rotation().x - sensitivity * (float) dx);
+        camera->position()->rotation().y = normalize(camera->position()->rotation().y + sensitivity * (float) dy);
     });
 
     std::shared_ptr<MeshResource> cubeMesh = this->_resourceManager->loadMesh("cube");
@@ -170,22 +166,22 @@ void Engine::init() {
     std::shared_ptr<Prop> prop;
 
     prop = std::make_shared<Prop>();
-    prop->position()->position = glm::vec3(0, 0, 2);
+    prop->position()->position() = glm::vec3(0, 0, 2);
     prop->model()->setMesh(vikingRoomMesh);
     prop->model()->setAlbedoTexture(vikingRoomTexture);
     this->_sceneManager->addObject(prop);
 
     prop = std::make_shared<Prop>();
-    prop->position()->position = glm::vec3(0);
-    prop->position()->scale = glm::vec3(0.5f);
+    prop->position()->position() = glm::vec3(0);
+    prop->position()->scale() = glm::vec3(0.5f);
     prop->model()->setMesh(cubeMesh);
     prop->model()->setAlbedoTexture(cubeTexture);
     prop->model()->setSpecularTexture(cubeSpecularTexture);
     this->_sceneManager->addObject(prop);
 
     prop = std::make_shared<Prop>();
-    prop->position()->position = glm::vec3(0, 0, -2);
-    prop->position()->scale = glm::vec3(0.5f);
+    prop->position()->position() = glm::vec3(0, 0, -2);
+    prop->position()->scale() = glm::vec3(0.5f);
     prop->model()->setMesh(suzanneMesh);
     prop->model()->setAlbedoTexture(concreteTexture);
     prop->model()->setSpecularTexture(defaultTexture);
@@ -193,45 +189,45 @@ void Engine::init() {
 
     // down
     prop = std::make_shared<Prop>();
-    prop->position()->position = glm::vec3(0, -4, 0);
-    prop->position()->rotation = glm::vec3(glm::radians(270.0f), 0, 0);
-    prop->position()->scale = glm::vec3(7, 9, 0.1);
+    prop->position()->position() = glm::vec3(0, -4, 0);
+    prop->position()->rotation() = glm::vec3(glm::radians(270.0f), 0, 0);
+    prop->position()->scale() = glm::vec3(7, 9, 0.1);
     prop->model()->setMesh(cubeMesh);
     prop->model()->setAlbedoTexture(concreteTexture);
     this->_sceneManager->addObject(prop);
 
     // front
     prop = std::make_shared<Prop>();
-    prop->position()->position = glm::vec3(7, 0, 0);
-    prop->position()->rotation = glm::vec3(0, glm::radians(270.0f), 0);
-    prop->position()->scale = glm::vec3(9, 4, 0.1);
+    prop->position()->position() = glm::vec3(7, 0, 0);
+    prop->position()->rotation() = glm::vec3(0, glm::radians(270.0f), 0);
+    prop->position()->scale() = glm::vec3(9, 4, 0.1);
     prop->model()->setMesh(cubeMesh);
     prop->model()->setAlbedoTexture(concreteTexture);
     this->_sceneManager->addObject(prop);
 
     // back
     prop = std::make_shared<Prop>();
-    prop->position()->position = glm::vec3(-7, 0, 0);
-    prop->position()->rotation = glm::vec3(0, glm::radians(90.0f), 0);
-    prop->position()->scale = glm::vec3(9, 4, 0.1);
+    prop->position()->position() = glm::vec3(-7, 0, 0);
+    prop->position()->rotation() = glm::vec3(0, glm::radians(90.0f), 0);
+    prop->position()->scale() = glm::vec3(9, 4, 0.1);
     prop->model()->setMesh(cubeMesh);
     prop->model()->setAlbedoTexture(concreteTexture);
     this->_sceneManager->addObject(prop);
 
     // left
     prop = std::make_shared<Prop>();
-    prop->position()->position = glm::vec3(0, 0, -9);
-    prop->position()->rotation = glm::vec3(0);
-    prop->position()->scale = glm::vec3(7, 4, 0.1);
+    prop->position()->position() = glm::vec3(0, 0, -9);
+    prop->position()->rotation() = glm::vec3(0);
+    prop->position()->scale() = glm::vec3(7, 4, 0.1);
     prop->model()->setMesh(cubeMesh);
     prop->model()->setAlbedoTexture(concreteTexture);
     this->_sceneManager->addObject(prop);
 
     // right
     prop = std::make_shared<Prop>();
-    prop->position()->position = glm::vec3(0, 0, 9);
-    prop->position()->rotation = glm::vec3(0, glm::radians(180.0f), 0);
-    prop->position()->scale = glm::vec3(7, 4, 0.1);
+    prop->position()->position() = glm::vec3(0, 0, 9);
+    prop->position()->rotation() = glm::vec3(0, glm::radians(180.0f), 0);
+    prop->position()->scale() = glm::vec3(7, 4, 0.1);
     prop->model()->setMesh(cubeMesh);
     prop->model()->setAlbedoTexture(concreteTexture);
     this->_sceneManager->addObject(prop);
@@ -242,8 +238,8 @@ void Engine::init() {
     light->type() = RECTANGLE_LIGHT_SOURCE;
     light->enabled() = false;
     light->range() = 250;
-    light->position()->position = glm::vec3(10);
-    light->position()->rotation = glm::vec3(glm::radians(225.0f), glm::radians(45.0f), 0);
+    light->position()->position() = glm::vec3(10);
+    light->position()->rotation() = glm::vec3(glm::radians(225.0f), glm::radians(45.0f), 0);
     light->rect() = glm::vec2(20);
     this->_sceneManager->addObject(light);
 
@@ -252,8 +248,8 @@ void Engine::init() {
     light->enabled() = false;
     light->color() = glm::vec3(1, 0, 0);
     light->range() = 50;
-    light->position()->position = glm::vec3(2, 0, -2);
-    light->position()->rotation = glm::vec3(glm::radians(135.0f), glm::radians(90.0f), 0);
+    light->position()->position() = glm::vec3(2, 0, -2);
+    light->position()->rotation() = glm::vec3(glm::radians(135.0f), glm::radians(90.0f), 0);
     this->_sceneManager->addObject(light);
 
     light = std::make_shared<LightSource>();
@@ -261,7 +257,7 @@ void Engine::init() {
     light->enabled() = true;
     light->color() = glm::vec3(0, 1, 0);
     light->range() = 20;
-    light->position()->position = glm::vec3(2, 2, 0);
+    light->position()->position() = glm::vec3(2, 2, 0);
     this->_sceneManager->addObject(light);
 
     light = std::make_shared<LightSource>();
@@ -269,13 +265,13 @@ void Engine::init() {
     light->enabled() = false;
     light->color() = glm::vec3(0, 0, 1);
     light->range() = 50;
-    light->position()->position = glm::vec3(2, 0, 2);
-    light->position()->rotation = glm::vec3(glm::radians(225.0f), glm::radians(90.0f), 0);
+    light->position()->position() = glm::vec3(2, 0, 2);
+    light->position()->rotation() = glm::vec3(glm::radians(225.0f), glm::radians(90.0f), 0);
     this->_sceneManager->addObject(light);
 
     std::shared_ptr<Camera> camera = std::make_shared<Camera>();
-    camera->position()->position = glm::vec3(2, 0, 2);
-    camera->position()->rotation = glm::vec3(0, 0, glm::radians(180.0f));
+    camera->position()->position() = glm::vec3(2, 0, 2);
+    camera->position()->rotation() = glm::vec3(0, glm::radians(180.0f), 0);
     this->_sceneManager->addObject(camera);
     this->_sceneManager->currentCamera() = camera;
 }
@@ -314,19 +310,19 @@ void Engine::run() {
             auto side = camera->side();
 
             if (this->_moveForward) {
-                camera->position()->position += 5 * this->_delta * forward;
+                camera->position()->position() += 5 * this->_delta * forward;
             }
 
             if (this->_moveBackward) {
-                camera->position()->position -= 5 * this->_delta * forward;
+                camera->position()->position() -= 5 * this->_delta * forward;
             }
 
             if (this->_strafeLeft) {
-                camera->position()->position -= 5 * this->_delta * side;
+                camera->position()->position() -= 5 * this->_delta * side;
             }
 
             if (this->_strafeRight) {
-                camera->position()->position += 5 * this->_delta * side;
+                camera->position()->position() += 5 * this->_delta * side;
             }
         }
 

@@ -54,11 +54,11 @@ glm::mat4 LightSource::view() const {
     glm::vec3 forward = rotation * glm::vec3(1, 0, 0);
     glm::vec3 up = rotation * glm::vec3(0, 1, 0);
 
-    return glm::lookAt(this->_position->position, this->_position->position + forward, up);
+    return glm::lookAt(this->_position->position(), this->_position->position() + forward, up);
 }
 
 glm::mat4 LightSource::view(const glm::vec3 &forward) const {
-    return glm::lookAt(this->_position->position, this->_position->position + forward, glm::vec3(0, 1, 0));
+    return glm::lookAt(this->_position->position(), this->_position->position() + forward, glm::vec3(0, 1, 0));
 }
 
 void LightSource::acceptEdit(const std::shared_ptr<ObjectEditVisitor> &visitor) {

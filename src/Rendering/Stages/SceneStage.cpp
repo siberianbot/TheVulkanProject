@@ -250,7 +250,7 @@ void SceneStage::record(VkCommandBuffer commandBuffer, uint32_t frameIdx, uint32
         cameraData = CameraData{
                 .matrixAll = projection * camera->view(false),
                 .matrixRot = projection * camera->view(true),
-                .position = camera->position()->position
+                .position = camera->position()->position()
         };
     } else {
         cameraData = CameraData{
@@ -287,13 +287,13 @@ void SceneStage::record(VkCommandBuffer commandBuffer, uint32_t frameIdx, uint32
 
                     shadows.push_back(ShadowData{
                             .matrix = matrix,
-                            .position = lightSource->position()->position,
+                            .position = lightSource->position()->position(),
                             .range = lightSource->range()
                     });
 
                     lights.push_back(LightData{
                             .matrix = matrix,
-                            .position = lightSource->position()->position,
+                            .position = lightSource->position()->position(),
                             .color = lightSource->color(),
                             .range = lightSource->range()
                     });
@@ -303,13 +303,13 @@ void SceneStage::record(VkCommandBuffer commandBuffer, uint32_t frameIdx, uint32
 
                 shadows.push_back(ShadowData{
                         .matrix = matrix,
-                        .position = lightSource->position()->position,
+                        .position = lightSource->position()->position(),
                         .range = lightSource->range()
                 });
 
                 lights.push_back(LightData{
                         .matrix = matrix,
-                        .position = lightSource->position()->position,
+                        .position = lightSource->position()->position(),
                         .color = lightSource->color(),
                         .range = lightSource->range()
                 });
