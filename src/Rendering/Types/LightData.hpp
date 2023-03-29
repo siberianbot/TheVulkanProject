@@ -5,7 +5,6 @@
 #include <glm/mat4x4.hpp>
 
 struct LightData {
-    alignas(16) glm::mat4 matrix;
     alignas(16) glm::vec3 position;
     alignas(16) glm::vec3 color;
     alignas(4) float range;

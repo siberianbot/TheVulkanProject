@@ -2,6 +2,18 @@
 
 #version 450
 
+struct ShadowData {
+    mat4 matrix;
+    vec3 position;
+    float range;
+};
+
+struct LightData {
+    vec3 position;
+    vec3 color;
+    float range;
+};
+
 layout (constant_id = 0) const uint SHADOW_COUNT = 32;
 layout (constant_id = 1) const uint LIGHT_COUNT = 128;
 
@@ -12,18 +24,13 @@ layout (binding = 3, input_attachment_index = 3) uniform subpassInputMS specular
 
 layout (binding = 4) uniform sampler2DArray shadowMaps;
 
-layout (binding = 5) uniform ShadowData {
-    mat4 matrix;
-    vec3 position;
-    float range;
-} shadows[SHADOW_COUNT];
+layout (binding = 5) uniform ShadowDataArray {
+    ShadowData[SHADOW_COUNT] data;
+} shadows;
 
-layout (binding = 6) uniform LightData {
-    mat4 matrix;
-    vec3 position;
-    vec3 color;
-    float range;
-} lights[LIGHT_COUNT];
+layout (binding = 6) uniform LightDataArray {
+    LightData[LIGHT_COUNT] data;
+} lights;
 
 layout (binding = 7) uniform CameraData {
     vec3 position;
@@ -69,20 +76,20 @@ void main() {
     vec3 fragColor = albedo.rgb;
 
     for (int lightIdx = 0; lightIdx < scene.lightCount; lightIdx++) {
-        float dist = length(lights[lightIdx].position - position);
+        float dist = length(lights.data[lightIdx].position - position);
 
-        vec3 L = normalize(lights[lightIdx].position - position);
+        vec3 L = normalize(lights.data[lightIdx].position - position);
         vec3 V = normalize(camera.position - position);
 
-        float atten = lights[lightIdx].range / (pow(dist, 2.0) + 1.0);
+        float atten = lights.data[lightIdx].range / (pow(dist, 2.0) + 1.0);
 
         vec3 N = normalize(normal);
         float NdotL = max(0.0, dot(N, L));
-        vec3 diff = lights[lightIdx].color * albedo.rgb * NdotL * atten;
+        vec3 diff = lights.data[lightIdx].color * albedo.rgb * NdotL * atten;
 
         vec3 R = reflect(-L, N);
         float NdotR = max(0.0, dot(R, V));
-        vec3 spec = lights[lightIdx].color * specular * pow(NdotR, 32.0) * atten;
+        vec3 spec = lights.data[lightIdx].color * specular * pow(NdotR, 32.0) * atten;
 
         fragColor += diff + spec;
     }
@@ -94,32 +101,16 @@ void main() {
     float shadow = scene.ambient;
 
     for (int shadowIdx = 0; shadowIdx < scene.shadowCount; shadowIdx++) {
-        float dist = length(lights[shadowIdx].position - position);
-        float atten = lights[shadowIdx].range / (pow(dist, 2.0) + 1.0);
+        float dist = length(shadows.data[shadowIdx].position - position);
+        float atten = shadows.data[shadowIdx].range / (pow(dist, 2.0) + 1.0);
 
-        vec4 inShadowCoord = (biasMat * shadows[shadowIdx].matrix) * vec4(position, 1);
+        vec4 inShadowCoord = (biasMat * shadows.data[shadowIdx].matrix) * vec4(position, 1);
         shadow += atten * projectShadowMap(shadowIdx, inShadowCoord);
     }
 
-    outColor = fragColor;
+    if (scene.shadowCount > 0) {
+        shadow /= scene.shadowCount;
+    }
 
-    // TODO:
-    //    int numLights = min(scene.numLights, MAX_NUM_LIGHTS);
-    //
-    //    vec3 fragColor = AMBIENT * albedo.rgb;
-    //    float shadow = numLights > 0 ? 0.0f : 1.0f;
-    //
-    //    for (int idx = 0; idx < numLights; idx++)
-    //    {
-
-    //
-    //        fragColor += diff + spec;
-    //
-    //    }
-    //
-    //    if (numLights > 0) {
-    //        shadow /= numLights;
-    //    }
-    //
-    //    outColor = vec4(shadow * fragColor, albedo.a);
+    outColor = shadow * fragColor;
 }

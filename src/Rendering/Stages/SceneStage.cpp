@@ -281,6 +281,12 @@ void SceneStage::record(VkCommandBuffer commandBuffer, uint32_t frameIdx, uint32
             glm::mat4 projection = lightSource->projection();
             projection[1][1] = -1;
 
+            lights.push_back(LightData{
+                    .position = lightSource->position()->position(),
+                    .color = lightSource->color(),
+                    .range = lightSource->range()
+            });
+
             if (lightSource->type() == POINT_LIGHT_SOURCE) {
                 for (glm::vec3 dir: POINT_LIGHT_SOURCE_DIRECTIONS) {
                     glm::mat4 matrix = projection * lightSource->view(dir);
@@ -290,13 +296,6 @@ void SceneStage::record(VkCommandBuffer commandBuffer, uint32_t frameIdx, uint32
                             .position = lightSource->position()->position(),
                             .range = lightSource->range()
                     });
-
-                    lights.push_back(LightData{
-                            .matrix = matrix,
-                            .position = lightSource->position()->position(),
-                            .color = lightSource->color(),
-                            .range = lightSource->range()
-                    });
                 }
             } else {
                 glm::mat4 matrix = projection * lightSource->view();
@@ -304,13 +303,6 @@ void SceneStage::record(VkCommandBuffer commandBuffer, uint32_t frameIdx, uint32
                 shadows.push_back(ShadowData{
                         .matrix = matrix,
                         .position = lightSource->position()->position(),
-                        .range = lightSource->range()
-                });
-
-                lights.push_back(LightData{
-                        .matrix = matrix,
-                        .position = lightSource->position()->position(),
-                        .color = lightSource->color(),
                         .range = lightSource->range()
                 });
             }
