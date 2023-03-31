@@ -5,6 +5,7 @@
 #include <imgui_impl_vulkan.h>
 
 #include "src/Debug/DebugUIState.hpp"
+#include "src/Debug/UI/LogWindow.hpp"
 #include "src/Debug/UI/MainMenuBar.hpp"
 #include "src/Debug/UI/ObjectEditorWindow.hpp"
 #include "src/Debug/UI/ResourcesListWindow.hpp"
@@ -12,11 +13,13 @@
 #include "src/Debug/UI/ShaderCodeEditorWindow.hpp"
 #include "src/Debug/UI/VariablesWindow.hpp"
 
-DebugUIRoot::DebugUIRoot(const std::shared_ptr<EventQueue> &eventQueue,
+DebugUIRoot::DebugUIRoot(const std::shared_ptr<Log> &log,
+                         const std::shared_ptr<EventQueue> &eventQueue,
                          const std::shared_ptr<VarCollection> &vars,
                          const std::shared_ptr<ResourceManager> &resourceManager,
                          const std::shared_ptr<SceneManager> &sceneManager)
         : _state(std::make_shared<DebugUIState>()),
+          _logWindow(std::make_shared<LogWindow>(log)),
           _mainMenuBar(std::make_shared<MainMenuBar>(this->_state, eventQueue)),
           _objectEditorWindow(std::make_shared<ObjectEditorWindow>(this->_state, resourceManager)),
           _resourceListWindow(std::make_shared<ResourcesListWindow>(resourceManager)),
@@ -32,6 +35,10 @@ void DebugUIRoot::render() {
     ImGui::NewFrame();
 
     this->_mainMenuBar->draw();
+
+    if (this->_state->logWindowVisible) {
+        this->_logWindow->draw(&this->_state->logWindowVisible);
+    }
 
     if (this->_state->objectEditorWindowVisible) {
         this->_objectEditorWindow->draw(&this->_state->objectEditorWindowVisible);

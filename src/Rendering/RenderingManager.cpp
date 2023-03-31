@@ -1,10 +1,10 @@
 #include "RenderingManager.hpp"
 
-#include <iostream>
 #include <string>
 
 #include <GLFW/glfw3.h>
 
+#include "src/Engine/Log.hpp"
 #include "src/Engine/VarCollection.hpp"
 #include "src/Rendering/Common.hpp"
 #include "src/Rendering/CommandExecutor.hpp"
@@ -20,33 +20,49 @@ VkBool32 RenderingManager::debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT 
                                          VkDebugUtilsMessageTypeFlagsEXT messageType,
                                          const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
                                          void *pUserData) {
-    std::string type;
+    RenderingManager *that = reinterpret_cast<RenderingManager *>(pUserData);
+
+    LogCategory category;
+    switch (messageSeverity) {
+        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
+            category = ERROR_LOG_CATEGORY;
+            break;
+
+        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
+            category = WARNING_LOG_CATEGORY;
+            break;
+
+        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
+        case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
+        default:
+            category = INFO_LOG_CATEGORY;
+            break;
+    }
+
+    std::string tag;
     switch (messageType) {
         case VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT:
-            type = "Vulkan-Validation";
+            tag = "Vulkan-Validation";
             break;
 
         case VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT:
-            type = "Vulkan-Performance";
+            tag = "Vulkan-Performance";
             break;
 
         case VK_DEBUG_UTILS_MESSAGE_TYPE_DEVICE_ADDRESS_BINDING_BIT_EXT:
-            type = "Vulkan-Binding";
+            tag = "Vulkan-Binding";
             break;
 
         case VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT:
-            type = "Vulkan-General";
+            tag = "Vulkan-General";
             break;
 
         default:
-            throw std::runtime_error("Not supported");
+            tag = "Vulkan-N/A";
+            break;
     }
 
-    if (messageSeverity == VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
-        std::cerr << type << ": " << pCallbackData->pMessage << std::endl;
-    } else {
-        std::cout << type << ": " << pCallbackData->pMessage << std::endl;
-    }
+    that->_log->push(category, tag, pCallbackData->pMessage);
 
     return VK_FALSE;
 }
@@ -75,6 +91,7 @@ VkInstance RenderingManager::createInstance() {
             .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
             .pNext = nullptr,
             .flags = 0,
+            // TODO: errors are ignored, why?
             .messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT |
                                VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
                                VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT |
@@ -111,9 +128,11 @@ VkSurfaceKHR RenderingManager::createSurface() {
     return surface;
 }
 
-RenderingManager::RenderingManager(const std::shared_ptr<VarCollection> &vars,
+RenderingManager::RenderingManager(const std::shared_ptr<Log> &log,
+                                   const std::shared_ptr<VarCollection> &vars,
                                    const std::shared_ptr<Window> &window)
-        : _vars(vars),
+        : _log(log),
+          _vars(vars),
           _window(window) {
     //
 }

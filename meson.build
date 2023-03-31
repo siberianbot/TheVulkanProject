@@ -23,6 +23,7 @@ src = [
 
     # Engine
     'src/Engine/Engine.cpp',
+    'src/Engine/Log.cpp',
     'src/Engine/VarCollection.cpp',
     'src/Engine/InputProcessor.cpp',
 
@@ -100,6 +101,7 @@ src = [
 
     # Debug
     'src/Debug/DebugUIRoot.cpp',
+    'src/Debug/UI/LogWindow.cpp',
     'src/Debug/UI/MainMenuBar.cpp',
     'src/Debug/UI/ObjectEditorWindow.cpp',
     'src/Debug/UI/ObjectEditVisitor.cpp',

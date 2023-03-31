@@ -5,6 +5,7 @@
 #include <GLFW/glfw3.h>
 #include "subprojects/imgui-1.89.2/imgui.h"
 
+#include "src/Engine/Log.hpp"
 #include "src/Engine/VarCollection.hpp"
 #include "src/Engine/Vars.hpp"
 #include "src/Events/EventQueue.hpp"
@@ -28,7 +29,8 @@
 #include "src/Debug/DebugUIRoot.hpp"
 
 Engine::Engine()
-        : _vars(std::make_shared<VarCollection>()),
+        : _log(std::make_shared<Log>()),
+          _vars(std::make_shared<VarCollection>()),
           _eventQueue(std::make_shared<EventQueue>()),
           _inputProcessor(std::make_shared<InputProcessor>(this->_eventQueue)),
           _window(std::make_shared<Window>(this->_vars, this->_eventQueue)),
@@ -66,13 +68,13 @@ void Engine::init() {
         this->_work = false;
     });
 
-    this->_renderingManager = std::make_shared<RenderingManager>(this->_vars, this->_window);
+    this->_renderingManager = std::make_shared<RenderingManager>(this->_log, this->_vars, this->_window);
     this->_renderingManager->init();
 
     this->_resourceManager = std::make_shared<ResourceManager>(this->_renderingManager->renderingObjectsAllocator());
     this->_resourceManager->addDataDir("data");
 
-    this->_debugUI = std::make_shared<DebugUIRoot>(this->_eventQueue, this->_vars, this->_resourceManager,
+    this->_debugUI = std::make_shared<DebugUIRoot>(this->_log, this->_eventQueue, this->_vars, this->_resourceManager,
                                                    this->_sceneManager);
 
     this->_renderer = std::make_shared<Renderer>(this->_vars, this->_eventQueue, this->_renderingManager,
@@ -119,7 +121,7 @@ void Engine::init() {
         this->_y = y;
 
         if (this->_state != Focused ||
-            this->sceneManager()->currentCamera().expired()) {
+            this->_sceneManager->currentCamera().expired()) {
             return;
         }
 

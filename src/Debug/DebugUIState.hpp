@@ -6,6 +6,7 @@
 class Object;
 
 struct DebugUIState {
+    bool logWindowVisible = false;
     bool objectEditorWindowVisible = false;
     bool resourceListWindowVisible = false;
     bool sceneTreeWindowVisible = false;

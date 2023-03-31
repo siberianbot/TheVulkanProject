@@ -3,6 +3,11 @@
 
 static constexpr const char *NONE_ITEM = "None";
 
+static constexpr const char *LOG_WINDOW_TITLE = "Log";
+static constexpr const char *LOG_CATEGORY = "Category";
+static constexpr const char *LOG_TAG = "Tag";
+static constexpr const char *LOG_MESSAGE = "Message";
+
 static constexpr const char *MAIN_MENU_ENGINE = "Engine";
 static constexpr const char *MAIN_MENU_ENGINE_EXIT = "Exit";
 static constexpr const char *MAIN_MENU_RENDERING = "Rendering";

@@ -4,6 +4,7 @@
 #include <memory>
 #include <vector>
 
+class Log;
 class EventQueue;
 class VarCollection;
 class InputProcessor;
@@ -21,6 +22,7 @@ enum CameraControlState {
 
 class Engine {
 private:
+    std::shared_ptr<Log> _log;
     std::shared_ptr<VarCollection> _vars;
     std::shared_ptr<EventQueue> _eventQueue;
     std::shared_ptr<InputProcessor> _inputProcessor;
@@ -48,17 +50,6 @@ public:
     void cleanup();
 
     void run();
-
-    [[nodiscard]] const std::shared_ptr<VarCollection> vars() const { return this->_vars; }
-    [[nodiscard]] const std::shared_ptr<EventQueue> eventQueue() const { return this->_eventQueue; }
-    [[nodiscard]] const std::shared_ptr<InputProcessor> inputProcessor() const { return this->_inputProcessor; }
-    [[nodiscard]] const std::shared_ptr<Window> window() const { return this->_window; }
-    [[nodiscard]] const std::shared_ptr<RenderingManager> renderingManager() const { return this->_renderingManager; }
-    [[nodiscard]] const std::shared_ptr<ResourceManager> resourceManager() const { return this->_resourceManager; }
-    [[nodiscard]] const std::shared_ptr<SceneManager> sceneManager() const { return this->_sceneManager; }
-    [[nodiscard]] const std::shared_ptr<Renderer> renderer() const { return this->_renderer; }
-
-    [[nodiscard]] float delta() { return this->_delta; }
 };
 
 #endif // ENGINE_HPP

@@ -21,6 +21,10 @@ void MainMenuBar::draw() {
     }
 
     if (ImGui::BeginMenu(MAIN_MENU_ENGINE)) {
+        if (ImGui::MenuItem(LOG_WINDOW_TITLE, NULL, this->_debugUIState->logWindowVisible)) {
+            this->_debugUIState->logWindowVisible = !this->_debugUIState->logWindowVisible;
+        }
+
         if (ImGui::MenuItem(VARIABLES_WINDOW_TITLE, NULL, this->_debugUIState->variablesWindowVisible)) {
             this->_debugUIState->variablesWindowVisible = !this->_debugUIState->variablesWindowVisible;
         }
