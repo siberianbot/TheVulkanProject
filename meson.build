@@ -9,9 +9,13 @@ add_project_arguments('-DGLM_FORCE_DEPTH_ZERO_TO_ONE', language: 'cpp')
 
 deps = [
     dependency('vulkan'),
-    dependency('glfw3'),
+    subproject('glfw').get_variable('glfw_dep'),
+    subproject('glm').get_variable('glm_dep'),
     subproject('imgui', default_options: ['default_library=static']).get_variable('imgui_dep'),
-    subproject('nlohmann_json').get_variable('nlohmann_json_dep')
+    subproject('nlohmann_json').get_variable('nlohmann_json_dep'),
+    subproject('fmt').get_variable('fmt_dep')
+    # TODO: https://github.com/nothings/stb
+    # TODO: https://github.com/tinyobjloader/tinyobjloader
 ]
 
 src = [
