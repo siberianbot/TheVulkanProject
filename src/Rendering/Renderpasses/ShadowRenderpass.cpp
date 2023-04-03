@@ -100,8 +100,13 @@ void ShadowRenderpass::initRenderpass() {
                                   VK_ACCESS_SHADER_READ_BIT)
             .build();
 
-    std::shared_ptr<ShaderResource> vertexShader = this->_resourceManager->loadShader("shaders/shadow.vert");
-    std::shared_ptr<ShaderResource> fragmentShader = this->_resourceManager->loadShader("shaders/shadow.frag");
+    std::shared_ptr<ShaderResource> vertexShader = this->_resourceManager->tryGetResource<ShaderResource>(
+            "shaders/shadow.vert", SHADER_RESOURCE).value().lock();
+    std::shared_ptr<ShaderResource> fragmentShader = this->_resourceManager->tryGetResource<ShaderResource>(
+            "shaders/shadow.frag", SHADER_RESOURCE).value().lock();
+
+    vertexShader->load();
+    fragmentShader->load();
 
     this->_pipeline = PipelineBuilder(this->_vulkanObjectsAllocator, this->_renderpass,
                                       this->_renderingLayoutsManager->shadowPipelineLayout())

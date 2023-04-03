@@ -9,4 +9,6 @@ static constexpr const char *RENDERING_SCENE_STAGE_SHADOW_MAP_SIZE = "Rendering.
 static constexpr const char *RENDERING_SCENE_STAGE_SHADOW_MAP_COUNT = "Rendering.SceneStage.ShadowMapCount";
 static constexpr const char *RENDERING_SCENE_STAGE_LIGHT_COUNT = "Rendering.SceneStage.LightCount";
 
+static constexpr const char *RESOURCES_DEFAULT_TEXTURE = "Resources.DefaultTexture";
+
 #endif // ENGINE_VARS_HPP

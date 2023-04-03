@@ -15,6 +15,7 @@
 #include "src/Rendering/Renderer.hpp"
 #include "src/Resources/MeshResource.hpp"
 #include "src/Resources/ImageResource.hpp"
+#include "src/Resources/CubeImageResource.hpp"
 #include "src/Resources/ResourceManager.hpp"
 #include "src/Objects/Camera.hpp"
 #include "src/Objects/LightSource.hpp"
@@ -49,6 +50,7 @@ void Engine::init() {
     this->_vars->set(RENDERING_SCENE_STAGE_LIGHT_COUNT, 128);
     this->_vars->set(RENDERING_SCENE_STAGE_SHADOW_MAP_COUNT, 32);
     this->_vars->set(RENDERING_SCENE_STAGE_SHADOW_MAP_SIZE, 1024);
+    this->_vars->set(RESOURCES_DEFAULT_TEXTURE, "textures/default");
 
     if (glfwInit() != GLFW_TRUE) {
         throw std::runtime_error("Failed to initilalize GLFW");
@@ -71,8 +73,9 @@ void Engine::init() {
     this->_renderingManager = std::make_shared<RenderingManager>(this->_log, this->_vars, this->_window);
     this->_renderingManager->init();
 
-    this->_resourceManager = std::make_shared<ResourceManager>(this->_renderingManager->renderingObjectsAllocator());
-    this->_resourceManager->addDataDir("data");
+    this->_resourceManager = std::make_shared<ResourceManager>(this->_log,
+                                                               this->_renderingManager->renderingObjectsAllocator());
+    this->_resourceManager->tryAddDirectory("data");
 
     this->_debugUI = std::make_shared<DebugUIRoot>(this->_log, this->_eventQueue, this->_vars, this->_resourceManager,
                                                    this->_sceneManager);
@@ -146,17 +149,46 @@ void Engine::init() {
         camera->position()->rotation().y = normalize(camera->position()->rotation().y + sensitivity * (float) dy);
     });
 
-    std::shared_ptr<MeshResource> cubeMesh = this->_resourceManager->loadMesh("cube");
-    std::shared_ptr<MeshResource> skyboxMesh = this->_resourceManager->loadMesh("skybox");
-    std::shared_ptr<MeshResource> suzanneMesh = this->_resourceManager->loadMesh("suzanne");
-    std::shared_ptr<MeshResource> vikingRoomMesh = this->_resourceManager->loadMesh("viking_room");
+    std::shared_ptr<MeshResource> cubeMesh = this->_resourceManager->tryGetResource<MeshResource>(
+            "cube", MESH_RESOURCE).value().lock();
+    cubeMesh->load();
 
-    std::shared_ptr<ImageResource> defaultTexture = this->_resourceManager->loadDefaultImage();
-    std::shared_ptr<ImageResource> concreteTexture = this->_resourceManager->loadImage("concrete");
-    std::shared_ptr<ImageResource> cubeTexture = this->_resourceManager->loadImage("cube_texture");
-    std::shared_ptr<ImageResource> cubeSpecularTexture = this->_resourceManager->loadImage("cube_texture_specular");
-    std::shared_ptr<ImageResource> vikingRoomTexture = this->_resourceManager->loadImage("viking_room_texture");
-    std::shared_ptr<CubeImageResource> skyboxTexture = this->_resourceManager->loadCubeImage("skybox_texture");
+    std::shared_ptr<MeshResource> skyboxMesh = this->_resourceManager->tryGetResource<MeshResource>(
+            "skybox", MESH_RESOURCE).value().lock();
+    skyboxMesh->load();
+
+    std::shared_ptr<MeshResource> suzanneMesh = this->_resourceManager->tryGetResource<MeshResource>(
+            "suzanne", MESH_RESOURCE).value().lock();
+    suzanneMesh->load();
+
+    std::shared_ptr<MeshResource> vikingRoomMesh = this->_resourceManager->tryGetResource<MeshResource>(
+            "viking_room", MESH_RESOURCE).value().lock();
+    vikingRoomMesh->load();
+
+    std::shared_ptr<ImageResource> defaultTexture =  this->_resourceManager->tryGetResource<ImageResource>(
+            "textures/default", IMAGE_RESOURCE).value().lock();
+    defaultTexture->load();
+
+    std::shared_ptr<ImageResource> concreteTexture = this->_resourceManager->tryGetResource<ImageResource>(
+            "concrete", IMAGE_RESOURCE).value().lock();
+    concreteTexture->load();
+
+    std::shared_ptr<ImageResource> cubeTexture = this->_resourceManager->tryGetResource<ImageResource>(
+            "cube_texture", IMAGE_RESOURCE).value().lock();
+    cubeTexture->load();
+
+    std::shared_ptr<ImageResource> cubeSpecularTexture = this->_resourceManager->tryGetResource<ImageResource>(
+            "cube_texture_specular", IMAGE_RESOURCE).value().lock();
+    cubeSpecularTexture->load();
+
+    std::shared_ptr<ImageResource> vikingRoomTexture = this->_resourceManager->tryGetResource<ImageResource>(
+            "viking_room_texture", IMAGE_RESOURCE).value().lock();
+    vikingRoomTexture->load();
+
+    std::shared_ptr<CubeImageResource> skyboxTexture = this->_resourceManager->tryGetResource<CubeImageResource>(
+            "skybox_texture", CUBE_IMAGE_RESOURCE).value().lock();
+    skyboxTexture->load();
+
 
     this->_sceneManager->setScene(Scene::empty());
 

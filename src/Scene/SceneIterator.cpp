@@ -2,6 +2,7 @@
 
 #include <algorithm>
 
+#include "src/Engine/EngineError.hpp"
 #include "src/Scene/SceneNode.hpp"
 
 bool SceneIterator::isDiscovered(const std::shared_ptr<SceneNode> &node) {
@@ -33,7 +34,7 @@ bool SceneIterator::moveNext() {
 
 const std::shared_ptr<SceneNode> &SceneIterator::current() const {
     if (this->_stack.empty()) {
-        return nullptr;
+        throw EngineError("No scene nodes available");
     }
 
     return this->_stack.top();

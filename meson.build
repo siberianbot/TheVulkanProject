@@ -23,6 +23,7 @@ src = [
 
     # Engine
     'src/Engine/Engine.cpp',
+    'src/Engine/EngineError.cpp',
     'src/Engine/Log.cpp',
     'src/Engine/VarCollection.cpp',
     'src/Engine/InputProcessor.cpp',

@@ -88,7 +88,7 @@
     "path": "textures/viking_room.png"
   },
   {
-    "id": "default_texture",
+    "id": "textures/default",
     "type": "image",
     "path": "textures/default.png"
   },

@@ -234,10 +234,24 @@ void SceneRenderpass::initRenderpass() {
                                   VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT)
             .build();
 
+    auto vertSceneModelShaderResource = this->_resourceManager->tryGetResource<ShaderResource>(
+            "shaders/scene-model.vert", SHADER_RESOURCE)->lock();
+    auto fragSceneModelShaderResource = this->_resourceManager->tryGetResource<ShaderResource>(
+            "shaders/scene-model.frag", SHADER_RESOURCE)->lock();
+    auto vertPassthroughShaderResource = this->_resourceManager->tryGetResource<ShaderResource>(
+            "shaders/passthrough.vert", SHADER_RESOURCE)->lock();
+    auto fragSceneCompositionShaderResource = this->_resourceManager->tryGetResource<ShaderResource>(
+            "shaders/scene-composition.frag", SHADER_RESOURCE)->lock();
+
+    vertSceneModelShaderResource->load();
+    fragSceneModelShaderResource->load();
+    vertPassthroughShaderResource->load();
+    fragSceneCompositionShaderResource->load();
+
     this->_modelPipeline = PipelineBuilder(this->_vulkanObjectsAllocator, this->_renderpass,
                                            this->_renderingLayoutsManager->modelPipelineLayout())
-            .addVertexShader(this->_resourceManager->loadShader("shaders/scene-model.vert")->shader())
-            .addFragmentShader(this->_resourceManager->loadShader("shaders/scene-model.frag")->shader())
+            .addVertexShader(vertSceneModelShaderResource->shader())
+            .addFragmentShader(fragSceneModelShaderResource->shader())
             .addBinding(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
             .addAttribute(0, 0, offsetof(Vertex, pos), VK_FORMAT_R32G32B32_SFLOAT)
             .addAttribute(0, 1, offsetof(Vertex, normal), VK_FORMAT_R32G32B32_SFLOAT)
@@ -250,8 +264,8 @@ void SceneRenderpass::initRenderpass() {
 
     this->_compositionPipeline = PipelineBuilder(this->_vulkanObjectsAllocator, this->_renderpass,
                                                  this->_renderingLayoutsManager->compositionPipelineLayout())
-            .addVertexShader(this->_resourceManager->loadShader("shaders/passthrough.vert")->shader())
-            .addFragmentShader(this->_resourceManager->loadShader("shaders/scene-composition.frag")->shader())
+            .addVertexShader(vertPassthroughShaderResource->shader())
+            .addFragmentShader(fragSceneCompositionShaderResource->shader())
             .withFragmentShaderSpecialization([&](SpecializationInfoBuilder &builder) {
                 builder
                         .withSize(sizeof(SceneConstants))
@@ -263,6 +277,11 @@ void SceneRenderpass::initRenderpass() {
             .withCullMode(VK_CULL_MODE_FRONT_BIT)
             .forSubpass(1)
             .build();
+
+    vertSceneModelShaderResource->unload();
+    fragSceneModelShaderResource->unload();
+    vertPassthroughShaderResource->unload();
+    fragSceneCompositionShaderResource->unload();
 
     this->_shadowDataBuffer = BufferObjectBuilder(this->_renderingDevice, this->_vulkanObjectsAllocator)
             .withSize(sizeof(ShadowData) * this->_sceneConstants.shadowCount)

@@ -260,36 +260,46 @@ void SceneStage::record(VkCommandBuffer commandBuffer, uint32_t frameIdx, uint32
         };
     }
 
-    SceneIterator iterator = this->_sceneManager->currentScene()->iterate();
+    if (this->_sceneManager->currentScene() != nullptr) {
+        SceneIterator iterator = this->_sceneManager->currentScene()->iterate();
 
-    do {
-        std::shared_ptr<SceneNode> node = iterator.current();
+        do {
+            std::shared_ptr<SceneNode> node = iterator.current();
 
-        if (node->object() == nullptr) {
-            continue;
-        }
-
-        std::shared_ptr<LightSource> lightSource = std::dynamic_pointer_cast<LightSource>(node->object());
-        std::shared_ptr<Prop> prop = std::dynamic_pointer_cast<Prop>(node->object());
-        std::shared_ptr<World> world = std::dynamic_pointer_cast<World>(node->object());
-
-        if (lightSource != nullptr) {
-            if (!lightSource->enabled()) {
+            if (node->object() == nullptr) {
                 continue;
             }
 
-            glm::mat4 projection = lightSource->projection();
-            projection[1][1] = -1;
+            std::shared_ptr<LightSource> lightSource = std::dynamic_pointer_cast<LightSource>(node->object());
+            std::shared_ptr<Prop> prop = std::dynamic_pointer_cast<Prop>(node->object());
+            std::shared_ptr<World> world = std::dynamic_pointer_cast<World>(node->object());
 
-            lights.push_back(LightData{
-                    .position = lightSource->position()->position(),
-                    .color = lightSource->color(),
-                    .range = lightSource->range()
-            });
+            if (lightSource != nullptr) {
+                if (!lightSource->enabled()) {
+                    continue;
+                }
 
-            if (lightSource->type() == POINT_LIGHT_SOURCE) {
-                for (glm::vec3 dir: POINT_LIGHT_SOURCE_DIRECTIONS) {
-                    glm::mat4 matrix = projection * lightSource->view(dir);
+                glm::mat4 projection = lightSource->projection();
+                projection[1][1] = -1;
+
+                lights.push_back(LightData{
+                        .position = lightSource->position()->position(),
+                        .color = lightSource->color(),
+                        .range = lightSource->range()
+                });
+
+                if (lightSource->type() == POINT_LIGHT_SOURCE) {
+                    for (glm::vec3 dir: POINT_LIGHT_SOURCE_DIRECTIONS) {
+                        glm::mat4 matrix = projection * lightSource->view(dir);
+
+                        shadows.push_back(ShadowData{
+                                .matrix = matrix,
+                                .position = lightSource->position()->position(),
+                                .range = lightSource->range()
+                        });
+                    }
+                } else {
+                    glm::mat4 matrix = projection * lightSource->view();
 
                     shadows.push_back(ShadowData{
                             .matrix = matrix,
@@ -297,104 +307,100 @@ void SceneStage::record(VkCommandBuffer commandBuffer, uint32_t frameIdx, uint32
                             .range = lightSource->range()
                     });
                 }
-            } else {
-                glm::mat4 matrix = projection * lightSource->view();
-
-                shadows.push_back(ShadowData{
-                        .matrix = matrix,
-                        .position = lightSource->position()->position(),
-                        .range = lightSource->range()
-                });
-            }
-        }
-
-        if (prop != nullptr) {
-            auto mesh = prop->model()->mesh().lock();
-
-            if (prop->model()->mesh().expired()) {
-                continue;
             }
 
-            if (prop->model()->isDirty()) {
-                if (prop->model()->albedoTextureView() != nullptr) {
-                    prop->model()->albedoTextureView()->destroy();
-                    prop->model()->albedoTextureView() = nullptr;
+            if (prop != nullptr) {
+                auto mesh = prop->model()->mesh().lock();
+
+                if (prop->model()->mesh().expired()) {
+                    continue;
                 }
 
-                if (prop->model()->specularTextureView() != nullptr) {
-                    prop->model()->specularTextureView()->destroy();
-                    prop->model()->specularTextureView() = nullptr;
-                }
-
-                std::shared_ptr<ImageResource> albedoTexture;
-                std::shared_ptr<ImageResource> specularTexture;
-
-                if (!prop->model()->albedoTexture().expired()) {
-                    albedoTexture = prop->model()->albedoTexture().lock();
-                } else {
-                    albedoTexture = this->_resourceManager->loadDefaultImage();
-                }
-
-                if (!prop->model()->specularTexture().expired()) {
-                    specularTexture = prop->model()->specularTexture().lock();
-                } else {
-                    specularTexture = this->_resourceManager->loadDefaultImage();
-                }
-
-                prop->model()->albedoTextureView() = ImageViewObjectBuilder(
-                        this->_renderingManager->vulkanObjectsAllocator())
-                        .fromImageObject(albedoTexture->image())
-                        .withType(VK_IMAGE_VIEW_TYPE_2D)
-                        .withAspectFlags(VK_IMAGE_ASPECT_COLOR_BIT)
-                        .build();
-
-                prop->model()->specularTextureView() = ImageViewObjectBuilder(
-                        this->_renderingManager->vulkanObjectsAllocator())
-                        .fromImageObject(specularTexture->image())
-                        .withType(VK_IMAGE_VIEW_TYPE_2D)
-                        .withAspectFlags(VK_IMAGE_ASPECT_COLOR_BIT)
-                        .build();
-
-                for (uint32_t idx = 0; idx < MAX_INFLIGHT_FRAMES; idx++) {
+                if (prop->model()->isDirty()) {
                     if (prop->model()->albedoTextureView() != nullptr) {
-                        prop->model()->descriptorSets()[idx]->updateWithImageView(
-                                0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, prop->model()->albedoTextureView(),
-                                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, this->_sceneRenderpass->textureSampler());
+                        prop->model()->albedoTextureView()->destroy();
+                        prop->model()->albedoTextureView() = nullptr;
                     }
 
                     if (prop->model()->specularTextureView() != nullptr) {
-                        prop->model()->descriptorSets()[idx]->updateWithImageView(
-                                1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, prop->model()->specularTextureView(),
-                                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, this->_sceneRenderpass->textureSampler());
+                        prop->model()->specularTextureView()->destroy();
+                        prop->model()->specularTextureView() = nullptr;
                     }
+
+                    std::shared_ptr<ImageResource> albedoTexture;
+                    std::shared_ptr<ImageResource> specularTexture;
+
+                    if (!prop->model()->albedoTexture().expired()) {
+                        albedoTexture = prop->model()->albedoTexture().lock();
+                    } else {
+                        albedoTexture = this->_resourceManager->tryGetResource<ImageResource>(
+                                this->_vars->getOrDefault(RESOURCES_DEFAULT_TEXTURE, "textures/default"),
+                                IMAGE_RESOURCE)->lock();
+                    }
+
+                    if (!prop->model()->specularTexture().expired()) {
+                        specularTexture = prop->model()->specularTexture().lock();
+                    } else {
+                        specularTexture = this->_resourceManager->tryGetResource<ImageResource>(
+                                this->_vars->getOrDefault(RESOURCES_DEFAULT_TEXTURE, "textures/default"),
+                                IMAGE_RESOURCE)->lock();
+                    }
+
+                    prop->model()->albedoTextureView() = ImageViewObjectBuilder(
+                            this->_renderingManager->vulkanObjectsAllocator())
+                            .fromImageObject(albedoTexture->image())
+                            .withType(VK_IMAGE_VIEW_TYPE_2D)
+                            .withAspectFlags(VK_IMAGE_ASPECT_COLOR_BIT)
+                            .build();
+
+                    prop->model()->specularTextureView() = ImageViewObjectBuilder(
+                            this->_renderingManager->vulkanObjectsAllocator())
+                            .fromImageObject(specularTexture->image())
+                            .withType(VK_IMAGE_VIEW_TYPE_2D)
+                            .withAspectFlags(VK_IMAGE_ASPECT_COLOR_BIT)
+                            .build();
+
+                    for (uint32_t idx = 0; idx < MAX_INFLIGHT_FRAMES; idx++) {
+                        if (prop->model()->albedoTextureView() != nullptr) {
+                            prop->model()->descriptorSets()[idx]->updateWithImageView(
+                                    0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, prop->model()->albedoTextureView(),
+                                    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, this->_sceneRenderpass->textureSampler());
+                        }
+
+                        if (prop->model()->specularTextureView() != nullptr) {
+                            prop->model()->descriptorSets()[idx]->updateWithImageView(
+                                    1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, prop->model()->specularTextureView(),
+                                    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, this->_sceneRenderpass->textureSampler());
+                        }
+                    }
+
+                    prop->model()->resetDirty();
                 }
 
-                prop->model()->resetDirty();
+                ModelData modelData = {
+                        .model = prop->position()->model(),
+                        .modelRotation = prop->position()->rotationMat4(),
+                        .vertices = mesh->vertexBuffer(),
+                        .indices = mesh->indexBuffer(),
+                        .count = mesh->count(),
+                        .descriptorSet = prop->model()->descriptorSets()[frameIdx]
+                };
+
+                models.push_back(modelData);
             }
 
-            ModelData modelData = {
-                    .model = prop->position()->model(),
-                    .modelRotation = prop->position()->rotationMat4(),
-                    .vertices = mesh->vertexBuffer(),
-                    .indices = mesh->indexBuffer(),
-                    .count = mesh->count(),
-                    .descriptorSet = prop->model()->descriptorSets()[frameIdx]
-            };
+            if (world != nullptr) {
+                auto mesh = world->skybox()->mesh().lock();
 
-            models.push_back(modelData);
-        }
-
-        if (world != nullptr) {
-            auto mesh = world->skybox()->mesh().lock();
-
-            skybox = {
-                    .vertices = mesh->vertexBuffer(),
-                    .indices = mesh->indexBuffer(),
-                    .count = mesh->count(),
-                    .descriptorSet = world->skybox()->descriptorSets()[frameIdx]
-            };
-        }
-    } while (iterator.moveNext());
+                skybox = {
+                        .vertices = mesh->vertexBuffer(),
+                        .indices = mesh->indexBuffer(),
+                        .count = mesh->count(),
+                        .descriptorSet = world->skybox()->descriptorSets()[frameIdx]
+                };
+            }
+        } while (iterator.moveNext());
+    }
 
     uint32_t targetShadowCount = std::min(this->_shadowMapCount, (uint32_t) shadows.size());
     renderArea = {

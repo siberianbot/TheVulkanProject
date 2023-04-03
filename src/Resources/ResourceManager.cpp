@@ -1,90 +1,129 @@
 #include "ResourceManager.hpp"
 
 #include <fstream>
+#include <type_traits>
 
-#include <nlohmann/json.hpp>
+#include <fmt/core.h>
 
-#include "CubeImageResource.hpp"
-#include "ImageResource.hpp"
-#include "MeshResource.hpp"
-#include "ShaderResource.hpp"
+#include "src/Engine/EngineError.hpp"
+#include "src/Engine/Log.hpp"
+#include "src/Resources/CubeImageResource.hpp"
+#include "src/Resources/ImageResource.hpp"
+#include "src/Resources/MeshResource.hpp"
+#include "src/Resources/ShaderResource.hpp"
 
-static constexpr const char *DATA_DIR_MANIFEST_NAME = "resources.json";
-static constexpr const char *DEFAULT_IMAGE_NAME = "default_texture";
+static constexpr const char *RESOURCE_MANAGER_TAG = "ResourceManager";
+static constexpr const char *RESOURCE_DIRECTORY_MANIFEST_NAME = "resources.json";
 
-std::shared_ptr<Resource> ResourceManager::getResource(const std::string &name, ResourceType type) {
-    if (!this->_resources.contains(name)) {
-        throw std::runtime_error("Resource not found");
+void ResourceManager::addResource(const std::shared_ptr<Resource> &resource) {
+    auto it = this->_resources.find(resource->id());
+
+    if (it != this->_resources.end()) {
+        it->second->unload();
     }
 
-    std::shared_ptr<Resource> resource = this->_resources[name];
+    this->_resources[resource->id()] = resource;
+}
+
+std::shared_ptr<Resource> ResourceManager::getResource(const std::string &id, ResourceType type) {
+    if (!this->_resources.contains(id)) {
+        throw EngineError(fmt::format("Resource {0} not found", id));
+    }
+
+    std::shared_ptr<Resource> resource = this->_resources[id];
 
     if (resource->type() != type) {
-        throw std::runtime_error("Invalid resource type");
+        throw EngineError(fmt::format("Resource {0} type mismatch (expected = {1}, actual = {2})", id, toString(type),
+                                      toString(resource->type())));
     }
 
     return resource;
 }
 
-ResourceManager::ResourceManager(const std::shared_ptr<RenderingObjectsAllocator> &renderingObjectsAllocator)
-        : _renderingObjectsAllocator(renderingObjectsAllocator) {
-    //
-}
+void ResourceManager::addDirectory(const std::filesystem::path &path) {
+    this->_log->info(RESOURCE_MANAGER_TAG, fmt::format("Reading resources manifest at {0}", path.string()));
 
-void ResourceManager::addDataDir(const std::filesystem::path &path) {
-    std::ifstream manifestStream(path / DATA_DIR_MANIFEST_NAME);
+    std::ifstream manifestStream(path / RESOURCE_DIRECTORY_MANIFEST_NAME);
 
     if (!manifestStream.is_open()) {
-        throw std::runtime_error("Failed to load resources manifest");
+        throw EngineError(fmt::format("Failed to load resources manifest at {0}", path.string()));
     }
 
     nlohmann::json manifest = nlohmann::json::parse(manifestStream);
 
     for (const nlohmann::json &entry: manifest) {
-        std::string id = entry["id"];
-        ResourceType type = fromString(entry["type"]);
-        std::shared_ptr<Resource> resource;
+        try {
+            this->addResource(this->readResourceEntry(path, entry));
+        } catch (const std::exception &error) {
+            this->_log->warning(RESOURCE_MANAGER_TAG, error);
+        }
+    }
+}
 
-        switch (type) {
-            case MESH_RESOURCE: {
-                resource = std::make_shared<MeshResource>(id, path / entry["path"], this->_renderingObjectsAllocator);
-                break;
-            }
+std::shared_ptr<Resource> ResourceManager::readResourceEntry(const std::filesystem::path &path,
+                                                             const nlohmann::json &entry) {
+    if (!entry.contains("id") || !entry.contains("type")) {
+        throw EngineError("Resource entry in manifest does not contain id nor type");
+    }
 
-            case IMAGE_RESOURCE: {
-                resource = std::make_shared<ImageResource>(id, path / entry["path"], this->_renderingObjectsAllocator);
-                break;
-            }
+    std::string id = entry["id"];
+    std::string typeStr = entry["type"];
+    ResourceType type = fromString(typeStr);
 
-            case CUBE_IMAGE_RESOURCE: {
-                nlohmann::json pathsJson = entry["paths"];
-                uint32_t size = pathsJson.size();
+    auto it = this->_resourceEntryReader.find(type);
 
-                if (size != 6) {
-                    throw std::runtime_error("cube-image should contain 6 paths");
-                }
+    if (it == this->_resourceEntryReader.end()) {
+        throw EngineError(fmt::format("Unable to process resource entry {0} with type {1}", id, typeStr));
+    }
 
-                std::array<std::filesystem::path, 6> paths;
-                for (uint32_t idx = 0; idx < size; idx++) {
-                    paths[idx] = path / pathsJson[idx];
-                }
+    return it->second(id, path, entry);
+}
 
-                resource = std::make_shared<CubeImageResource>(id, paths, this->_renderingObjectsAllocator);
-                break;
-            }
+ResourceManager::ResourceManager(const std::shared_ptr<Log> &log,
+                                 const std::shared_ptr<RenderingObjectsAllocator> &renderingObjectsAllocator)
+        : _log(log),
+          _renderingObjectsAllocator(renderingObjectsAllocator) {
+    this->_resourceEntryReader[MESH_RESOURCE] = [this](const std::string &id, const std::filesystem::path &path,
+                                                       const nlohmann::json &entry) {
+        return std::make_shared<MeshResource>(id, path / entry["path"],
+                                              this->_renderingObjectsAllocator);
+    };
 
-            case SHADER_RESOURCE: {
-                resource = std::make_shared<ShaderResource>(id,
-                                                            path / entry["bin-path"], path / entry["code-path"],
-                                                            this->_renderingObjectsAllocator);
-                break;
-            }
+    this->_resourceEntryReader[IMAGE_RESOURCE] = [this](const std::string &id, const std::filesystem::path &path,
+                                                        const nlohmann::json &entry) {
+        return std::make_shared<ImageResource>(id, path / entry["path"],
+                                               this->_renderingObjectsAllocator);
+    };
 
-            default:
-                throw std::runtime_error("Unsupported resource type");
+    this->_resourceEntryReader[CUBE_IMAGE_RESOURCE] = [this](const std::string &id, const std::filesystem::path &path,
+                                                             const nlohmann::json &entry) {
+        nlohmann::json pathsJson = entry["paths"];
+        uint32_t size = pathsJson.size();
+
+        if (size != 6) {
+            throw EngineError(fmt::format("Resource entry {0} for cube-image should contain 6 paths", id));
         }
 
-        this->_resources[id] = resource;
+        std::array<std::filesystem::path, 6> paths;
+        for (uint32_t idx = 0; idx < size; idx++) {
+            paths[idx] = path / pathsJson[idx];
+        }
+
+        return std::make_shared<CubeImageResource>(id, paths, this->_renderingObjectsAllocator);
+    };
+
+    this->_resourceEntryReader[SHADER_RESOURCE] = [this](const std::string &id, const std::filesystem::path &path,
+                                                         const nlohmann::json &entry) {
+        return std::make_shared<ShaderResource>(id, path / entry["bin-path"], path / entry["code-path"],
+                                                this->_renderingObjectsAllocator);
+    };
+}
+
+void ResourceManager::tryAddDirectory(const std::filesystem::path &path) {
+    try {
+        this->addDirectory(path);
+    } catch (const std::exception &error) {
+        this->_log->error(RESOURCE_MANAGER_TAG, error);
     }
 }
 
@@ -99,67 +138,26 @@ void ResourceManager::removeAll() {
     this->_resources.clear();
 }
 
-std::shared_ptr<MeshResource> ResourceManager::loadMesh(const std::string &id) {
-    std::shared_ptr<MeshResource> resource = std::dynamic_pointer_cast<MeshResource>(
-            this->getResource(id, MESH_RESOURCE));
+template<typename T>
+std::optional<std::weak_ptr<T>> ResourceManager::tryGetResource(const std::string &id, ResourceType type) {
+    static_assert(std::is_base_of<Resource, T>::value);
 
-    if (resource == nullptr) {
-        throw std::runtime_error("Resource is not MeshResource");
+    try {
+        return std::dynamic_pointer_cast<T>(this->getResource(id, type));
+    } catch (const std::exception &error) {
+        this->_log->error(RESOURCE_MANAGER_TAG, error);
+        return std::nullopt;
     }
-
-    resource->load();
-
-    return resource;
 }
 
-std::shared_ptr<ImageResource> ResourceManager::loadImage(const std::string &id) {
-    std::shared_ptr<ImageResource> resource = std::dynamic_pointer_cast<ImageResource>(
-            this->getResource(id, IMAGE_RESOURCE));
+template std::optional<std::weak_ptr<CubeImageResource>> ResourceManager::tryGetResource<CubeImageResource>(
+        const std::string &id, ResourceType type);
 
-    if (resource == nullptr) {
-        throw std::runtime_error("Resource is not ImageResource");
-    }
+template std::optional<std::weak_ptr<ImageResource>> ResourceManager::tryGetResource<ImageResource>(
+        const std::string &id, ResourceType type);
 
-    resource->load();
+template std::optional<std::weak_ptr<MeshResource>> ResourceManager::tryGetResource<MeshResource>(
+        const std::string &id, ResourceType type);
 
-    return resource;
-}
-
-std::shared_ptr<CubeImageResource> ResourceManager::loadCubeImage(const std::string &id) {
-    std::shared_ptr<CubeImageResource> resource = std::dynamic_pointer_cast<CubeImageResource>(
-            this->getResource(id, CUBE_IMAGE_RESOURCE));
-
-    if (resource == nullptr) {
-        throw std::runtime_error("Resource is not CubeImageResource");
-    }
-
-    resource->load();
-
-    return resource;
-}
-
-std::shared_ptr<ShaderResource> ResourceManager::loadShader(const std::string &id) {
-    std::shared_ptr<ShaderResource> resource = std::dynamic_pointer_cast<ShaderResource>(
-            this->getResource(id, SHADER_RESOURCE));
-
-    if (resource == nullptr) {
-        throw std::runtime_error("Resource is not ShaderResource");
-    }
-
-    resource->load();
-
-    return resource;
-}
-
-std::shared_ptr<ImageResource> ResourceManager::loadDefaultImage() {
-    std::shared_ptr<ImageResource> resource = std::dynamic_pointer_cast<ImageResource>(
-            this->getResource(DEFAULT_IMAGE_NAME, IMAGE_RESOURCE));
-
-    if (resource == nullptr) {
-        throw std::runtime_error("Resource is not ImageResource");
-    }
-
-    resource->load();
-
-    return resource;
-}
+template std::optional<std::weak_ptr<ShaderResource>> ResourceManager::tryGetResource<ShaderResource>(
+        const std::string &id, ResourceType type);
