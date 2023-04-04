@@ -16,15 +16,15 @@
 DebugUIRoot::DebugUIRoot(const std::shared_ptr<Log> &log,
                          const std::shared_ptr<EventQueue> &eventQueue,
                          const std::shared_ptr<VarCollection> &vars,
-                         const std::shared_ptr<ResourceManager> &resourceManager,
+                         const std::shared_ptr<ResourceDatabase> &resourceDatabase,
                          const std::shared_ptr<SceneManager> &sceneManager)
         : _state(std::make_shared<DebugUIState>()),
           _logWindow(std::make_shared<LogWindow>(log)),
           _mainMenuBar(std::make_shared<MainMenuBar>(this->_state, eventQueue)),
-          _objectEditorWindow(std::make_shared<ObjectEditorWindow>(this->_state, resourceManager)),
-          _resourceListWindow(std::make_shared<ResourcesListWindow>(resourceManager)),
+          _objectEditorWindow(std::make_shared<ObjectEditorWindow>(this->_state, resourceDatabase)),
+          _resourceListWindow(std::make_shared<ResourcesListWindow>(resourceDatabase)),
           _sceneTreeWindow(std::make_shared<SceneTreeWindow>(this->_state, sceneManager)),
-          _shaderCodeEditorWindow(std::make_shared<ShaderCodeEditorWindow>(resourceManager)),
+          _shaderCodeEditorWindow(std::make_shared<ShaderCodeEditorWindow>(resourceDatabase)),
           _variablesWindow(std::make_shared<VariablesWindow>(vars)) {
     //
 }

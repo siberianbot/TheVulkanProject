@@ -68,20 +68,17 @@ src = [
 
     'src/Rendering/Renderpasses/RenderpassBase.cpp',
     'src/Rendering/Renderpasses/DebugUIRenderpass.cpp',
-    'src/Rendering/Renderpasses/SceneRenderpass.cpp',
-    'src/Rendering/Renderpasses/ShadowRenderpass.cpp',
+    # TODO: 'src/Rendering/Renderpasses/SceneRenderpass.cpp',
+    # TODO: 'src/Rendering/Renderpasses/ShadowRenderpass.cpp',
 
     'src/Rendering/Stages/DebugUIStage.cpp',
-    'src/Rendering/Stages/SceneStage.cpp',
+    # TODO: 'src/Rendering/Stages/SceneStage.cpp',
 
     # Resources
     'src/Resources/Resource.cpp',
-    'src/Resources/ResourceManager.cpp',
-    'src/Resources/MeshResource.cpp',
-    'src/Resources/ImageBaseResource.cpp',
-    'src/Resources/ImageResource.cpp',
-    'src/Resources/CubeImageResource.cpp',
-    'src/Resources/ShaderResource.cpp',
+    'src/Resources/ResourceType.cpp',
+    'src/Resources/ResourceDatabase.cpp',
+    'src/Resources/ResourceLoader.cpp',
 
     # Objects
     'src/Objects/Object.cpp',
@@ -113,7 +110,6 @@ src = [
 
     # Types
     'src/Types/LightSourceType.cpp',
-    'src/Types/ResourceType.cpp',
 
     # System
     'src/System/Window.cpp',

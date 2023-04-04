@@ -13,10 +13,10 @@
 #include "src/Rendering/Objects/FenceObject.hpp"
 #include "src/Rendering/Objects/SemaphoreObject.hpp"
 #include "src/Rendering/Renderpasses/DebugUIRenderpass.hpp"
-#include "src/Rendering/Renderpasses/ShadowRenderpass.hpp"
-#include "src/Rendering/Renderpasses/SceneRenderpass.hpp"
+//#include "src/Rendering/Renderpasses/ShadowRenderpass.hpp"
+//#include "src/Rendering/Renderpasses/SceneRenderpass.hpp"
 #include "src/Rendering/Stages/DebugUIStage.hpp"
-#include "src/Rendering/Stages/SceneStage.hpp"
+//#include "src/Rendering/Stages/SceneStage.hpp"
 
 void Renderer::handleResize() {
     this->_renderingManager->waitIdle();
@@ -44,12 +44,12 @@ std::optional<uint32_t> Renderer::acquireNextImageIdx(const std::shared_ptr<Sema
 Renderer::Renderer(const std::shared_ptr<VarCollection> &vars,
                    const std::shared_ptr<EventQueue> &eventQueue,
                    const std::shared_ptr<RenderingManager> &renderingManager,
-                   const std::shared_ptr<ResourceManager> &resourceManager,
+//                   const std::shared_ptr<ResourceManager> &resourceManager,
                    const std::shared_ptr<SceneManager> &sceneManager)
         : _vars(vars),
           _eventQueue(eventQueue),
           _renderingManager(renderingManager),
-          _resourceManager(resourceManager),
+//          _resourceManager(resourceManager),
           _sceneManager(sceneManager) {
     //
 }
@@ -103,11 +103,11 @@ void Renderer::init() {
 
     this->_renderingManager->swapchain()->create();
 
-    this->_stages.emplace_back(std::make_shared<SceneStage>(this->_vars,
-                                                            this->_eventQueue,
-                                                            this->_renderingManager,
-                                                            this->_resourceManager,
-                                                            this->_sceneManager));
+//    this->_stages.emplace_back(std::make_shared<SceneStage>(this->_vars,
+//                                                            this->_eventQueue,
+//                                                            this->_renderingManager,
+//                                                            this->_resourceManager,
+//                                                            this->_sceneManager));
 
     this->_stages.emplace_back(std::make_shared<DebugUIStage>(this->_eventQueue,
                                                               this->_renderingManager));

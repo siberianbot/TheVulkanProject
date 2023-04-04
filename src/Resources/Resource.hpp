@@ -5,29 +5,25 @@
 #include <string>
 #include <vector>
 
-#include "src/Types/ResourceType.hpp"
+#include "src/Resources/ResourceId.hpp"
+#include "src/Resources/ResourceType.hpp"
 
 class Resource {
-protected:
-    std::string _id;
+private:
+    ResourceId _id;
+    ResourceType _type;
     std::vector<std::filesystem::path> _paths;
 
-    bool _isLoaded = false;
-
-    Resource(const std::string &id, const std::vector<std::filesystem::path> &paths);
-
 public:
-    virtual ~Resource() = default;
+    Resource(const ResourceId &id,
+             const ResourceType &type,
+             const std::vector<std::filesystem::path> &paths);
 
-    virtual void load();
-    virtual void unload();
+    [[nodiscard]] const ResourceId &id() const { return this->_id; }
 
-    [[nodiscard]] virtual ResourceType type() const = 0;
+    [[nodiscard]] const ResourceType &type() const { return this->_type; };
 
-    [[nodiscard]] const std::string &id() const { return this->_id; }
     [[nodiscard]] const std::vector<std::filesystem::path> &paths() const { return this->_paths; }
-
-    [[nodiscard]] bool isLoaded() const { return this->_isLoaded; }
 };
 
 #endif // RESOURCES_RESOURCE_HPP

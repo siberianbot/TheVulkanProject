@@ -3,19 +3,20 @@
 
 #include <memory>
 
+class ResourceDatabase;
+
 class Camera;
 class LightSource;
 class ModelComponent;
 class PositionComponent;
 class SkyboxComponent;
-class ResourceManager;
 
 class ObjectEditVisitor {
 private:
-    std::shared_ptr<ResourceManager> _resourceManager;
+    std::shared_ptr<ResourceDatabase> _resourceDatabase;
 
 public:
-    ObjectEditVisitor(const std::shared_ptr<ResourceManager> &resourceManager);
+    ObjectEditVisitor(const std::shared_ptr<ResourceDatabase> &resourceDatabase);
 
     void drawCameraObject(Camera *camera);
     void drawLightSourceObject(LightSource *lightSource);

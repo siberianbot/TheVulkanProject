@@ -1,0 +1,6 @@
+#ifndef RESOURCES_RESOURCEID_HPP
+#define RESOURCES_RESOURCEID_HPP
+
+using ResourceId = std::string;
+
+#endif // RESOURCES_RESOURCEID_HPP

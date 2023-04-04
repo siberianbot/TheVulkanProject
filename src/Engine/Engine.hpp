@@ -7,10 +7,10 @@
 class Log;
 class EventQueue;
 class VarCollection;
+class ResourceDatabase;
 class InputProcessor;
 class Window;
 class RenderingManager;
-class ResourceManager;
 class SceneManager;
 class Renderer;
 class DebugUIRoot;
@@ -25,10 +25,10 @@ private:
     std::shared_ptr<Log> _log;
     std::shared_ptr<VarCollection> _vars;
     std::shared_ptr<EventQueue> _eventQueue;
+    std::shared_ptr<ResourceDatabase> _resourceDatabase;
     std::shared_ptr<InputProcessor> _inputProcessor;
     std::shared_ptr<Window> _window;
     std::shared_ptr<RenderingManager> _renderingManager;
-    std::shared_ptr<ResourceManager> _resourceManager;
     std::shared_ptr<SceneManager> _sceneManager;
     std::shared_ptr<Renderer> _renderer;
     std::shared_ptr<DebugUIRoot> _debugUI;

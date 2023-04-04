@@ -12,10 +12,8 @@
 #include "src/Objects/Components/ModelComponent.hpp"
 #include "src/Objects/Components/PositionComponent.hpp"
 #include "src/Objects/Components/SkyboxComponent.hpp"
-#include "src/Resources/CubeImageResource.hpp"
-#include "src/Resources/MeshResource.hpp"
-#include "src/Resources/ImageResource.hpp"
-#include "src/Resources/ResourceManager.hpp"
+#include "src/Resources/Resource.hpp"
+#include "src/Resources/ResourceDatabase.hpp"
 
 static std::map<LightSourceType, std::string> LIGHT_SOURCE_TYPES = {
         {POINT_LIGHT_SOURCE,     toString(POINT_LIGHT_SOURCE)},
@@ -23,48 +21,48 @@ static std::map<LightSourceType, std::string> LIGHT_SOURCE_TYPES = {
         {RECTANGLE_LIGHT_SOURCE, toString(RECTANGLE_LIGHT_SOURCE)}
 };
 
-template<typename T>
-void drawResourceSelect(const std::shared_ptr<ResourceManager> &resourceManager,
-                        const std::string &title, ResourceType type, const std::weak_ptr<T> &resourceRef,
-                        const std::function<void(const std::shared_ptr<T> &)> &callback) {
-    static_assert(std::is_base_of<Resource, T>::value);
+// TODO
+//void drawResourceSelect(const std::shared_ptr<ResourceManager> &resourceManager,
+//                        const std::string &title, ResourceType type, const std::weak_ptr<T> &resourceRef,
+//                        const std::function<void(const std::shared_ptr<T> &)> &callback) {
+//    static_assert(std::is_base_of<Resource, T>::value);
+//
+//    if (ImGui::BeginCombo(title.c_str(), !resourceRef.expired() ? resourceRef.lock()->id().c_str() : NONE_ITEM)) {
+//        {
+//            const bool selected = resourceRef.expired();
+//
+//            if (ImGui::Selectable(NONE_ITEM, selected)) {
+//                callback(nullptr);
+//            }
+//
+//            if (selected) {
+//                ImGui::SetItemDefaultFocus();
+//            }
+//        }
+//
+//        for (const auto &[id, resource]: resourceManager->resources()) {
+//            if (resource->type() != type) {
+//                continue;
+//            }
+//
+//            const bool selected = !resourceRef.expired() && resourceRef.lock() == resource;
+//
+//            if (ImGui::Selectable(id.c_str(), selected)) {
+//                callback(std::dynamic_pointer_cast<T>(resource));
+//            }
+//
+//            if (selected) {
+//                ImGui::SetItemDefaultFocus();
+//            }
+//        }
+//
+//        ImGui::EndCombo();
+//    }
+//
+//}
 
-    if (ImGui::BeginCombo(title.c_str(), !resourceRef.expired() ? resourceRef.lock()->id().c_str() : NONE_ITEM)) {
-        {
-            const bool selected = resourceRef.expired();
-
-            if (ImGui::Selectable(NONE_ITEM, selected)) {
-                callback(nullptr);
-            }
-
-            if (selected) {
-                ImGui::SetItemDefaultFocus();
-            }
-        }
-
-        for (const auto &[id, resource]: resourceManager->resources()) {
-            if (resource->type() != type) {
-                continue;
-            }
-
-            const bool selected = !resourceRef.expired() && resourceRef.lock() == resource;
-
-            if (ImGui::Selectable(id.c_str(), selected)) {
-                callback(std::dynamic_pointer_cast<T>(resource));
-            }
-
-            if (selected) {
-                ImGui::SetItemDefaultFocus();
-            }
-        }
-
-        ImGui::EndCombo();
-    }
-
-}
-
-ObjectEditVisitor::ObjectEditVisitor(const std::shared_ptr<ResourceManager> &resourceManager)
-        : _resourceManager(resourceManager) {
+ObjectEditVisitor::ObjectEditVisitor(const std::shared_ptr<ResourceDatabase> &resourceDatabase)
+        : _resourceDatabase(resourceDatabase) {
     //
 }
 
@@ -111,22 +109,25 @@ void ObjectEditVisitor::drawLightSourceObject(LightSource *lightSource) {
 void ObjectEditVisitor::drawModelComponent(ModelComponent *component) {
     ImGui::Text("Model Component");
 
-    drawResourceSelect<MeshResource>(this->_resourceManager, "Mesh", MESH_RESOURCE, component->mesh(),
-                                     [&component](const std::shared_ptr<MeshResource> &mesh) {
-                                         component->setMesh(mesh);
-                                     });
+    // TODO
+//    drawResourceSelect<MeshResource>(this->_resourceManager, "Mesh", MESH_RESOURCE, component->mesh(),
+//                                     [&component](const std::shared_ptr<MeshResource> &mesh) {
+//                                         component->setMesh(mesh);
+//                                     });
 
-    drawResourceSelect<ImageResource>(this->_resourceManager, "Albedo Texture", IMAGE_RESOURCE,
-                                      component->albedoTexture(),
-                                      [&component](const std::shared_ptr<ImageResource> &texture) {
-                                          component->setAlbedoTexture(texture);
-                                      });
+    // TODO
+//    drawResourceSelect<ImageResource>(this->_resourceManager, "Albedo Texture", IMAGE_RESOURCE,
+//                                      component->albedoTexture(),
+//                                      [&component](const std::shared_ptr<ImageResource> &texture) {
+//                                          component->setAlbedoTexture(texture);
+//                                      });
 
-    drawResourceSelect<ImageResource>(this->_resourceManager, "Specular Texture", IMAGE_RESOURCE,
-                                      component->specularTexture(),
-                                      [&component](const std::shared_ptr<ImageResource> &texture) {
-                                          component->setSpecularTexture(texture);
-                                      });
+    // TODO
+//    drawResourceSelect<ImageResource>(this->_resourceManager, "Specular Texture", IMAGE_RESOURCE,
+//                                      component->specularTexture(),
+//                                      [&component](const std::shared_ptr<ImageResource> &texture) {
+//                                          component->setSpecularTexture(texture);
+//                                      });
 }
 
 void ObjectEditVisitor::drawPositionComponent(PositionComponent *component) {
@@ -140,14 +141,16 @@ void ObjectEditVisitor::drawPositionComponent(PositionComponent *component) {
 void ObjectEditVisitor::drawSkyboxComponent(SkyboxComponent *component) {
     ImGui::Text("Skybox Component");
 
-    drawResourceSelect<MeshResource>(this->_resourceManager, "Mesh", MESH_RESOURCE, component->mesh(),
-                                     [&component](const std::shared_ptr<MeshResource> &mesh) {
-                                         component->setMesh(mesh);
-                                     });
+    // TODO
+//    drawResourceSelect<MeshResource>(this->_resourceManager, "Mesh", MESH_RESOURCE, component->mesh(),
+//                                     [&component](const std::shared_ptr<MeshResource> &mesh) {
+//                                         component->setMesh(mesh);
+//                                     });
 
-    drawResourceSelect<CubeImageResource>(this->_resourceManager, "Texture", CUBE_IMAGE_RESOURCE,
-                                          component->texture(),
-                                          [&component](const std::shared_ptr<CubeImageResource> &texture) {
-                                              component->setTexture(texture);
-                                          });
+    // TODO
+//    drawResourceSelect<CubeImageResource>(this->_resourceManager, "Texture", CUBE_IMAGE_RESOURCE,
+//                                          component->texture(),
+//                                          [&component](const std::shared_ptr<CubeImageResource> &texture) {
+//                                              component->setTexture(texture);
+//                                          });
 }

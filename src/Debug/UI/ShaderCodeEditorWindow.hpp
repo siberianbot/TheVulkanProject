@@ -5,22 +5,23 @@
 #include <string>
 
 #include "src/Debug/UI/WindowBase.hpp"
+#include "src/Resources/ResourceId.hpp"
 
-class ResourceManager;
-class ShaderResource;
+class Resource;
+class ResourceDatabase;
 
 class ShaderCodeEditorWindow : public WindowBase {
 private:
-    std::shared_ptr<ResourceManager> _resourceManager;
+    std::shared_ptr<ResourceDatabase> _resourceDatabase;
 
-    std::string _selectedShaderId;
-    std::string _selectedShaderCode;
-    std::weak_ptr<ShaderResource> _selectedShaderResource;
+    std::string _code;
+    ResourceId _selectedId;
+    std::weak_ptr<Resource> _selectedResource;
 
-    void selectShader(const std::shared_ptr<ShaderResource> &resource);
+    void selectShader(const std::shared_ptr<Resource> &resource);
 
 public:
-    ShaderCodeEditorWindow(const std::shared_ptr<ResourceManager> &resourceManager);
+    ShaderCodeEditorWindow(const std::shared_ptr<ResourceDatabase> &resourceDatabase);
     ~ShaderCodeEditorWindow() override = default;
 
     void draw(bool *visible) override;

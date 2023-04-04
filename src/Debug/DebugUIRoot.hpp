@@ -6,6 +6,12 @@
 #include <string>
 #include <vector>
 
+class Log;
+class VarCollection;
+class EventQueue;
+class ResourceDatabase;
+class SceneManager;
+
 struct DebugUIState;
 class LogWindow;
 class MainMenuBar;
@@ -14,11 +20,6 @@ class ResourcesListWindow;
 class SceneTreeWindow;
 class ShaderCodeEditorWindow;
 class VariablesWindow;
-class Log;
-class VarCollection;
-class EventQueue;
-class ResourceManager;
-class SceneManager;
 
 class DebugUIRoot {
 private:
@@ -36,7 +37,7 @@ public:
     DebugUIRoot(const std::shared_ptr<Log> &log,
                 const std::shared_ptr<EventQueue> &eventQueue,
                 const std::shared_ptr<VarCollection> &vars,
-                const std::shared_ptr<ResourceManager> &resourceManager,
+                const std::shared_ptr<ResourceDatabase> &resourceDatabase,
                 const std::shared_ptr<SceneManager> &sceneManager);
 
     void render();

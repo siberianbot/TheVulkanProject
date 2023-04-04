@@ -33,6 +33,10 @@ void Log::info(const std::string &tag, const std::string &msg) {
     this->push(INFO_LOG_CATEGORY, tag, msg);
 }
 
+void Log::warning(const std::string &tag, const std::string &msg) {
+    this->push(WARNING_LOG_CATEGORY, tag, msg);
+}
+
 void Log::warning(const std::string &tag, const std::exception &error) {
     this->push(WARNING_LOG_CATEGORY, tag, error.what());
 }

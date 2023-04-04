@@ -3,41 +3,41 @@
 #include <imgui.h>
 
 #include "src/Debug/Strings.hpp"
-#include "src/Resources/ResourceManager.hpp"
-#include "src/Resources/ShaderResource.hpp"
+#include "src/Resources/Resource.hpp"
+#include "src/Resources/ResourceDatabase.hpp"
 
 static constexpr const uint32_t BUFFER_SIZE = 64 * 1024;
 
-void ShaderCodeEditorWindow::selectShader(const std::shared_ptr<ShaderResource> &resource) {
-    if (!this->_selectedShaderResource.expired()) {
-        this->_selectedShaderResource.lock()->unloadCode();
-    }
-
-    this->_selectedShaderResource = resource;
-    this->_selectedShaderId = resource != nullptr ? resource->id() : NONE_ITEM;
-    this->_selectedShaderCode.clear();
-
-    if (resource == nullptr) {
-        return;
-    }
-
-    try {
-        resource->loadCode();
-    } catch (std::runtime_error &error) {
-        // TODO: notify
-        this->selectShader(nullptr);
-        return;
-    }
-
-    this->_selectedShaderCode.resize(resource->shaderCode().size() + BUFFER_SIZE);
-
-    std::copy(resource->shaderCode().begin(),
-              resource->shaderCode().end(),
-              this->_selectedShaderCode.begin());
+void ShaderCodeEditorWindow::selectShader(const std::shared_ptr<Resource> &resource) {
+//    if (!this->_selectedShaderResource.expired()) {
+//        this->_selectedShaderResource.lock()->unloadCode();
+//    }
+//
+//    this->_selectedShaderResource = resource;
+//    this->_selectedShaderId = resource != nullptr ? resource->id() : NONE_ITEM;
+//    this->_selectedShaderCode.clear();
+//
+//    if (resource == nullptr) {
+//        return;
+//    }
+//
+//    try {
+//        resource->loadCode();
+//    } catch (std::runtime_error &error) {
+//        // TODO: notify
+//        this->selectShader(nullptr);
+//        return;
+//    }
+//
+//    this->_selectedShaderCode.resize(resource->shaderCode().size() + BUFFER_SIZE);
+//
+//    std::copy(resource->shaderCode().begin(),
+//              resource->shaderCode().end(),
+//              this->_selectedShaderCode.begin());
 }
 
-ShaderCodeEditorWindow::ShaderCodeEditorWindow(const std::shared_ptr<ResourceManager> &resourceManager)
-        : _resourceManager(resourceManager) {
+ShaderCodeEditorWindow::ShaderCodeEditorWindow(const std::shared_ptr<ResourceDatabase> &resourceDatabase)
+        : _resourceDatabase(resourceDatabase) {
     //
 }
 
@@ -48,10 +48,10 @@ void ShaderCodeEditorWindow::draw(bool *visible) {
         return;
     }
 
-    if (ImGui::BeginCombo("##shader", this->_selectedShaderId.c_str())) {
+    if (ImGui::BeginCombo("##shader", this->_selectedId.c_str())) {
         // None
         {
-            const bool selected = this->_selectedShaderResource.expired();
+            const bool selected = this->_selectedResource.expired();
 
             if (ImGui::Selectable(NONE_ITEM, selected)) {
                 this->selectShader(nullptr);
@@ -62,16 +62,16 @@ void ShaderCodeEditorWindow::draw(bool *visible) {
             }
         }
 
-        for (const auto &[id, resource]: this->_resourceManager->resources()) {
+        for (const auto &[id, resource]: this->_resourceDatabase->resources()) {
             if (resource->type() != SHADER_RESOURCE) {
                 continue;
             }
 
-            const bool selected = !this->_selectedShaderResource.expired() &&
-                                  this->_selectedShaderResource.lock() == resource;
+            const bool selected = !this->_selectedResource.expired() &&
+                                  this->_selectedResource.lock() == resource;
 
             if (ImGui::Selectable(id.c_str(), selected)) {
-                this->selectShader(std::dynamic_pointer_cast<ShaderResource>(resource));
+                this->selectShader(resource);
             }
 
             if (selected) {
@@ -84,13 +84,13 @@ void ShaderCodeEditorWindow::draw(bool *visible) {
 
     ImGui::SameLine();
 
-    if (this->_selectedShaderResource.expired()) {
+    if (this->_selectedResource.expired()) {
         ImGui::BeginDisabled();
     }
 
     if (ImGui::Button(SHADER_CODE_EDITOR_SAVE)) {
         try {
-            this->_selectedShaderResource.lock()->saveCode(this->_selectedShaderCode);
+//            TODO: this->_selectedShaderResource.lock()->saveCode(this->_selectedShaderCode);
         } catch (std::runtime_error &error) {
             // TODO: notify
         }
@@ -99,17 +99,18 @@ void ShaderCodeEditorWindow::draw(bool *visible) {
     ImGui::SameLine();
 
     if (ImGui::Button(SHADER_CODE_EDITOR_BUILD)) {
-        if (!this->_selectedShaderResource.lock()->build()) {
-            // TODO: notify
-        }
+        // TODO:
+//        if (!this->_selectedShaderResource.lock()->build()) {
+//            // TODO: notify
+//        }
     }
 
     ImGui::Separator();
 
-    ImGui::InputTextMultiline("##shader-code", this->_selectedShaderCode.data(), this->_selectedShaderCode.size(),
+    ImGui::InputTextMultiline("##shader-code", this->_code.data(), this->_code.size(),
                               ImVec2(-1, -1));
 
-    if (this->_selectedShaderResource.expired()) {
+    if (this->_selectedResource.expired()) {
         ImGui::EndDisabled();
     }
 

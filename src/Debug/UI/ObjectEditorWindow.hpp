@@ -7,7 +7,7 @@
 
 struct DebugUIState;
 class ObjectEditVisitor;
-class ResourceManager;
+class ResourceDatabase;
 
 class ObjectEditorWindow : public WindowBase {
 private:
@@ -16,7 +16,7 @@ private:
 
 public:
     ObjectEditorWindow(const std::shared_ptr<DebugUIState> &debugUIState,
-                       const std::shared_ptr<ResourceManager> &resourceManager);
+                       const std::shared_ptr<ResourceDatabase> &resourceDatabase);
     ~ObjectEditorWindow() override = default;
 
     void draw(bool *visible) override;

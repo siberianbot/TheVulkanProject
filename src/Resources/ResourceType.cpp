@@ -1,34 +1,34 @@
 #include "ResourceType.hpp"
 
-#include <stdexcept>
+#include <fmt/core.h>
 
 static constexpr const char *MESH_RESOURCE_STRING = "mesh";
 static constexpr const char *IMAGE_RESOURCE_STRING = "image";
 static constexpr const char *CUBE_IMAGE_RESOURCE_STRING = "cube-image";
 static constexpr const char *SHADER_RESOURCE_STRING = "shader";
 
-ResourceType fromString(const std::string &str) {
-    if (str == MESH_RESOURCE_STRING) {
+ResourceType fromString(const std::string &value) {
+    if (value == MESH_RESOURCE_STRING) {
         return MESH_RESOURCE;
     }
 
-    if (str == IMAGE_RESOURCE_STRING) {
+    if (value == IMAGE_RESOURCE_STRING) {
         return IMAGE_RESOURCE;
     }
 
-    if (str == CUBE_IMAGE_RESOURCE_STRING) {
+    if (value == CUBE_IMAGE_RESOURCE_STRING) {
         return CUBE_IMAGE_RESOURCE;
     }
 
-    if (str == SHADER_RESOURCE_STRING) {
+    if (value == SHADER_RESOURCE_STRING) {
         return SHADER_RESOURCE;
     }
 
-    throw std::runtime_error("Unknown resource type");
+    throw std::out_of_range(fmt::format("Unknown resource type {0}", value));
 }
 
-std::string toString(const ResourceType &type) {
-    switch (type) {
+std::string toString(const ResourceType &value) {
+    switch (value) {
         case MESH_RESOURCE:
             return MESH_RESOURCE_STRING;
 
@@ -42,5 +42,5 @@ std::string toString(const ResourceType &type) {
             return SHADER_RESOURCE_STRING;
     }
 
-    throw std::runtime_error("Unknown resource type");
+    throw std::out_of_range(fmt::format("Unknown resource type {0}", value));
 }

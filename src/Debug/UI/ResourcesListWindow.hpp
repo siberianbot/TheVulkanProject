@@ -5,14 +5,14 @@
 
 #include "src/Debug/UI/WindowBase.hpp"
 
-class ResourceManager;
+class ResourceDatabase;
 
 class ResourcesListWindow : public WindowBase {
 private:
-    std::shared_ptr<ResourceManager> _resourceManager;
+    std::shared_ptr<ResourceDatabase> _resourceDatabase;
 
 public:
-    ResourcesListWindow(const std::shared_ptr<ResourceManager> &resourceManager);
+    ResourcesListWindow(const std::shared_ptr<ResourceDatabase> &resourceDatabase);
     ~ResourcesListWindow() override = default;
 
     void draw(bool *visible) override;

@@ -9,9 +9,9 @@
 #include "src/Objects/Components/Component.hpp"
 
 ObjectEditorWindow::ObjectEditorWindow(const std::shared_ptr<DebugUIState> &debugUIState,
-                                       const std::shared_ptr<ResourceManager> &resourceManager)
+                                       const std::shared_ptr<ResourceDatabase> &resourceDatabase)
         : _debugUIState(debugUIState),
-          _objectEditVisitor(std::make_shared<ObjectEditVisitor>(resourceManager)) {
+          _objectEditVisitor(std::make_shared<ObjectEditVisitor>(resourceDatabase)) {
     //
 }
 

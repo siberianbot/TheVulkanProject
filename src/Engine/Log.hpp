@@ -28,8 +28,9 @@ public:
     void push(LogCategory category, const std::string &tag, const std::string &msg);
 
     void info(const std::string &tag, const std::string &msg);
-    void warning(const std::string &tag, const std::exception& error);
-    void error(const std::string &tag, const std::exception& error);
+    void warning(const std::string &tag, const std::string &msg);
+    void warning(const std::string &tag, const std::exception &error);
+    void error(const std::string &tag, const std::exception &error);
 
     [[nodiscard]] CircularBuffer<LogEntry, 1024> &buffer() { return this->_buffer; }
 };
