@@ -76,9 +76,12 @@ src = [
 
     # Resources
     'src/Resources/Resource.cpp',
+    'src/Resources/ResourceData.cpp',
     'src/Resources/ResourceType.cpp',
     'src/Resources/ResourceDatabase.cpp',
     'src/Resources/ResourceLoader.cpp',
+    'src/Resources/Readers/ImageReader.cpp',
+    'src/Resources/Readers/MeshReader.cpp',
 
     # Objects
     'src/Objects/Object.cpp',
@@ -117,11 +120,10 @@ src = [
 
 # shaders compilation
 shaders = [
-    'data/shaders/composition.frag',
-    'data/shaders/composition.vert',
-    'data/shaders/default.frag',
-    'data/shaders/default.vert',
-    'data/shaders/scene_composition.frag',
+    'data/shaders/passthrough.vert',
+    'data/shaders/scene-composition.frag',
+    'data/shaders/scene-model.frag',
+    'data/shaders/scene-model.vert',
     'data/shaders/shadow.frag',
     'data/shaders/shadow.vert',
     'data/shaders/skybox.frag'

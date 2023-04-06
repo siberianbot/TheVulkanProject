@@ -2,9 +2,9 @@
 
 Resource::Resource(const ResourceId &id,
                    const ResourceType &type,
-                   const std::vector<std::filesystem::path> &paths)
+                   const std::filesystem::path &path)
         : _id(id),
           _type(type),
-          _paths(paths) {
+          _path(path) {
     //
 }

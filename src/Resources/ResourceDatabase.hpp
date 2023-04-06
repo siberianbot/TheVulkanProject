@@ -12,26 +12,29 @@
 #include "src/Resources/ResourceId.hpp"
 
 class Log;
+class EventQueue;
 class Resource;
 
 class ResourceDatabase {
 private:
-    using ResourceEntryReader = std::function<std::shared_ptr<Resource>(const ResourceId &,
-                                                                        const std::filesystem::path &,
-                                                                        const nlohmann::json &)>;
-
     std::shared_ptr<Log> _log;
+    std::shared_ptr<EventQueue> _eventQueue;
 
     std::map<ResourceId, std::shared_ptr<Resource>> _resources;
-    std::map<std::string, ResourceEntryReader> _resourceEntryReaders;
 
+    void addResource(const std::shared_ptr<Resource> &resource);
     std::shared_ptr<Resource> getResource(const ResourceId &id);
 
     void addDirectory(const std::filesystem::path &path);
-    std::shared_ptr<Resource> readResourceEntry(const std::filesystem::path &basePath, const nlohmann::json &entry);
+
+    void readResourceEntry(const std::string &prefix, const std::filesystem::path &basePath,
+                           const nlohmann::json &entry);
+    void tryReadResourceEntry(const std::string &prefix, const std::filesystem::path &basePath,
+                              const nlohmann::json &entry);
 
 public:
-    ResourceDatabase(const std::shared_ptr<Log> &log);
+    ResourceDatabase(const std::shared_ptr<Log> &log,
+                     const std::shared_ptr<EventQueue> &eventQueue);
 
     void clear();
 

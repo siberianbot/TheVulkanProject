@@ -6,17 +6,38 @@
 
 #include "src/Engine/EngineError.hpp"
 #include "src/Engine/Log.hpp"
+#include "src/Events/EventQueue.hpp"
 #include "src/Resources/Resource.hpp"
 
 static constexpr const char *RESOURCE_DATABASE_TAG = "ResourceDatabase";
 static constexpr const char *RESOURCE_DATABASE_FILE = "resources.json";
 
-static constexpr const char *RESOURCE_ID_TAG = "id";
-static constexpr const char *RESOURCE_TYPE_TAG = "type";
-static constexpr const char *RESOURCE_PATH_TAG = "path";
-static constexpr const char *RESOURCE_PATHS_TAG = "paths";
-static constexpr const char *RESOURCE_BIN_PATH_TAG = "bin-path";
-static constexpr const char *RESOURCE_CODE_PATH_TAG = "code-path";
+static constexpr const char *RESOURCE_ENTRY_ID_TAG = "id";
+static constexpr const char *RESOURCE_ENTRY_TYPE_TAG = "type";
+static constexpr const char *RESOURCE_ENTRY_PATH_TAG = "path";
+static constexpr const char *RESOURCE_ENTRY_ITEMS_TAG = "items";
+static constexpr const char *RESOURCE_TYPE_GROUP = "group";
+
+void ResourceDatabase::addResource(const std::shared_ptr<Resource> &resource) {
+    ResourceId id = resource->id();
+    EventType eventType;
+
+    auto it = this->_resources.find(id);
+
+    if (it != this->_resources.end()) {
+        it->second = resource;
+        eventType = REPLACED_RESOURCE_EVENT;
+
+        this->_log->info(RESOURCE_DATABASE_TAG, fmt::format("Replaced resource {0}", id));
+    } else {
+        this->_resources[id] = resource;
+        eventType = ADDED_RESOURCE_EVENT;
+
+        this->_log->info(RESOURCE_DATABASE_TAG, fmt::format("Added resource {0}", id));
+    }
+
+    this->_eventQueue->pushEvent({.type = eventType, .value = id});
+}
 
 std::shared_ptr<Resource> ResourceDatabase::getResource(const ResourceId &id) {
     auto it = this->_resources.find(id);
@@ -29,114 +50,82 @@ std::shared_ptr<Resource> ResourceDatabase::getResource(const ResourceId &id) {
 }
 
 void ResourceDatabase::addDirectory(const std::filesystem::path &path) {
-    this->_log->info(RESOURCE_DATABASE_TAG, fmt::format("Reading resources database {0}", path.string()));
+    this->_log->info(RESOURCE_DATABASE_TAG, fmt::format("Reading resources root {0}", path.string()));
 
-    std::ifstream manifestStream(path / RESOURCE_DATABASE_FILE);
+    std::ifstream databaseStream(path / RESOURCE_DATABASE_FILE);
 
-    if (!manifestStream.is_open()) {
-        throw EngineError(fmt::format("Failed to load resources database {0}", path.string()));
+    if (!databaseStream.is_open()) {
+        throw EngineError(fmt::format("Failed to load resources root {0}", path.string()));
     }
 
-    nlohmann::json manifest = nlohmann::json::parse(manifestStream);
-
-    for (const nlohmann::json &entry: manifest) {
-        try {
-            std::shared_ptr<Resource> resource = this->readResourceEntry(path, entry);
-            this->_resources[resource->id()] = resource;
-        } catch (const std::exception &error) {
-            this->_log->warning(RESOURCE_DATABASE_TAG, error);
-        }
-    }
+    this->tryReadResourceEntry("", path, nlohmann::json::parse(databaseStream, nullptr, true, true));
 }
 
-std::shared_ptr<Resource> ResourceDatabase::readResourceEntry(const std::filesystem::path &basePath,
-                                                              const nlohmann::json &entry) {
-    if (!entry.contains(RESOURCE_ID_TAG)) {
+void ResourceDatabase::readResourceEntry(const std::string &prefix, const std::filesystem::path &basePath,
+                                         const nlohmann::json &entry) {
+    if (!entry.contains(RESOURCE_ENTRY_ID_TAG)) {
         throw EngineError("Resource entry does not contain id");
     }
 
-    if (!entry.contains(RESOURCE_TYPE_TAG)) {
+    if (!entry.contains(RESOURCE_ENTRY_TYPE_TAG)) {
         throw EngineError("Resource entry does not contain type");
     }
 
-    std::string id = entry[RESOURCE_ID_TAG];
-    std::string type = entry[RESOURCE_TYPE_TAG];
+    std::string id;
 
-    auto it = this->_resourceEntryReaders.find(type);
-
-    if (it == this->_resourceEntryReaders.end()) {
-        throw EngineError(fmt::format("Unable to process resource entry {0} with type {1}", id, type));
+    if (prefix.empty()) {
+        id = entry[RESOURCE_ENTRY_ID_TAG];
+    } else {
+        id = fmt::format("{0}/{1}", prefix, entry[RESOURCE_ENTRY_ID_TAG]);
     }
 
-    return it->second(id, basePath, entry);
+    std::string type = entry[RESOURCE_ENTRY_TYPE_TAG];
+
+    if (type == RESOURCE_TYPE_GROUP) {
+        if (!entry.contains(RESOURCE_ENTRY_ITEMS_TAG)) {
+            throw EngineError("Resource entry does not contain items");
+        }
+
+        for (const nlohmann::json &item: entry[RESOURCE_ENTRY_ITEMS_TAG]) {
+            this->tryReadResourceEntry(id, basePath, item);
+        }
+    } else {
+        if (!entry.contains(RESOURCE_ENTRY_PATH_TAG)) {
+            throw EngineError("Resource entry does not contain path");
+        }
+
+        std::filesystem::path path = basePath / entry[RESOURCE_ENTRY_PATH_TAG];
+        std::shared_ptr<Resource> resource = std::make_shared<Resource>(id, fromString(type), path);
+
+        this->addResource(resource);
+
+        if (resource->type() == UNKNOWN_RESOURCE) {
+            this->_log->warning(RESOURCE_DATABASE_TAG, fmt::format("Resource {0} have unknown type {1}", id, type));
+        }
+    }
 }
 
-ResourceDatabase::ResourceDatabase(const std::shared_ptr<Log> &log)
-        : _log(log) {
-    this->_resourceEntryReaders[toString(MESH_RESOURCE)] = [](const ResourceId &id,
-                                                              const std::filesystem::path &basePath,
-                                                              const nlohmann::json &entry) -> std::shared_ptr<Resource> {
-        if (!entry.contains(RESOURCE_PATH_TAG)) {
-            throw EngineError(fmt::format("Resource entry {0} does not contain path", id));
-        }
+void ResourceDatabase::tryReadResourceEntry(const std::string &prefix, const std::filesystem::path &basePath,
+                                            const nlohmann::json &entry) {
+    try {
+        this->readResourceEntry(prefix, basePath, entry);
+    } catch (const std::exception &error) {
+        this->_log->warning(RESOURCE_DATABASE_TAG, error);
+    }
+}
 
-        std::filesystem::path path = basePath / entry[RESOURCE_PATH_TAG];
-
-        return std::make_shared<Resource>(id, MESH_RESOURCE, std::vector{path});
-    };
-
-    this->_resourceEntryReaders[toString(IMAGE_RESOURCE)] = [](const ResourceId &id,
-                                                               const std::filesystem::path &basePath,
-                                                               const nlohmann::json &entry) -> std::shared_ptr<Resource> {
-        if (!entry.contains(RESOURCE_PATH_TAG)) {
-            throw EngineError(fmt::format("Resource entry {0} does not contain path", id));
-        }
-
-        std::filesystem::path path = basePath / entry[RESOURCE_PATH_TAG];
-
-        return std::make_shared<Resource>(id, IMAGE_RESOURCE, std::vector{path});
-    };
-
-    this->_resourceEntryReaders[toString(CUBE_IMAGE_RESOURCE)] = [](const ResourceId &id,
-                                                                    const std::filesystem::path &basePath,
-                                                                    const nlohmann::json &entry) -> std::shared_ptr<Resource> {
-        if (!entry.contains(RESOURCE_PATHS_TAG)) {
-            throw EngineError(fmt::format("Resource entry {0} does not contain path collection", id));
-        }
-
-        nlohmann::json pathsJson = entry[RESOURCE_PATHS_TAG];
-        if (pathsJson.size() != 6) {
-            throw EngineError(fmt::format("Resource entry {0} for cube-image should contain 6 paths", id));
-        }
-
-        std::array<std::filesystem::path, 6> paths;
-        for (uint32_t idx = 0; idx < 6; idx++) {
-            paths[idx] = basePath / pathsJson[idx];
-        }
-
-        return std::make_shared<Resource>(id, CUBE_IMAGE_RESOURCE, std::vector(paths.begin(), paths.end()));
-    };
-
-    this->_resourceEntryReaders[toString(SHADER_RESOURCE)] = [](const ResourceId &id,
-                                                                const std::filesystem::path &basePath,
-                                                                const nlohmann::json &entry) -> std::shared_ptr<Resource> {
-        if (!entry.contains(RESOURCE_BIN_PATH_TAG)) {
-            throw EngineError(fmt::format("Resource entry {0} does not contain path to binary", id));
-        }
-
-        std::vector<std::filesystem::path> paths = {
-                basePath / entry[RESOURCE_BIN_PATH_TAG]
-        };
-
-        if (entry.contains(RESOURCE_CODE_PATH_TAG)) {
-            paths.push_back(basePath / entry[RESOURCE_CODE_PATH_TAG]);
-        }
-
-        return std::make_shared<Resource>(id, SHADER_RESOURCE, paths);
-    };
+ResourceDatabase::ResourceDatabase(const std::shared_ptr<Log> &log,
+                                   const std::shared_ptr<EventQueue> &eventQueue)
+        : _log(log),
+          _eventQueue(eventQueue) {
+    //
 }
 
 void ResourceDatabase::clear() {
+    for (const auto &[id, resource]: this->_resources) {
+        this->_eventQueue->pushEvent({.type = REMOVED_RESOURCE_EVENT, .value = id});
+    }
+
     this->_resources.clear();
 }
 

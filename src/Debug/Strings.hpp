@@ -1,6 +1,8 @@
 #ifndef DEBUG_STRINGS_HPP
 #define DEBUG_STRINGS_HPP
 
+static constexpr const char *YES = "Y";
+static constexpr const char *NO = "N";
 static constexpr const char *NONE_ITEM = "None";
 
 static constexpr const char *LOG_WINDOW_TITLE = "Log";

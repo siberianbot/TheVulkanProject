@@ -5,8 +5,9 @@
 #include <memory>
 #include <variant>
 
-class Object;
+#include "src/Resources/ResourceId.hpp"
 
+class Object;
 class Scene;
 
 enum EventType {
@@ -29,6 +30,13 @@ enum EventType {
     MOUSE_PRESS_INPUT_EVENT,
     MOUSE_RELEASE_INPUT_EVENT,
     CURSOR_MOVE_INPUT_EVENT,
+
+    // *_RESOURCE_EVENT
+    ADDED_RESOURCE_EVENT,
+    REPLACED_RESOURCE_EVENT,
+    REMOVED_RESOURCE_EVENT,
+    LOADED_RESOURCE_EVENT,
+    UNLOADED_RESOURCE_EVENT,
 };
 
 struct InputData {
@@ -49,7 +57,8 @@ struct Event {
             std::shared_ptr<Object>,
             std::shared_ptr<Scene>,
             WindowData,
-            InputData
+            InputData,
+            ResourceId
     > value;
 
     // *_OBJECT_EVENT
@@ -63,6 +72,8 @@ struct Event {
 
     // *_INPUT_EVENTS
     InputData input() const;
+
+    ResourceId resourceId() const;
 };
 
 #endif // EVENTS_EVENTBASE_HPP

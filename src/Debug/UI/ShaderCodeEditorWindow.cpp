@@ -63,7 +63,7 @@ void ShaderCodeEditorWindow::draw(bool *visible) {
         }
 
         for (const auto &[id, resource]: this->_resourceDatabase->resources()) {
-            if (resource->type() != SHADER_RESOURCE) {
+            if (resource->type() != SHADER_CODE_RESOURCE) {
                 continue;
             }
 

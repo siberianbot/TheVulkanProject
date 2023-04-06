@@ -8,6 +8,7 @@ class Log;
 class EventQueue;
 class VarCollection;
 class ResourceDatabase;
+class ResourceLoader;
 class InputProcessor;
 class Window;
 class RenderingManager;
@@ -26,6 +27,7 @@ private:
     std::shared_ptr<VarCollection> _vars;
     std::shared_ptr<EventQueue> _eventQueue;
     std::shared_ptr<ResourceDatabase> _resourceDatabase;
+    std::shared_ptr<ResourceLoader> _resourceLoader;
     std::shared_ptr<InputProcessor> _inputProcessor;
     std::shared_ptr<Window> _window;
     std::shared_ptr<RenderingManager> _renderingManager;

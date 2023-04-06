@@ -4,10 +4,11 @@
 #include <string>
 
 enum ResourceType {
+    UNKNOWN_RESOURCE,
     MESH_RESOURCE,
     IMAGE_RESOURCE,
-    CUBE_IMAGE_RESOURCE,
-    SHADER_RESOURCE
+    SHADER_CODE_RESOURCE,
+    SHADER_BINARY_RESOURCE
 };
 
 ResourceType fromString(const std::string &value);

@@ -14,6 +14,7 @@
 #include "src/Rendering/RenderingManager.hpp"
 #include "src/Rendering/Renderer.hpp"
 #include "src/Resources/ResourceDatabase.hpp"
+#include "src/Resources/ResourceLoader.hpp"
 #include "src/Objects/Camera.hpp"
 #include "src/Objects/LightSource.hpp"
 #include "src/Objects/Prop.hpp"
@@ -30,7 +31,8 @@ Engine::Engine()
         : _log(std::make_shared<Log>()),
           _vars(std::make_shared<VarCollection>()),
           _eventQueue(std::make_shared<EventQueue>()),
-          _resourceDatabase(std::make_shared<ResourceDatabase>(this->_log)),
+          _resourceDatabase(std::make_shared<ResourceDatabase>(this->_log, this->_eventQueue)),
+          _resourceLoader(std::make_shared<ResourceLoader>(this->_log, this->_eventQueue)),
           _inputProcessor(std::make_shared<InputProcessor>(this->_eventQueue)),
           _window(std::make_shared<Window>(this->_vars, this->_eventQueue)),
           _renderingManager(std::make_shared<RenderingManager>(this->_log, this->_vars, this->_window)),
@@ -48,6 +50,8 @@ void Engine::init() {
     this->_vars->set(RENDERING_SCENE_STAGE_SHADOW_MAP_COUNT, 32);
     this->_vars->set(RENDERING_SCENE_STAGE_SHADOW_MAP_SIZE, 1024);
     this->_vars->set(RESOURCES_DEFAULT_TEXTURE, "textures/default");
+
+    this->_resourceDatabase->tryAddDirectory("data");
 
     if (glfwInit() != GLFW_TRUE) {
         throw std::runtime_error("Failed to initilalize GLFW");
@@ -68,13 +72,9 @@ void Engine::init() {
     });
 
     this->_renderingManager->init();
-//
-//    this->_resourceManager = std::make_shared<ResourceManager>(this->_log,
-//                                                               this->_renderingManager->renderingObjectsAllocator());
-    this->_resourceDatabase->tryAddDirectory("data");
 
     this->_debugUI = std::make_shared<DebugUIRoot>(this->_log, this->_eventQueue, this->_vars, this->_resourceDatabase,
-                                                   this->_sceneManager);
+                                                   this->_resourceLoader, this->_sceneManager);
 
     this->_renderer = std::make_shared<Renderer>(this->_vars, this->_eventQueue, this->_renderingManager,
                                                  this->_sceneManager);
@@ -321,6 +321,7 @@ void Engine::cleanup() {
 
     glfwTerminate();
 
+    this->_resourceLoader->freeAll();
     this->_resourceDatabase->clear();
 }
 

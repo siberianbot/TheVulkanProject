@@ -15,3 +15,7 @@ WindowData Event::window() const {
 InputData Event::input() const {
     return std::get<InputData>(this->value);
 }
+
+ResourceId Event::resourceId() const {
+    return std::get<ResourceId>(this->value);
+}

@@ -1,107 +1,179 @@
-[
-  {
-    "id": "cube",
-    "type": "mesh",
-    "path": "models/cube.obj"
-  },
-  {
-    "id": "skybox",
-    "type": "mesh",
-    "path": "models/skybox.obj"
-  },
-  {
-    "id": "suzanne",
-    "type": "mesh",
-    "path": "models/suzanne.obj"
-  },
-  {
-    "id": "viking_room",
-    "type": "mesh",
-    "path": "models/viking_room.obj"
-  },
-  {
-    "id": "composition_frag",
-    "type": "shader",
-    "code-path": "shaders/composition.frag",
-    "bin-path": "shaders/composition.frag.spv"
-  },
-  {
-    "id": "shaders/passthrough.vert",
-    "type": "shader",
-    "code-path": "shaders/composition.vert",
-    "bin-path": "shaders/composition.vert.spv"
-  },
-  {
-    "id": "shaders/scene-model.frag",
-    "type": "shader",
-    "code-path": "shaders/default.frag",
-    "bin-path": "shaders/default.frag.spv"
-  },
-  {
-    "id": "shaders/scene-model.vert",
-    "type": "shader",
-    "code-path": "shaders/default.vert",
-    "bin-path": "shaders/default.vert.spv"
-  },
-  {
-    "id": "shaders/scene-composition.frag",
-    "type": "shader",
-    "code-path": "shaders/scene_composition.frag",
-    "bin-path": "shaders/scene_composition.frag.spv"
-  },
-  {
-    "id": "shaders/shadow.frag",
-    "type": "shader",
-    "code-path": "shaders/shadow.frag",
-    "bin-path": "shaders/shadow.frag.spv"
-  },
-  {
-    "id": "shaders/shadow.vert",
-    "type": "shader",
-    "code-path": "shaders/shadow.vert",
-    "bin-path": "shaders/shadow.vert.spv"
-  },
-  {
-    "id": "skybox_frag",
-    "type": "shader",
-    "code-path": "shaders/skybox.frag",
-    "bin-path": "shaders/skybox.frag.spv"
-  },
-  {
-    "id": "concrete",
-    "type": "image",
-    "path": "textures/concrete.png"
-  },
-  {
-    "id": "cube_texture",
-    "type": "image",
-    "path": "textures/cube.png"
-  },
-  {
-    "id": "cube_texture_specular",
-    "type": "image",
-    "path": "textures/cube_specular.png"
-  },
-  {
-    "id": "viking_room_texture",
-    "type": "image",
-    "path": "textures/viking_room.png"
-  },
-  {
-    "id": "textures/default",
-    "type": "image",
-    "path": "textures/default.png"
-  },
-  {
-    "id": "skybox_texture",
-    "type": "cube-image",
-    "paths": [
-      "textures/skybox_front.jpg",
-      "textures/skybox_back.jpg",
-      "textures/skybox_up.jpg",
-      "textures/skybox_down.jpg",
-      "textures/skybox_right.jpg",
-      "textures/skybox_left.jpg"
-    ]
-  }
-]
+{
+  // data/
+  "id": "data",
+  "type": "group",
+  "items": [
+    {
+      // data/models/
+      "id": "models",
+      "type": "group",
+      "items": [
+        {
+          "id": "cube",
+          "type": "mesh",
+          "path": "models/cube.obj"
+        },
+        {
+          "id": "skybox",
+          "type": "mesh",
+          "path": "models/skybox.obj"
+        },
+        {
+          "id": "suzanne",
+          "type": "mesh",
+          "path": "models/suzanne.obj"
+        },
+        {
+          "id": "viking_room",
+          "type": "mesh",
+          "path": "models/viking_room.obj"
+        }
+      ]
+    },
+    {
+      // data/textures/
+      "id": "textures",
+      "type": "group",
+      "items": [
+        {
+          "id": "concrete",
+          "type": "image",
+          "path": "textures/concrete.png"
+        },
+        {
+          "id": "cube",
+          "type": "image",
+          "path": "textures/cube.png"
+        },
+        {
+          "id": "cube_specular",
+          "type": "image",
+          "path": "textures/cube_specular.png"
+        },
+        {
+          "id": "viking_room",
+          "type": "image",
+          "path": "textures/viking_room.png"
+        },
+        {
+          "id": "default",
+          "type": "image",
+          "path": "textures/default.png"
+        },
+        {
+          "id": "skybox",
+          "type": "group",
+          "items": [
+            {
+              "id": "front",
+              "type": "image",
+              "path": "textures/skybox_front.jpg"
+            },
+            {
+              "id": "back",
+              "type": "image",
+              "path": "textures/skybox_back.jpg"
+            },
+            {
+              "id": "up",
+              "type": "image",
+              "path": "textures/skybox_up.jpg"
+            },
+            {
+              "id": "down",
+              "type": "image",
+              "path": "textures/skybox_down.jpg"
+            },
+            {
+              "id": "right",
+              "type": "image",
+              "path": "textures/skybox_right.jpg"
+            },
+            {
+              "id": "left",
+              "type": "image",
+              "path": "textures/skybox_left.jpg"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      // data/shaders/
+      "id": "shaders",
+      "type": "group",
+      "items": [
+        {
+          "id": "passthrough.vert",
+          "type": "shader-code",
+          "path": "shaders/passthrough.vert"
+        },
+        {
+          "id": "passthrough.vert.spv",
+          "type": "shader-binary",
+          "path": "shaders/passthrough.vert.spv"
+        },
+        {
+          "id": "scene-composition.frag",
+          "type": "shader-code",
+          "path": "shaders/scene-composition.frag"
+        },
+        {
+          "id": "scene-composition.frag.spv",
+          "type": "shader-binary",
+          "path": "shaders/scene-composition.frag.spv"
+        },
+        {
+          "id": "scene-model.frag",
+          "type": "shader-code",
+          "path": "shaders/scene-model.frag"
+        },
+        {
+          "id": "scene-model.frag.spv",
+          "type": "shader-binary",
+          "path": "shaders/scene-model.frag.spv"
+        },
+        {
+          "id": "scene-model.vert",
+          "type": "shader-code",
+          "path": "shaders/scene-model.vert"
+        },
+        {
+          "id": "scene-model.vert.spv",
+          "type": "shader-binary",
+          "path": "shaders/scene-model.vert.spv"
+        },
+        {
+          "id": "shadow.frag",
+          "type": "shader-code",
+          "path": "shaders/shadow.frag"
+        },
+        {
+          "id": "shadow.frag.spv",
+          "type": "shader-binary",
+          "path": "shaders/shadow.frag.spv"
+        },
+        {
+          "id": "shadow.vert",
+          "type": "shader-code",
+          "path": "shaders/shadow.vert"
+        },
+        {
+          "id": "shadow.vert.spv",
+          "type": "shader-binary",
+          "path": "shaders/shadow.vert.spv"
+        },
+        {
+          "id": "skybox.frag",
+          "type": "shader-code",
+          "path": "shaders/skybox.frag"
+        },
+        {
+          "id": "skybox.frag.spv",
+          "type": "shader-binary",
+          "path": "shaders/skybox.frag.spv"
+        }
+      ]
+    }
+  ]
+}

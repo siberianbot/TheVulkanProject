@@ -10,6 +10,7 @@ class Log;
 class VarCollection;
 class EventQueue;
 class ResourceDatabase;
+class ResourceLoader;
 class SceneManager;
 
 struct DebugUIState;
@@ -38,6 +39,7 @@ public:
                 const std::shared_ptr<EventQueue> &eventQueue,
                 const std::shared_ptr<VarCollection> &vars,
                 const std::shared_ptr<ResourceDatabase> &resourceDatabase,
+                const std::shared_ptr<ResourceLoader> &resourceLoader,
                 const std::shared_ptr<SceneManager> &sceneManager);
 
     void render();
