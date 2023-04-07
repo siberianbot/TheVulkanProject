@@ -15,13 +15,9 @@
 #include "src/Rendering/Renderer.hpp"
 #include "src/Resources/ResourceDatabase.hpp"
 #include "src/Resources/ResourceLoader.hpp"
+#include "src/Resources/Readers/SceneReader.hpp"
 #include "src/Objects/Camera.hpp"
-#include "src/Objects/LightSource.hpp"
-#include "src/Objects/Prop.hpp"
-#include "src/Objects/World.hpp"
-#include "src/Objects/Components/ModelComponent.hpp"
 #include "src/Objects/Components/PositionComponent.hpp"
-#include "src/Objects/Components/SkyboxComponent.hpp"
 #include "src/Scene/Scene.hpp"
 #include "src/Scene/SceneNode.hpp"
 #include "src/Scene/SceneManager.hpp"
@@ -145,165 +141,22 @@ void Engine::init() {
         camera->position()->rotation().y = normalize(camera->position()->rotation().y + sensitivity * (float) dy);
     });
 
-//    std::shared_ptr<MeshResource> cubeMesh = this->_resourceManager->tryGetResource<MeshResource>(
-//            "cube", MESH_RESOURCE).value().lock();
-//    cubeMesh->load();
-//
-//    std::shared_ptr<MeshResource> skyboxMesh = this->_resourceManager->tryGetResource<MeshResource>(
-//            "skybox", MESH_RESOURCE).value().lock();
-//    skyboxMesh->load();
-//
-//    std::shared_ptr<MeshResource> suzanneMesh = this->_resourceManager->tryGetResource<MeshResource>(
-//            "suzanne", MESH_RESOURCE).value().lock();
-//    suzanneMesh->load();
-//
-//    std::shared_ptr<MeshResource> vikingRoomMesh = this->_resourceManager->tryGetResource<MeshResource>(
-//            "viking_room", MESH_RESOURCE).value().lock();
-//    vikingRoomMesh->load();
-//
-//    std::shared_ptr<ImageResource> defaultTexture = this->_resourceManager->tryGetResource<ImageResource>(
-//            "textures/default", IMAGE_RESOURCE).value().lock();
-//    defaultTexture->load();
-//
-//    std::shared_ptr<ImageResource> concreteTexture = this->_resourceManager->tryGetResource<ImageResource>(
-//            "concrete", IMAGE_RESOURCE).value().lock();
-//    concreteTexture->load();
-//
-//    std::shared_ptr<ImageResource> cubeTexture = this->_resourceManager->tryGetResource<ImageResource>(
-//            "cube_texture", IMAGE_RESOURCE).value().lock();
-//    cubeTexture->load();
-//
-//    std::shared_ptr<ImageResource> cubeSpecularTexture = this->_resourceManager->tryGetResource<ImageResource>(
-//            "cube_texture_specular", IMAGE_RESOURCE).value().lock();
-//    cubeSpecularTexture->load();
-//
-//    std::shared_ptr<ImageResource> vikingRoomTexture = this->_resourceManager->tryGetResource<ImageResource>(
-//            "viking_room_texture", IMAGE_RESOURCE).value().lock();
-//    vikingRoomTexture->load();
-//
-//    std::shared_ptr<CubeImageResource> skyboxTexture = this->_resourceManager->tryGetResource<CubeImageResource>(
-//            "skybox_texture", CUBE_IMAGE_RESOURCE).value().lock();
-//    skyboxTexture->load();
-//
-//
-//    this->_sceneManager->setScene(Scene::empty());
-//
-//    std::shared_ptr<World> world = std::make_shared<World>();
-//    world->skybox()->setMesh(skyboxMesh);
-//    world->skybox()->setTexture(skyboxTexture);
-//    this->_sceneManager->currentScene()->root()->object() = world;
-//
-//    std::shared_ptr<Prop> prop;
-//
-//    prop = std::make_shared<Prop>();
-//    prop->position()->position() = glm::vec3(0, 0, 2);
-//    prop->model()->setMesh(vikingRoomMesh);
-//    prop->model()->setAlbedoTexture(vikingRoomTexture);
-//    this->_sceneManager->addObject(prop);
-//
-//    prop = std::make_shared<Prop>();
-//    prop->position()->position() = glm::vec3(0);
-//    prop->position()->scale() = glm::vec3(0.5f);
-//    prop->model()->setMesh(cubeMesh);
-//    prop->model()->setAlbedoTexture(cubeTexture);
-//    prop->model()->setSpecularTexture(cubeSpecularTexture);
-//    this->_sceneManager->addObject(prop);
-//
-//    prop = std::make_shared<Prop>();
-//    prop->position()->position() = glm::vec3(0, 0, -2);
-//    prop->position()->scale() = glm::vec3(0.5f);
-//    prop->model()->setMesh(suzanneMesh);
-//    prop->model()->setAlbedoTexture(concreteTexture);
-//    prop->model()->setSpecularTexture(defaultTexture);
-//    this->_sceneManager->addObject(prop);
-//
-//    // down
-//    prop = std::make_shared<Prop>();
-//    prop->position()->position() = glm::vec3(0, -4, 0);
-//    prop->position()->rotation() = glm::vec3(glm::radians(270.0f), 0, 0);
-//    prop->position()->scale() = glm::vec3(7, 9, 0.1);
-//    prop->model()->setMesh(cubeMesh);
-//    prop->model()->setAlbedoTexture(concreteTexture);
-//    this->_sceneManager->addObject(prop);
-//
-//    // front
-//    prop = std::make_shared<Prop>();
-//    prop->position()->position() = glm::vec3(7, 0, 0);
-//    prop->position()->rotation() = glm::vec3(0, glm::radians(270.0f), 0);
-//    prop->position()->scale() = glm::vec3(9, 4, 0.1);
-//    prop->model()->setMesh(cubeMesh);
-//    prop->model()->setAlbedoTexture(concreteTexture);
-//    this->_sceneManager->addObject(prop);
-//
-//    // back
-//    prop = std::make_shared<Prop>();
-//    prop->position()->position() = glm::vec3(-7, 0, 0);
-//    prop->position()->rotation() = glm::vec3(0, glm::radians(90.0f), 0);
-//    prop->position()->scale() = glm::vec3(9, 4, 0.1);
-//    prop->model()->setMesh(cubeMesh);
-//    prop->model()->setAlbedoTexture(concreteTexture);
-//    this->_sceneManager->addObject(prop);
-//
-//    // left
-//    prop = std::make_shared<Prop>();
-//    prop->position()->position() = glm::vec3(0, 0, -9);
-//    prop->position()->rotation() = glm::vec3(0);
-//    prop->position()->scale() = glm::vec3(7, 4, 0.1);
-//    prop->model()->setMesh(cubeMesh);
-//    prop->model()->setAlbedoTexture(concreteTexture);
-//    this->_sceneManager->addObject(prop);
-//
-//    // right
-//    prop = std::make_shared<Prop>();
-//    prop->position()->position() = glm::vec3(0, 0, 9);
-//    prop->position()->rotation() = glm::vec3(0, glm::radians(180.0f), 0);
-//    prop->position()->scale() = glm::vec3(7, 4, 0.1);
-//    prop->model()->setMesh(cubeMesh);
-//    prop->model()->setAlbedoTexture(concreteTexture);
-//    this->_sceneManager->addObject(prop);
-//
-//    std::shared_ptr<LightSource> light;
-//
-//    light = std::make_shared<LightSource>();
-//    light->type() = RECTANGLE_LIGHT_SOURCE;
-//    light->enabled() = false;
-//    light->range() = 250;
-//    light->position()->position() = glm::vec3(10);
-//    light->position()->rotation() = glm::vec3(glm::radians(225.0f), glm::radians(45.0f), 0);
-//    light->rect() = glm::vec2(20);
-//    this->_sceneManager->addObject(light);
-//
-//    light = std::make_shared<LightSource>();
-//    light->type() = CONE_LIGHT_SOURCE;
-//    light->enabled() = false;
-//    light->color() = glm::vec3(1, 0, 0);
-//    light->range() = 50;
-//    light->position()->position() = glm::vec3(2, 0, -2);
-//    light->position()->rotation() = glm::vec3(glm::radians(135.0f), glm::radians(90.0f), 0);
-//    this->_sceneManager->addObject(light);
-//
-//    light = std::make_shared<LightSource>();
-//    light->type() = POINT_LIGHT_SOURCE;
-//    light->enabled() = true;
-//    light->color() = glm::vec3(0, 1, 0);
-//    light->range() = 20;
-//    light->position()->position() = glm::vec3(2, 2, 0);
-//    this->_sceneManager->addObject(light);
-//
-//    light = std::make_shared<LightSource>();
-//    light->type() = CONE_LIGHT_SOURCE;
-//    light->enabled() = false;
-//    light->color() = glm::vec3(0, 0, 1);
-//    light->range() = 50;
-//    light->position()->position() = glm::vec3(2, 0, 2);
-//    light->position()->rotation() = glm::vec3(glm::radians(225.0f), glm::radians(90.0f), 0);
-//    this->_sceneManager->addObject(light);
-//
-//    std::shared_ptr<Camera> camera = std::make_shared<Camera>();
-//    camera->position()->position() = glm::vec3(2, 0, 2);
-//    camera->position()->rotation() = glm::vec3(0, glm::radians(180.0f), 0);
-//    this->_sceneManager->addObject(camera);
-//    this->_sceneManager->currentCamera() = camera;
+    std::shared_ptr<SceneReader> sceneReader = std::make_shared<SceneReader>(this->_log);
+
+    auto sceneResource = this->_resourceDatabase->tryGetResource("data/scenes/scene1");
+
+    if (sceneResource.has_value()) {
+        auto sceneRoot = sceneReader->tryRead(this->_resourceLoader->load(sceneResource.value()));
+
+        if (sceneRoot.has_value()) {
+            std::shared_ptr<Scene> scene = Scene::empty();
+            scene->root() = sceneRoot.value();
+
+            this->_sceneManager->setScene(scene);
+        }
+
+        this->_resourceLoader->freeResource("data/scenes/scene1");
+    }
 }
 
 void Engine::cleanup() {

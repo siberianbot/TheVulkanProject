@@ -1,7 +1,6 @@
 #include "LightSource.hpp"
 
-#include <sstream>
-
+#include <fmt/core.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/quaternion.hpp>
 
@@ -10,8 +9,12 @@
 
 static constexpr const float NEAR = 0.01;
 
-LightSource::LightSource()
-        : _position(std::make_shared<PositionComponent>()),
+LightSource::LightSource() : LightSource(std::make_shared<PositionComponent>()) {
+    //
+}
+
+LightSource::LightSource(const std::shared_ptr<PositionComponent> &position)
+        : _position(position),
           _type(POINT_LIGHT_SOURCE),
           _color(glm::vec3(1)),
           _range(10),
@@ -21,10 +24,7 @@ LightSource::LightSource()
 }
 
 std::string LightSource::displayName() {
-    std::stringstream ss;
-    ss << "(" << this->id() << ") light source";
-
-    return ss.str();
+    return fmt::format("({0}) light source", this->id());
 }
 
 glm::vec3 LightSource::forward() const {

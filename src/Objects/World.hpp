@@ -11,6 +11,8 @@ private:
 
 public:
     explicit World();
+    explicit World(const std::shared_ptr<SkyboxComponent> &skybox);
+
     ~World() override = default;
 
     std::string displayName() override;

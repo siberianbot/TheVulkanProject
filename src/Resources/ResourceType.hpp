@@ -7,11 +7,12 @@ enum ResourceType {
     UNKNOWN_RESOURCE,
     MESH_RESOURCE,
     IMAGE_RESOURCE,
+    SCENE_RESOURCE,
     SHADER_CODE_RESOURCE,
     SHADER_BINARY_RESOURCE
 };
 
-ResourceType fromString(const std::string &value);
+ResourceType resourceTypeFromString(const std::string &value);
 
 std::string toString(const ResourceType &value);
 

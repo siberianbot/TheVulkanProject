@@ -1,5 +1,5 @@
-#ifndef TYPES_LIGHTSOURCETYPE_HPP
-#define TYPES_LIGHTSOURCETYPE_HPP
+#ifndef OBJECTS_LIGHTSOURCETYPE_HPP
+#define OBJECTS_LIGHTSOURCETYPE_HPP
 
 #include <string>
 
@@ -9,6 +9,8 @@ enum LightSourceType : uint8_t {
     RECTANGLE_LIGHT_SOURCE
 };
 
+LightSourceType lightSourceTypeFromString(const std::string &value);
+
 std::string toString(const LightSourceType &type);
 
-#endif // TYPES_LIGHTSOURCETYPE_HPP
+#endif // OBJECTS_LIGHTSOURCETYPE_HPP

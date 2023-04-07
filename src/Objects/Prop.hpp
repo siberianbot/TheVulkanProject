@@ -13,11 +13,15 @@ private:
 
 public:
     explicit Prop();
+    explicit Prop(const std::shared_ptr<PositionComponent> &position,
+                  const std::shared_ptr<ModelComponent> &model);
+
     ~Prop() override = default;
 
     std::string displayName() override;
 
     [[nodiscard]] const std::shared_ptr<PositionComponent> position() const { return this->_position; }
+
     [[nodiscard]] const std::shared_ptr<ModelComponent> model() const { return this->_model; }
 };
 

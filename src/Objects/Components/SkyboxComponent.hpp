@@ -3,36 +3,38 @@
 
 #include <array>
 #include <memory>
+#include <optional>
 
 #include "src/Objects/Components/Component.hpp"
 #include "src/Rendering/Constants.hpp"
+#include "src/Resources/ResourceId.hpp"
 
-class MeshResource;
-class CubeImageResource;
 class DescriptorSetObject;
-class ImageViewObject;
+
+static constexpr const uint32_t SKYBOX_TEXTURE_ARRAY_SIZE = 6;
 
 class SkyboxComponent : public Component {
 private:
-    std::weak_ptr<MeshResource> _mesh;
-    std::weak_ptr<CubeImageResource> _texture;
+    std::optional<ResourceId> _meshId;
+    std::array<ResourceId, SKYBOX_TEXTURE_ARRAY_SIZE> _textureIds;
 
     std::array<std::shared_ptr<DescriptorSetObject>, MAX_INFLIGHT_FRAMES> _descriptorSets;
-    std::shared_ptr<ImageViewObject> _textureView;
 
 public:
     ~SkyboxComponent() override;
 
-    [[nodiscard]] const std::weak_ptr<MeshResource> &mesh() const { return this->_mesh; }
-    [[nodiscard]] const std::weak_ptr<CubeImageResource> &texture() const { return this->_texture; }
+    void setMeshId(const std::optional<ResourceId> &meshId);
+    void setTextureIds(const std::array<ResourceId, SKYBOX_TEXTURE_ARRAY_SIZE> &textureIds);
 
-    void setMesh(const std::weak_ptr<MeshResource> &mesh);
-    void setTexture(const std::weak_ptr<CubeImageResource> &texture);
+    [[nodiscard]] const std::optional<ResourceId> &meshId() const { return this->_meshId; }
+
+    [[nodiscard]] const std::array<ResourceId, SKYBOX_TEXTURE_ARRAY_SIZE> &textureIds() const {
+        return this->_textureIds;
+    }
 
     [[nodiscard]] std::array<std::shared_ptr<DescriptorSetObject>, MAX_INFLIGHT_FRAMES> &descriptorSets() {
         return this->_descriptorSets;
     }
-    [[nodiscard]] std::shared_ptr<ImageViewObject> &textureView() { return this->_textureView; }
 
     void acceptEdit(const std::shared_ptr<ObjectEditVisitor> &visitor) override;
 };

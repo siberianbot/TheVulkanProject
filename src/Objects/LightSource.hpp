@@ -5,7 +5,7 @@
 #include <glm/mat4x4.hpp>
 
 #include "src/Objects/Object.hpp"
-#include "src/Types/LightSourceType.hpp"
+#include "src/Objects/LightSourceType.hpp"
 
 class PositionComponent;
 
@@ -22,13 +22,18 @@ private:
 
 public:
     explicit LightSource();
+    explicit LightSource(const std::shared_ptr<PositionComponent> &position);
+
     ~LightSource() override = default;
 
     std::string displayName() override;
 
     [[nodiscard]] LightSourceType &type() { return this->_type; }
+
     [[nodiscard]] bool &enabled() { return this->_enabled; }
+
     [[nodiscard]] glm::vec3 &color() { return this->_color; }
+
     [[nodiscard]] float &range() { return this->_range; }
 
     // point and cone light sources only

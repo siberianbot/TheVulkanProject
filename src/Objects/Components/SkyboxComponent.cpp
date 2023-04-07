@@ -2,7 +2,6 @@
 
 #include "src/Debug/UI/ObjectEditVisitor.hpp"
 #include "src/Rendering/Objects/DescriptorSetObject.hpp"
-#include "src/Rendering/Objects/ImageViewObject.hpp"
 
 SkyboxComponent::~SkyboxComponent() {
     for (const auto &descriptorSet: this->_descriptorSets) {
@@ -12,18 +11,14 @@ SkyboxComponent::~SkyboxComponent() {
 
         descriptorSet->destroy();
     }
-
-    if (this->_textureView != nullptr) {
-        this->_textureView->destroy();
-    }
 }
 
-void SkyboxComponent::setMesh(const std::weak_ptr<MeshResource> &mesh) {
-    this->_mesh = mesh;
+void SkyboxComponent::setMeshId(const std::optional<ResourceId> &meshId) {
+    this->_meshId = meshId;
 }
 
-void SkyboxComponent::setTexture(const std::weak_ptr<CubeImageResource> &texture) {
-    this->_texture = texture;
+void SkyboxComponent::setTextureIds(const std::array<ResourceId, SKYBOX_TEXTURE_ARRAY_SIZE> &textureIds) {
+    this->_textureIds = textureIds;
     this->_dirty = true;
 }
 

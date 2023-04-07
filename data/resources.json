@@ -99,6 +99,17 @@
       ]
     },
     {
+      "id": "scenes",
+      "type": "group",
+      "items": [
+        {
+          "id": "scene1",
+          "type": "scene",
+          "path": "scenes/scene1.json"
+        }
+      ]
+    },
+    {
       // data/shaders/
       "id": "shaders",
       "type": "group",

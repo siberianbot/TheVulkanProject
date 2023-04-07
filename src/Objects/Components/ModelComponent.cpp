@@ -2,7 +2,6 @@
 
 #include "src/Debug/UI/ObjectEditVisitor.hpp"
 #include "src/Rendering/Objects/DescriptorSetObject.hpp"
-#include "src/Rendering/Objects/ImageViewObject.hpp"
 
 ModelComponent::~ModelComponent() {
     for (const auto &descriptorSet: this->_descriptorSets) {
@@ -12,27 +11,19 @@ ModelComponent::~ModelComponent() {
 
         descriptorSet->destroy();
     }
-
-    if (this->_albedoTextureView != nullptr) {
-        this->_albedoTextureView->destroy();
-    }
-
-    if (this->_specularTextureView != nullptr) {
-        this->_specularTextureView->destroy();
-    }
 }
 
-void ModelComponent::setMesh(const std::shared_ptr<MeshResource> &mesh) {
-    this->_mesh = mesh;
+void ModelComponent::setMeshId(const std::optional<ResourceId> &meshId) {
+    this->_meshId = meshId;
 }
 
-void ModelComponent::setAlbedoTexture(const std::shared_ptr<ImageResource> &texture) {
-    this->_albedoTexture = texture;
+void ModelComponent::setAlbedoTextureId(const std::optional<ResourceId> &textureId) {
+    this->_albedoTextureId = textureId;
     this->_dirty = true;
 }
 
-void ModelComponent::setSpecularTexture(const std::shared_ptr<ImageResource> &texture) {
-    this->_specularTexture = texture;
+void ModelComponent::setSpecularTextureId(const std::optional<ResourceId> &textureId) {
+    this->_specularTextureId = textureId;
     this->_dirty = true;
 }
 

@@ -18,12 +18,16 @@ private:
 
 public:
     explicit Camera();
+    explicit Camera(const std::shared_ptr<PositionComponent> &position);
+
     ~Camera() override = default;
 
     std::string displayName() override;
 
     [[nodiscard]] float &near() { return this->_near; }
+
     [[nodiscard]] float &far() { return this->_far; }
+
     [[nodiscard]] float &fov() { return this->_fov; }
 
     [[nodiscard]] glm::vec3 forward() const;

@@ -82,11 +82,13 @@ src = [
     'src/Resources/ResourceLoader.cpp',
     'src/Resources/Readers/ImageReader.cpp',
     'src/Resources/Readers/MeshReader.cpp',
+    'src/Resources/Readers/SceneReader.cpp',
 
     # Objects
     'src/Objects/Object.cpp',
     'src/Objects/Camera.cpp',
     'src/Objects/LightSource.cpp',
+    'src/Objects/LightSourceType.cpp',
     'src/Objects/Prop.cpp',
     'src/Objects/World.cpp',
     'src/Objects/Components/Component.cpp',
@@ -110,9 +112,6 @@ src = [
     'src/Debug/UI/SceneTreeWindow.cpp',
     'src/Debug/UI/ShaderCodeEditorWindow.cpp',
     'src/Debug/UI/VariablesWindow.cpp',
-
-    # Types
-    'src/Types/LightSourceType.cpp',
 
     # System
     'src/System/Window.cpp',

@@ -1,17 +1,18 @@
 #include "World.hpp"
 
-#include <sstream>
+#include <fmt/core.h>
 
 #include "src/Objects/Components/SkyboxComponent.hpp"
 
-World::World()
-        : _skybox(std::make_shared<SkyboxComponent>()) {
+World::World() : World(std::make_shared<SkyboxComponent>()) {
+    //
+}
+
+World::World(const std::shared_ptr<SkyboxComponent> &skybox)
+        : _skybox(skybox) {
     this->_components.push_back(this->_skybox);
 }
 
 std::string World::displayName() {
-    std::stringstream ss;
-    ss << "(" << this->id() << ") world";
-
-    return ss.str();
+    return fmt::format("({0}) world", this->id());
 }

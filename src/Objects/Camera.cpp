@@ -1,7 +1,6 @@
 #include "Camera.hpp"
 
-#include <sstream>
-
+#include <fmt/core.h>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/quaternion.hpp>
 
@@ -16,8 +15,12 @@ static glm::vec3 radius(float phi, float theta) {
     );
 }
 
-Camera::Camera()
-        : _position(std::make_shared<PositionComponent>()),
+Camera::Camera() : Camera(std::make_shared<PositionComponent>()) {
+    //
+}
+
+Camera::Camera(const std::shared_ptr<PositionComponent> &position)
+        : _position(position),
           _near(0.01f),
           _far(100.0f),
           _fov(glm::radians(90.0f)) {
@@ -25,10 +28,7 @@ Camera::Camera()
 }
 
 std::string Camera::displayName() {
-    std::stringstream ss;
-    ss << "(" << this->id() << ") camera";
-
-    return ss.str();
+    return fmt::format("({0}) camera", this->id());
 }
 
 glm::vec3 Camera::forward() const {

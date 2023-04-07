@@ -1,0 +1,366 @@
+{
+  "object": {
+    "class": "world",
+    "components": {
+      "skybox": {
+        "mesh": "models/skybox",
+        "textures": [
+          "textures/skybox/front",
+          "textures/skybox/back",
+          "textures/skybox/up",
+          "textures/skybox/down",
+          "textures/skybox/right",
+          "textures/skybox/left"
+        ]
+      }
+    }
+  },
+  "descendants": [
+    {
+      // box
+      "descendants": [
+        {
+          // down
+          "object": {
+            "class": "prop",
+            "components": {
+              "position": {
+                "position": [
+                  0,
+                  -4,
+                  0
+                ],
+                "rotation": [
+                  270,
+                  0,
+                  0
+                ],
+                "scale": [
+                  7,
+                  9,
+                  0.1
+                ]
+              },
+              "model": {
+                "mesh": "models/cube",
+                "albedoTexture": "textures/concrete"
+              }
+            }
+          }
+        },
+        {
+          // front
+          "object": {
+            "class": "prop",
+            "components": {
+              "position": {
+                "position": [
+                  7,
+                  0,
+                  0
+                ],
+                "rotation": [
+                  0,
+                  270,
+                  0
+                ],
+                "scale": [
+                  9,
+                  4,
+                  0.1
+                ]
+              },
+              "model": {
+                "mesh": "models/cube",
+                "albedoTexture": "textures/concrete"
+              }
+            }
+          }
+        },
+        {
+          // back
+          "object": {
+            "class": "prop",
+            "components": {
+              "position": {
+                "position": [
+                  -7,
+                  0,
+                  0
+                ],
+                "rotation": [
+                  0,
+                  90,
+                  0
+                ],
+                "scale": [
+                  9,
+                  4,
+                  0.1
+                ]
+              },
+              "model": {
+                "mesh": "models/cube",
+                "albedoTexture": "textures/concrete"
+              }
+            }
+          }
+        },
+        {
+          // left
+          "object": {
+            "class": "prop",
+            "components": {
+              "position": {
+                "position": [
+                  0,
+                  0,
+                  -9
+                ],
+                "rotation": [
+                  0,
+                  0,
+                  0
+                ],
+                "scale": [
+                  7,
+                  4,
+                  0.1
+                ]
+              },
+              "model": {
+                "mesh": "models/cube",
+                "albedoTexture": "textures/concrete"
+              }
+            }
+          }
+        },
+        {
+          // right
+          "object": {
+            "class": "prop",
+            "components": {
+              "position": {
+                "position": [
+                  0,
+                  0,
+                  9
+                ],
+                "rotation": [
+                  0,
+                  180,
+                  0
+                ],
+                "scale": [
+                  7,
+                  4,
+                  0.1
+                ]
+              },
+              "model": {
+                "mesh": "models/cube",
+                "albedoTexture": "textures/concrete"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      // props
+      "descendants": [
+        {
+          "object": {
+            "class": "prop",
+            "components": {
+              "position": {
+                "position": [
+                  0,
+                  0,
+                  2
+                ]
+              },
+              "model": {
+                "mesh": "models/viking-room",
+                "albedoTexture": "textures/viking-room"
+              }
+            }
+          }
+        },
+        {
+          "object": {
+            "class": "prop",
+            "components": {
+              "position": {
+                "position": [
+                  0,
+                  0,
+                  0
+                ],
+                "scale": [
+                  0.5,
+                  0.5,
+                  0.5
+                ]
+              },
+              "model": {
+                "mesh": "models/cube",
+                "albedoTexture": "textures/cube",
+                "specularTexture": "textures/cube-specular"
+              }
+            }
+          }
+        },
+        {
+          "object": {
+            "class": "prop",
+            "components": {
+              "position": {
+                "position": [
+                  0,
+                  0,
+                  -2
+                ],
+                "scale": [
+                  0.5,
+                  0.5,
+                  0.5
+                ]
+              },
+              "model": {
+                "mesh": "models/suzanne",
+                "albedoTexture": "textures/concrete"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      // lighting
+      "descendants": [
+        {
+          "object": {
+            "class": "light-source",
+            "type": "rectangle",
+            "enabled": false,
+            "range": 250,
+            "rect": [
+              20,
+              20
+            ],
+            "components": {
+              "position": {
+                "position": [
+                  10,
+                  10,
+                  10
+                ],
+                "rotation": [
+                  225,
+                  45,
+                  0
+                ]
+              }
+            }
+          }
+        },
+        {
+          "object": {
+            "class": "light-source",
+            "type": "cone",
+            "enabled": false,
+            "color": [
+              1,
+              0,
+              0
+            ],
+            "range": 50,
+            "components": {
+              "position": {
+                "position": [
+                  2,
+                  0,
+                  -2
+                ],
+                "rotation": [
+                  135,
+                  90,
+                  0
+                ]
+              }
+            }
+          }
+        },
+        {
+          "object": {
+            "class": "light-source",
+            "type": "point",
+            "color": [
+              0,
+              1,
+              0
+            ],
+            "range": 20,
+            "components": {
+              "position": {
+                "position": [
+                  2,
+                  2,
+                  0
+                ]
+              }
+            }
+          }
+        },
+        {
+          "object": {
+            "class": "light-source",
+            "type": "cone",
+            "enabled": false,
+            "color": [
+              0,
+              0,
+              1
+            ],
+            "range": 50,
+            "components": {
+              "position": {
+                "position": [
+                  2,
+                  0,
+                  2
+                ],
+                "rotation": [
+                  225,
+                  90,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      // camera
+      "object": {
+        "class": "camera",
+        "components": {
+          "position": {
+            "position": [
+              2,
+              0,
+              2
+            ],
+            "rotation": [
+              0,
+              0,
+              0
+            ]
+          }
+        }
+      }
+    }
+  ]
+}
