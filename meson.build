@@ -41,6 +41,7 @@ src = [
     'src/Rendering/RenderingDevice.cpp',
     'src/Rendering/RenderingLayoutsManager.cpp',
     'src/Rendering/RenderingObjectsAllocator.cpp',
+    'src/Rendering/RenderingResourceManager.cpp',
     'src/Rendering/Swapchain.cpp',
     'src/Rendering/VulkanObjectsAllocator.cpp',
 
@@ -73,6 +74,9 @@ src = [
 
     'src/Rendering/Stages/DebugUIStage.cpp',
     # TODO: 'src/Rendering/Stages/SceneStage.cpp',
+
+    'src/Rendering/Types/MeshRenderingData.cpp',
+    'src/Rendering/Types/TextureRenderingData.cpp',
 
     # Resources
     'src/Resources/Resource.cpp',

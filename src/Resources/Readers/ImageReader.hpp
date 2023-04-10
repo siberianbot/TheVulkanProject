@@ -14,6 +14,10 @@ struct ImageData {
     uint32_t height;
     uint32_t channels;
     void *image;
+
+    uint32_t size() {
+        return this->width * this->height * this->channels;
+    }
 };
 
 class ImageReader {
