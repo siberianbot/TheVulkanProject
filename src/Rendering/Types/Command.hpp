@@ -5,6 +5,6 @@
 
 #include <vulkan/vulkan.hpp>
 
-using Command = std::function<void(VkCommandBuffer cmdBuffer)>;
+using Command = std::function<void(const vk::CommandBuffer &cmdBuffer)>;
 
 #endif // RENDERING_TYPES_COMMAND_HPP

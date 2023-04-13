@@ -77,43 +77,34 @@ VkInstance RenderingManager::createInstance() {
     std::string name = "TheVulkanProject";
     uint32_t version = VK_MAKE_VERSION(0, 1, 0);
 
-    VkApplicationInfo appInfo = {
-            .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
-            .pNext = nullptr,
-            .pApplicationName = name.c_str(),
-            .applicationVersion = version,
-            .pEngineName = name.c_str(),
-            .engineVersion = version,
-            .apiVersion = VK_API_VERSION_1_3,
-    };
+    vk::ApplicationInfo appInfo = vk::ApplicationInfo()
+            .setApiVersion(VK_API_VERSION_1_3)
+            .setPApplicationName(name.c_str())
+            .setApplicationVersion(version)
+            .setPEngineName(name.c_str())
+            .setEngineVersion(version);
 
-    VkDebugUtilsMessengerCreateInfoEXT debugUtilsMessengerCreateInfoExt = {
-            .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
-            .pNext = nullptr,
-            .flags = 0,
-            // TODO: errors are ignored, why?
-            .messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT |
-                               VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
-                               VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT |
-                               VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT,
-            .messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
-                           VK_DEBUG_UTILS_MESSAGE_TYPE_DEVICE_ADDRESS_BINDING_BIT_EXT |
-                           VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT |
-                           VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT,
-            .pfnUserCallback = debugCallback,
-            .pUserData = this
-    };
+    vk::DebugUtilsMessengerCreateInfoEXT debugMessengerCreateInfo = vk::DebugUtilsMessengerCreateInfoEXT()
+            .setPfnUserCallback(debugCallback)
+            .setMessageType(vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral |
+                            vk::DebugUtilsMessageTypeFlagBitsEXT::eDeviceAddressBinding |
+                            vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance |
+                            vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation)
+            .setMessageSeverity(vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose |
+                                vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo |
+                                vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning |
+                                vk::DebugUtilsMessageSeverityFlagBitsEXT::eError);
 
-    VkInstanceCreateInfo instanceCreateInfo = {
-            .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-            .pNext = &debugUtilsMessengerCreateInfoExt,
-            .flags = 0,
-            .pApplicationInfo = &appInfo,
-            .enabledLayerCount = static_cast<uint32_t>(VALIDATION_LAYERS.size()),
-            .ppEnabledLayerNames = VALIDATION_LAYERS.data(),
-            .enabledExtensionCount = static_cast<uint32_t>(extensions.size()),
-            .ppEnabledExtensionNames = extensions.data()
-    };
+    vk::InstanceCreateInfo instanceCreateInfo = vk::InstanceCreateInfo()
+            .setPNext(&debugMessengerCreateInfo)
+            .setPApplicationInfo(&appInfo)
+            .setEnabledLayerCount(VALIDATION_LAYERS.size())
+            .setPEnabledLayerNames(VALIDATION_LAYERS)
+            .setEnabledExtensionCount(count)
+            .setPEnabledExtensionNames(extensions);
+
+    const auto &[isntance, res] = vk::createInstance(instanceCreateInfo);
+
 
     VkInstance instance;
     vkEnsure(vkCreateInstance(&instanceCreateInfo, nullptr, &instance));

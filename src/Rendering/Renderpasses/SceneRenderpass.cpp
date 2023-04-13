@@ -18,8 +18,6 @@
 #include "src/Rendering/Objects/DescriptorSetObject.hpp"
 #include "src/Rendering/Objects/ImageViewObject.hpp"
 #include "src/Rendering/Types/MeshConstants.hpp"
-#include "src/Resources/ResourceManager.hpp"
-#include "src/Resources/ShaderResource.hpp"
 #include "src/Types/Vertex.hpp"
 
 VkFramebuffer SceneRenderpass::createFramebuffer(const std::shared_ptr<ImageViewObject> &imageView, VkExtent2D extent) {

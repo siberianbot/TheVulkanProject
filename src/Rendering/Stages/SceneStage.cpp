@@ -20,9 +20,6 @@
 #include "src/Rendering/Objects/ImageViewObject.hpp"
 #include "src/Rendering/Renderpasses/ShadowRenderpass.hpp"
 #include "src/Rendering/Renderpasses/SceneRenderpass.hpp"
-#include "src/Resources/MeshResource.hpp"
-#include "src/Resources/ImageResource.hpp"
-#include "src/Resources/ResourceManager.hpp"
 #include "src/Scene/Scene.hpp"
 #include "src/Scene/SceneNode.hpp"
 #include "src/Scene/SceneManager.hpp"
@@ -140,12 +137,14 @@ void SceneStage::destroyGBuffer() {
 SceneStage::SceneStage(const std::shared_ptr<VarCollection> &vars,
                        const std::shared_ptr<EventQueue> &eventQueue,
                        const std::shared_ptr<RenderingManager> &renderingManager,
-                       const std::shared_ptr<ResourceManager> &resourceManager,
+                       const std::shared_ptr<ResourceDatabase> &resourceDatabase,
+                       const std::shared_ptr<ResourceLoader> &resourceLoader,
                        const std::shared_ptr<SceneManager> &sceneManager)
         : _vars(vars),
           _eventQueue(eventQueue),
           _renderingManager(renderingManager),
-          _resourceManager(resourceManager),
+          _resourceDatabase(resourceDatabase),
+          _resourceLoader(resourceLoader),
           _sceneManager(sceneManager) {
     //
 }

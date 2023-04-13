@@ -36,6 +36,8 @@ void DescriptorSetObject::updateWithBuffer(uint32_t bindingIdx, VkDescriptorType
     };
 
     vkUpdateDescriptorSets(this->_renderingDevice->getHandle(), 1, &write, 0, nullptr);
+
+    this->_bindings[bindingIdx] = DescriptorSetBinding{.buffer = buffer};
 }
 
 void DescriptorSetObject::updateWithImageView(uint32_t bindingIdx, VkDescriptorType descriptorType,
@@ -61,9 +63,13 @@ void DescriptorSetObject::updateWithImageView(uint32_t bindingIdx, VkDescriptorT
     };
 
     vkUpdateDescriptorSets(this->_renderingDevice->getHandle(), 1, &write, 0, nullptr);
+
+    this->_bindings[bindingIdx] = DescriptorSetBinding{.imageView = imageView};
 }
 
 void DescriptorSetObject::destroy() {
+    this->_bindings.clear();
+
     vkFreeDescriptorSets(this->_renderingDevice->getHandle(), this->_descriptorPool, 1, &this->_descriptorSet);
 }
 

@@ -13,10 +13,10 @@
 #include "src/Rendering/Objects/FenceObject.hpp"
 #include "src/Rendering/Objects/SemaphoreObject.hpp"
 #include "src/Rendering/Renderpasses/DebugUIRenderpass.hpp"
-//#include "src/Rendering/Renderpasses/ShadowRenderpass.hpp"
-//#include "src/Rendering/Renderpasses/SceneRenderpass.hpp"
+#include "src/Rendering/Renderpasses/ShadowRenderpass.hpp"
+#include "src/Rendering/Renderpasses/SceneRenderpass.hpp"
 #include "src/Rendering/Stages/DebugUIStage.hpp"
-//#include "src/Rendering/Stages/SceneStage.hpp"
+#include "src/Rendering/Stages/SceneStage.hpp"
 
 void Renderer::handleResize() {
     this->_renderingManager->waitIdle();
@@ -44,12 +44,14 @@ std::optional<uint32_t> Renderer::acquireNextImageIdx(const std::shared_ptr<Sema
 Renderer::Renderer(const std::shared_ptr<VarCollection> &vars,
                    const std::shared_ptr<EventQueue> &eventQueue,
                    const std::shared_ptr<RenderingManager> &renderingManager,
-//                   const std::shared_ptr<ResourceManager> &resourceManager,
+                   const std::shared_ptr<ResourceDatabase> &resourceDatabase,
+                   const std::shared_ptr<ResourceLoader> &resourceLoader,
                    const std::shared_ptr<SceneManager> &sceneManager)
         : _vars(vars),
           _eventQueue(eventQueue),
           _renderingManager(renderingManager),
-//          _resourceManager(resourceManager),
+          _resourceDatabase(resourceDatabase),
+          _resourceLoader(resourceLoader),
           _sceneManager(sceneManager) {
     //
 }
@@ -74,7 +76,7 @@ void Renderer::init() {
 
                 std::shared_ptr<ModelComponent> modelComponent = modelComponentWeak.lock();
 
-                for (uint32_t idx = 0; idx < MAX_INFLIGHT_FRAMES; idx++) {
+                for (uint32_t idx = 0; idx < INFLIGHT_FRAMES; idx++) {
                     modelComponent->descriptorSets()[idx] = DescriptorSetObject::create(
                             this->_renderingManager->renderingDevice(),
                             this->_renderingManager->renderingLayoutsManager()->descriptorPool(),
@@ -89,7 +91,7 @@ void Renderer::init() {
         }
     });
 
-    for (uint32_t frameIdx = 0; frameIdx < MAX_INFLIGHT_FRAMES; frameIdx++) {
+    for (uint32_t frameIdx = 0; frameIdx < INFLIGHT_FRAMES; frameIdx++) {
         this->_syncObjectsGroups[frameIdx] = std::make_shared<SyncObjectsGroup>();
         this->_syncObjectsGroups[frameIdx]->fence = FenceObject::create(this->_renderingManager->renderingDevice(),
                                                                         this->_renderingManager->vulkanObjectsAllocator(),
@@ -103,11 +105,12 @@ void Renderer::init() {
 
     this->_renderingManager->swapchain()->create();
 
-//    this->_stages.emplace_back(std::make_shared<SceneStage>(this->_vars,
-//                                                            this->_eventQueue,
-//                                                            this->_renderingManager,
-//                                                            this->_resourceManager,
-//                                                            this->_sceneManager));
+    this->_stages.emplace_back(std::make_shared<SceneStage>(this->_vars,
+                                                            this->_eventQueue,
+                                                            this->_renderingManager,
+                                                            this->_resourceDatabase,
+                                                            this->_resourceLoader,
+                                                            this->_sceneManager));
 
     this->_stages.emplace_back(std::make_shared<DebugUIStage>(this->_eventQueue,
                                                               this->_renderingManager));
@@ -126,7 +129,7 @@ void Renderer::destroy() {
 
     this->_renderingManager->swapchain()->destroy();
 
-    for (uint32_t frameIdx = 0; frameIdx < MAX_INFLIGHT_FRAMES; frameIdx++) {
+    for (uint32_t frameIdx = 0; frameIdx < INFLIGHT_FRAMES; frameIdx++) {
         this->_syncObjectsGroups[frameIdx]->fence->destroy();
         this->_syncObjectsGroups[frameIdx]->imageAvailableSemaphore->destroy();
         this->_syncObjectsGroups[frameIdx]->renderFinishedSemaphore->destroy();
@@ -184,5 +187,5 @@ void Renderer::render() {
         throw std::runtime_error("Vulkan runtime error");
     }
 
-    this->_currentFrameIdx = (this->_currentFrameIdx + 1) % MAX_INFLIGHT_FRAMES;
+    this->_currentFrameIdx = (this->_currentFrameIdx + 1) % INFLIGHT_FRAMES;
 }

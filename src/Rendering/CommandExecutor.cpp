@@ -1,41 +1,26 @@
 #include "CommandExecutor.hpp"
 
-#include "src/Rendering/Common.hpp"
-#include "src/Rendering/RenderingDevice.hpp"
-#include "src/Rendering/VulkanObjectsAllocator.hpp"
 #include "src/Rendering/CommandExecution.hpp"
+#include "src/Rendering/Proxies/LogicalDeviceProxy.hpp"
 
-CommandExecutor::CommandExecutor(const std::shared_ptr<RenderingDevice> &renderingDevice,
-                                 const std::shared_ptr<VulkanObjectsAllocator> &vulkanObjectsAllocator)
-        : _renderingDevice(renderingDevice),
-          _vulkanObjectsAllocator(vulkanObjectsAllocator) {
+CommandExecutor::CommandExecutor(const std::shared_ptr<LogicalDeviceProxy> &logicalDevice,
+                                 const vk::CommandPool &commandPool,
+                                 const std::vector<vk::CommandBuffer> &mainBuffers)
+        : _logicalDevice(logicalDevice),
+          _commandPool(commandPool),
+          _mainBuffers(mainBuffers) {
     //
 }
 
-void CommandExecutor::init() {
-    this->_commandPool = this->_vulkanObjectsAllocator->createCommandPool();
-
-    VkCommandBufferAllocateInfo allocateInfo = {
-            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-            .pNext = nullptr,
-            .commandPool = this->_commandPool,
-            .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-            .commandBufferCount = static_cast<uint32_t>(this->_inflightBuffers.size())
-    };
-
-    vkEnsure(vkAllocateCommandBuffers(this->_renderingDevice->getHandle(), &allocateInfo,
-                                      this->_inflightBuffers.data()));
-}
-
 void CommandExecutor::destroy() {
-    vkFreeCommandBuffers(this->_renderingDevice->getHandle(), this->_commandPool, this->_inflightBuffers.size(),
-                         this->_inflightBuffers.data());
-
-    this->_vulkanObjectsAllocator->destroyCommandPool(this->_commandPool);
+    this->_logicalDevice->getHandle().freeCommandBuffers(this->_commandPool, this->_mainBuffers);
+    this->_logicalDevice->getHandle().destroy(this->_commandPool);
 }
 
 CommandExecution CommandExecutor::beginMainExecution(uint32_t frameIdx, Command command) {
     VkCommandBuffer commandBuffer = this->_inflightBuffers[frameIdx];
+
+    this->_mainBuffers[frameIdx]
 
     vkEnsure(vkResetCommandBuffer(commandBuffer, 0));
 

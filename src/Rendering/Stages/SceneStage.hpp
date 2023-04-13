@@ -13,7 +13,8 @@ class ImageObject;
 class ImageViewObject;
 class ShadowRenderpass;
 class SceneRenderpass;
-class ResourceManager;
+class ResourceDatabase;
+class ResourceLoader;
 class SceneManager;
 
 class SceneStage : public StageBase {
@@ -21,7 +22,8 @@ private:
     std::shared_ptr<VarCollection> _vars;
     std::shared_ptr<EventQueue> _eventQueue;
     std::shared_ptr<RenderingManager> _renderingManager;
-    std::shared_ptr<ResourceManager> _resourceManager;
+    std::shared_ptr<ResourceDatabase> _resourceDatabase;
+    std::shared_ptr<ResourceLoader> _resourceLoader;
     std::shared_ptr<SceneManager> _sceneManager;
 
     uint32_t _shadowMapSize;
@@ -53,7 +55,8 @@ public:
     SceneStage(const std::shared_ptr<VarCollection> &vars,
                const std::shared_ptr<EventQueue> &eventQueue,
                const std::shared_ptr<RenderingManager> &renderingManager,
-               const std::shared_ptr<ResourceManager> &resourceManager,
+               const std::shared_ptr<ResourceDatabase> &resourceDatabase,
+               const std::shared_ptr<ResourceLoader> &resourceLoader,
                const std::shared_ptr<SceneManager> &sceneManager);
     ~SceneStage() override = default;
 

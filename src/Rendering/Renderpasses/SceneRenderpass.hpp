@@ -45,7 +45,7 @@ private:
     std::weak_ptr<ImageViewObject> _depthImageView;
     std::weak_ptr<ImageViewObject> _compositionImageView;
 
-    std::array<std::shared_ptr<DescriptorSetObject>, MAX_INFLIGHT_FRAMES> _compositionDescriptorSets;
+    std::array<std::shared_ptr<DescriptorSetObject>, INFLIGHT_FRAMES> _compositionDescriptorSets;
     std::shared_ptr<BufferObject> _shadowDataBuffer;
     std::shared_ptr<BufferObject> _lightDataBuffer;
     std::shared_ptr<BufferObject> _cameraDataBuffer;

@@ -8,14 +8,6 @@
 
 #include "Constants.hpp"
 
-static constexpr std::array<const char *, 1> VALIDATION_LAYERS = {
-        "VK_LAYER_KHRONOS_validation"
-};
-
-static constexpr std::array<const char *, 1> DEVICE_EXTENSIONS = {
-        VK_KHR_SWAPCHAIN_EXTENSION_NAME
-};
-
 static constexpr void vkEnsure(VkResult vkExpression) {
     if (vkExpression != VK_SUCCESS) {
         throw std::runtime_error("Vulkan runtime error");

@@ -7,6 +7,7 @@
 #include "src/Utils/CircularBuffer.hpp"
 
 enum LogCategory {
+    VERBOSE_LOG_CATEGORY,
     INFO_LOG_CATEGORY,
     WARNING_LOG_CATEGORY,
     ERROR_LOG_CATEGORY
@@ -27,9 +28,11 @@ private:
 public:
     void push(LogCategory category, const std::string &tag, const std::string &msg);
 
+    void verbose(const std::string &tag, const std::string &msg);
     void info(const std::string &tag, const std::string &msg);
     void warning(const std::string &tag, const std::string &msg);
     void warning(const std::string &tag, const std::exception &error);
+    void error(const std::string &tag, const std::string &msg);
     void error(const std::string &tag, const std::exception &error);
 
     [[nodiscard]] CircularBuffer<LogEntry, 1024> &buffer() { return this->_buffer; }

@@ -5,7 +5,7 @@
 
 #include <glm/vec3.hpp>
 
-static constexpr const uint32_t MAX_INFLIGHT_FRAMES = 2;
+static constexpr const uint32_t INFLIGHT_FRAME_COUNT = 2;
 
 static constexpr std::array<glm::vec3, 6> POINT_LIGHT_SOURCE_DIRECTIONS = {
         glm::vec3(1, 0, 0),

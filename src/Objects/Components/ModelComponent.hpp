@@ -17,7 +17,7 @@ private:
     std::optional<ResourceId> _albedoTextureId;
     std::optional<ResourceId> _specularTextureId;
 
-    std::array<std::shared_ptr<DescriptorSetObject>, MAX_INFLIGHT_FRAMES> _descriptorSets;
+    std::array<std::shared_ptr<DescriptorSetObject>, INFLIGHT_FRAMES> _descriptorSets;
 
 public:
     ~ModelComponent() override;
@@ -32,7 +32,7 @@ public:
 
     [[nodiscard]] const std::optional<ResourceId> &specularTextureId() const { return this->_specularTextureId; }
 
-    [[nodiscard]] std::array<std::shared_ptr<DescriptorSetObject>, MAX_INFLIGHT_FRAMES> &descriptorSets() {
+    [[nodiscard]] std::array<std::shared_ptr<DescriptorSetObject>, INFLIGHT_FRAMES> &descriptorSets() {
         return this->_descriptorSets;
     }
 

@@ -32,7 +32,14 @@ src = [
     'src/Events/Event.cpp',
     'src/Events/EventQueue.cpp',
 
-    # Rendering
+    # Rendering System
+    'src/Rendering/CommandManager.cpp',
+    'src/Rendering/GpuAllocator.cpp',
+    'src/Rendering/GpuManager.cpp',
+    'src/Rendering/Proxies/CommandBufferProxy.cpp',
+    'src/Rendering/Proxies/LogicalDeviceProxy.cpp',
+    'src/Rendering/Proxies/PhysicalDeviceProxy.cpp',
+
     'src/Rendering/RenderingManager.cpp',
     'src/Rendering/CommandExecution.cpp',
     'src/Rendering/CommandExecutor.cpp',

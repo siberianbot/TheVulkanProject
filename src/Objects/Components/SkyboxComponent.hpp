@@ -18,7 +18,7 @@ private:
     std::optional<ResourceId> _meshId;
     std::array<ResourceId, SKYBOX_TEXTURE_ARRAY_SIZE> _textureIds;
 
-    std::array<std::shared_ptr<DescriptorSetObject>, MAX_INFLIGHT_FRAMES> _descriptorSets;
+    std::array<std::shared_ptr<DescriptorSetObject>, INFLIGHT_FRAMES> _descriptorSets;
 
 public:
     ~SkyboxComponent() override;
@@ -32,7 +32,7 @@ public:
         return this->_textureIds;
     }
 
-    [[nodiscard]] std::array<std::shared_ptr<DescriptorSetObject>, MAX_INFLIGHT_FRAMES> &descriptorSets() {
+    [[nodiscard]] std::array<std::shared_ptr<DescriptorSetObject>, INFLIGHT_FRAMES> &descriptorSets() {
         return this->_descriptorSets;
     }
 
