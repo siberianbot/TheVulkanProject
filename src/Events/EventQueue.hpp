@@ -2,20 +2,23 @@
 #define EVENTS_EVENTQUEUE_HPP
 
 #include <functional>
-#include <forward_list>
+#include <map>
 #include <queue>
 
 #include "Event.hpp"
 
+using EventHandlerIdx = uint64_t;
 using EventHandler = std::function<void(const Event &)>;
 
 class EventQueue {
 private:
+    EventHandlerIdx _nextIdx = 0;
     std::queue<Event> _pendingEvents;
-    std::forward_list<EventHandler> _handlers;
+    std::map<EventHandlerIdx, EventHandler> _handlers;
 
 public:
-    void addHandler(EventHandler handler);
+    [[nodiscard]] EventHandlerIdx addHandler(EventHandler handler);
+    void removeHandler(EventHandlerIdx handlerIdx);
 
     void process();
 

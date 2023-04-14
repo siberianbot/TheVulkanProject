@@ -1,7 +1,16 @@
 #include "EventQueue.hpp"
 
-void EventQueue::addHandler(EventHandler handler) {
-    this->_handlers.push_front(handler);
+EventHandlerIdx EventQueue::addHandler(EventHandler handler) {
+    EventHandlerIdx idx = this->_nextIdx;
+
+    this->_handlers.emplace(idx, handler);
+    this->_nextIdx++;
+
+    return idx;
+}
+
+void EventQueue::removeHandler(EventHandlerIdx handlerIdx) {
+    this->_handlers.erase(handlerIdx);
 }
 
 void EventQueue::process() {
@@ -15,7 +24,7 @@ void EventQueue::process() {
     while (!events.empty()) {
         Event event = events.front();
 
-        for (const EventHandler &handler: this->_handlers) {
+        for (const auto &[idx, handler]: this->_handlers) {
             handler(event);
         }
 
