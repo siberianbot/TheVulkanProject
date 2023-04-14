@@ -8,10 +8,14 @@
 
 class Log;
 class VarCollection;
+class EventQueue;
+class ResourceDatabase;
+class ResourceLoader;
 class Window;
 
 class CommandManager;
 class GpuAllocator;
+class GpuResourceManager;
 class LogicalDeviceProxy;
 class PhysicalDeviceProxy;
 
@@ -19,6 +23,9 @@ class GpuManager {
 private:
     std::shared_ptr<Log> _log;
     std::shared_ptr<VarCollection> _varCollection;
+    std::shared_ptr<EventQueue> _eventQueue;
+    std::shared_ptr<ResourceDatabase> _resourceDatabase;
+    std::shared_ptr<ResourceLoader> _resourceLoader;
     std::shared_ptr<Window> _window;
 
     vk::Instance _instance;
@@ -27,6 +34,7 @@ private:
     std::shared_ptr<LogicalDeviceProxy> _logicalDevice;
     std::shared_ptr<CommandManager> _commandManager;
     std::shared_ptr<GpuAllocator> _allocator;
+    std::shared_ptr<GpuResourceManager> _resourceManager;
 
     std::vector<const char *> getRequiredInstanceExtensions();
     vk::PhysicalDeviceFeatures getEnabledFeatures();
@@ -37,6 +45,7 @@ private:
     void initLogicalDevice();
     void initCommandManager();
     void initAllocator();
+    void initResourceManager();
 
     static VkBool32 messengerCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
                                       VkDebugUtilsMessageTypeFlagsEXT messageTypes,
@@ -46,6 +55,9 @@ private:
 public:
     GpuManager(const std::shared_ptr<Log> &log,
                const std::shared_ptr<VarCollection> &varCollection,
+               const std::shared_ptr<EventQueue> &eventQueue,
+               const std::shared_ptr<ResourceDatabase> resourceDatabase,
+               const std::shared_ptr<ResourceLoader> resourceLoader,
                const std::shared_ptr<Window> &window);
 
     void init();
@@ -58,6 +70,8 @@ public:
     [[nodiscard]] std::weak_ptr<CommandManager> getCommandManager() const { return this->_commandManager; }
 
     [[nodiscard]] std::weak_ptr<GpuAllocator> getAllocator() const { return this->_allocator; }
+
+    [[nodiscard]] std::weak_ptr<GpuResourceManager> getResourceManager() const { return this->_resourceManager; }
 };
 
 #endif // RENDERING_GPUMANAGER_HPP

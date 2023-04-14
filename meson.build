@@ -36,6 +36,7 @@ src = [
     'src/Rendering/CommandManager.cpp',
     'src/Rendering/GpuAllocator.cpp',
     'src/Rendering/GpuManager.cpp',
+    'src/Rendering/GpuResourceManager.cpp',
     'src/Rendering/Proxies/CommandBufferProxy.cpp',
     'src/Rendering/Proxies/LogicalDeviceProxy.cpp',
     'src/Rendering/Proxies/PhysicalDeviceProxy.cpp',
@@ -43,7 +44,6 @@ src = [
     # Resources
     'src/Resources/Resource.cpp',
     'src/Resources/ResourceData.cpp',
-    'src/Resources/ResourceType.cpp',
     'src/Resources/ResourceDatabase.cpp',
     'src/Resources/ResourceLoader.cpp',
     'src/Resources/Readers/ImageReader.cpp',

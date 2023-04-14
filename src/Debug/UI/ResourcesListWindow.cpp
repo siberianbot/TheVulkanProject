@@ -35,7 +35,7 @@ void ResourcesListWindow::draw(bool *visible) {
             ImGui::TextWrapped("%s", id.c_str());
 
             ImGui::TableNextColumn();
-            ImGui::Text("%s", toString(resource->type()).c_str());
+            ImGui::Text("%s", toString(resource->type()).data());
 
             ImGui::TableNextColumn();
             ImGui::Text("%s", this->_resourceLoader->isLoaded(id) ? YES : NO);

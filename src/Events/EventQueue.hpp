@@ -5,9 +5,9 @@
 #include <map>
 #include <queue>
 
-#include "Event.hpp"
+#include "src/Events/Event.hpp"
+#include "src/Events/EventHandlerIdx.hpp"
 
-using EventHandlerIdx = uint64_t;
 using EventHandler = std::function<void(const Event &)>;
 
 class EventQueue {

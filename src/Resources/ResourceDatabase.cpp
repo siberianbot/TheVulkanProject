@@ -95,7 +95,7 @@ void ResourceDatabase::readResourceEntry(const std::string &prefix, const std::f
         }
 
         std::filesystem::path path = basePath / entry[RESOURCE_ENTRY_PATH_TAG];
-        std::shared_ptr<Resource> resource = std::make_shared<Resource>(id, resourceTypeFromString(type), path);
+        std::shared_ptr<Resource> resource = std::make_shared<Resource>(id, fromString<ResourceType>(type), path);
 
         this->addResource(resource);
 

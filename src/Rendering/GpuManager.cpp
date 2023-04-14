@@ -14,6 +14,7 @@
 #include "src/Rendering/CommandManager.hpp"
 #include "src/Rendering/Extensions.hpp"
 #include "src/Rendering/GpuAllocator.hpp"
+#include "src/Rendering/GpuResourceManager.hpp"
 #include "src/Rendering/Proxies/LogicalDeviceProxy.hpp"
 #include "src/Rendering/Proxies/PhysicalDeviceProxy.hpp"
 #include "src/System/Window.hpp"
@@ -189,6 +190,18 @@ void GpuManager::initAllocator() {
                                                       this->_logicalDevice);
 }
 
+void GpuManager::initResourceManager() {
+    this->_resourceManager = std::make_shared<GpuResourceManager>(this->_log,
+                                                                  this->_eventQueue,
+                                                                  this->_resourceDatabase,
+                                                                  this->_resourceLoader,
+                                                                  this->_commandManager,
+                                                                  this->_allocator,
+                                                                  this->_logicalDevice);
+
+    this->_resourceManager->init();
+}
+
 VkBool32 GpuManager::messengerCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
                                        VkDebugUtilsMessageTypeFlagsEXT messageTypes,
                                        const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
@@ -221,9 +234,15 @@ VkBool32 GpuManager::messengerCallback(VkDebugUtilsMessageSeverityFlagBitsEXT me
 
 GpuManager::GpuManager(const std::shared_ptr<Log> &log,
                        const std::shared_ptr<VarCollection> &varCollection,
+                       const std::shared_ptr<EventQueue> &eventQueue,
+                       const std::shared_ptr<ResourceDatabase> resourceDatabase,
+                       const std::shared_ptr<ResourceLoader> resourceLoader,
                        const std::shared_ptr<Window> &window)
         : _log(log),
           _varCollection(varCollection),
+          _eventQueue(eventQueue),
+          _resourceDatabase(resourceDatabase),
+          _resourceLoader(resourceLoader),
           _window(window) {
     //
 }
@@ -237,11 +256,13 @@ void GpuManager::init() {
     this->initLogicalDevice();
     this->initCommandManager();
     this->initAllocator();
+    this->initResourceManager();
 }
 
 void GpuManager::destroy() {
     this->_logicalDevice->getHandle().waitIdle();
 
+    this->_resourceManager->freeAll();
     this->_allocator->freeAll();
 
     this->_commandManager->destroy();
