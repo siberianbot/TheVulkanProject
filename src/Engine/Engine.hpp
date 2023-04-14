@@ -10,10 +10,9 @@ class VarCollection;
 class ResourceDatabase;
 class ResourceLoader;
 class InputProcessor;
+class GpuManager;
 class Window;
-class RenderingManager;
 class SceneManager;
-class Renderer;
 class DebugUIRoot;
 
 enum CameraControlState {
@@ -30,9 +29,8 @@ private:
     std::shared_ptr<ResourceLoader> _resourceLoader;
     std::shared_ptr<InputProcessor> _inputProcessor;
     std::shared_ptr<Window> _window;
-    std::shared_ptr<RenderingManager> _renderingManager;
+    std::shared_ptr<GpuManager> _gpuManager;
     std::shared_ptr<SceneManager> _sceneManager;
-    std::shared_ptr<Renderer> _renderer;
     std::shared_ptr<DebugUIRoot> _debugUI;
 
     bool _work = false;

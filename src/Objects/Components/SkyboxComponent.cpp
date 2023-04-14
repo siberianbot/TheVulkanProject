@@ -1,16 +1,9 @@
 #include "SkyboxComponent.hpp"
 
 #include "src/Debug/UI/ObjectEditVisitor.hpp"
-#include "src/Rendering/Objects/DescriptorSetObject.hpp"
 
 SkyboxComponent::~SkyboxComponent() {
-    for (const auto &descriptorSet: this->_descriptorSets) {
-        if (descriptorSet == nullptr) {
-            continue;
-        }
-
-        descriptorSet->destroy();
-    }
+    // TODO
 }
 
 void SkyboxComponent::setMeshId(const std::optional<ResourceId> &meshId) {

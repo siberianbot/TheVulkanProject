@@ -1,16 +1,9 @@
 #include "ModelComponent.hpp"
 
 #include "src/Debug/UI/ObjectEditVisitor.hpp"
-#include "src/Rendering/Objects/DescriptorSetObject.hpp"
 
 ModelComponent::~ModelComponent() {
-    for (const auto &descriptorSet: this->_descriptorSets) {
-        if (descriptorSet == nullptr) {
-            continue;
-        }
-
-        descriptorSet->destroy();
-    }
+    // TODO
 }
 
 void ModelComponent::setMeshId(const std::optional<ResourceId> &meshId) {

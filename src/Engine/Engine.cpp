@@ -11,8 +11,7 @@
 #include "src/Events/EventQueue.hpp"
 #include "src/Engine/InputProcessor.hpp"
 #include "src/System/Window.hpp"
-#include "src/Rendering/RenderingManager.hpp"
-#include "src/Rendering/Renderer.hpp"
+#include "src/Rendering/GpuManager.hpp"
 #include "src/Resources/ResourceDatabase.hpp"
 #include "src/Resources/ResourceLoader.hpp"
 #include "src/Resources/Readers/SceneReader.hpp"
@@ -31,9 +30,8 @@ Engine::Engine()
           _resourceLoader(std::make_shared<ResourceLoader>(this->_log, this->_eventQueue)),
           _inputProcessor(std::make_shared<InputProcessor>(this->_eventQueue)),
           _window(std::make_shared<Window>(this->_vars, this->_eventQueue)),
-          _renderingManager(std::make_shared<RenderingManager>(this->_log, this->_vars, this->_window)),
+          _gpuManager(std::make_shared<GpuManager>(this->_log, this->_vars, this->_window)),
           _sceneManager(std::make_shared<SceneManager>(this->_eventQueue)),
-          _renderer(nullptr),
           _debugUI(nullptr) {
     //
 }
@@ -67,14 +65,10 @@ void Engine::init() {
         this->_work = false;
     });
 
-    this->_renderingManager->init();
+    this->_gpuManager->init();
 
     this->_debugUI = std::make_shared<DebugUIRoot>(this->_log, this->_eventQueue, this->_vars, this->_resourceDatabase,
                                                    this->_resourceLoader, this->_sceneManager);
-
-    this->_renderer = std::make_shared<Renderer>(this->_vars, this->_eventQueue, this->_renderingManager,
-                                                 this->_sceneManager);
-    this->_renderer->init();
 
     this->_inputProcessor->addKeyboardPressHandler(GLFW_KEY_W, [this]() { this->_moveForward = true; });
     this->_inputProcessor->addKeyboardReleaseHandler(GLFW_KEY_W, [this]() { this->_moveForward = false; });
@@ -160,13 +154,9 @@ void Engine::init() {
 }
 
 void Engine::cleanup() {
-    this->_renderingManager->waitIdle();
-
     this->_sceneManager->setScene(nullptr);
 
-    this->_renderer->destroy();
-
-    this->_renderingManager->destroy();
+    this->_gpuManager->destroy();
 
     ImGui::DestroyContext();
 
@@ -211,8 +201,7 @@ void Engine::run() {
             }
         }
 
-        this->_debugUI->render();
-        this->_renderer->render();
+//        this->_debugUI->render();
 
         this->_delta = glfwGetTime() - startTime;
     }
