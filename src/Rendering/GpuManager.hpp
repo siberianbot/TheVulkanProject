@@ -28,7 +28,7 @@ private:
     std::shared_ptr<CommandManager> _commandManager;
     std::shared_ptr<GpuAllocator> _allocator;
 
-    std::vector<const char *> getEnabledExtensions();
+    std::vector<const char *> getRequiredInstanceExtensions();
     vk::PhysicalDeviceFeatures getEnabledFeatures();
 
     void initInstance();

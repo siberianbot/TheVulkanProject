@@ -41,7 +41,7 @@ std::optional<PhysicalDeviceSupportInfo> PhysicalDeviceProxy::getSupportInfoFor(
     std::vector<vk::ExtensionProperties> extensionProperties = physicalDevice.enumerateDeviceExtensionProperties();
 
     if (std::any_of(REQUIRED_DEVICE_EXTENSIONS.begin(), REQUIRED_DEVICE_EXTENSIONS.end(),
-                    [&extensionProperties](const char *extensionName) -> bool {
+                    [&extensionProperties](const std::string_view &extensionName) -> bool {
                         return std::find_if(extensionProperties.begin(), extensionProperties.end(),
                                             [&extensionName](const vk::ExtensionProperties &extension) -> bool {
                                                 return extension.extensionName == extensionName;

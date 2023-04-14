@@ -20,14 +20,14 @@
 
 static constexpr const char *GPU_MANAGER_TAG = "GpuManager";
 
-std::vector<const char *> GpuManager::getEnabledExtensions() {
+std::vector<const char *> GpuManager::getRequiredInstanceExtensions() {
     uint32_t count;
     const char **extensionsPtr = glfwGetRequiredInstanceExtensions(&count);
 
     std::vector<const char *> extensions(extensionsPtr, extensionsPtr + count);
 
-    for (const char *extension: REQUIRED_INSTANCE_EXTENSIONS) {
-        extensions.push_back(extension);
+    for (std::string_view extension: REQUIRED_INSTANCE_EXTENSIONS) {
+        extensions.push_back(extension.data());
     }
 
     return extensions;
@@ -66,13 +66,14 @@ void GpuManager::initInstance() {
                                 vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning |
                                 vk::DebugUtilsMessageSeverityFlagBitsEXT::eError);
 
-    auto enabledExtensions = this->getEnabledExtensions();
+    auto requiredLayers = getRequiredLayersCStr();
+    auto requiredInstanceExtensions = this->getRequiredInstanceExtensions();
 
     vk::InstanceCreateInfo instanceCreateInfo = vk::InstanceCreateInfo()
             .setPNext(&debugMessengerCreateInfo)
             .setPApplicationInfo(&appInfo)
-            .setPEnabledLayerNames(REQUIRED_LAYERS)
-            .setPEnabledExtensionNames(enabledExtensions);
+            .setPEnabledLayerNames(requiredLayers)
+            .setPEnabledExtensionNames(requiredInstanceExtensions);
 
     try {
         this->_instance = vk::createInstance(instanceCreateInfo);
@@ -158,11 +159,14 @@ void GpuManager::initLogicalDevice() {
 
     vk::PhysicalDeviceFeatures features = this->getEnabledFeatures();
 
+    auto requiredLayers = getRequiredLayersCStr();
+    auto requiredDeviceExtensions = getRequiredDeviceExtensionsCStr();
+
     vk::DeviceCreateInfo createInfo = vk::DeviceCreateInfo()
             .setQueueCreateInfos(queueCreateInfos)
             .setPEnabledFeatures(&features)
-            .setPEnabledLayerNames(REQUIRED_LAYERS)
-            .setPEnabledExtensionNames(REQUIRED_DEVICE_EXTENSIONS);
+            .setPEnabledLayerNames(requiredLayers)
+            .setPEnabledExtensionNames(requiredDeviceExtensions);
 
     vk::Device device = this->_physicalDevice->getHandle().createDevice(createInfo);
     vk::Queue graphicsQueue = device.getQueue(this->_physicalDevice->getGraphicsQueueFamilyIdx(), 0);
