@@ -1,58 +1,41 @@
 #include "Log.hpp"
 
-static constexpr const char *VERBOSE_LOG_CATEGORY_STRING = "verbose";
-static constexpr const char *INFO_LOG_CATEGORY_STRING = "info";
-static constexpr const char *WARNING_LOG_CATEGORY_STRING = "warning";
-static constexpr const char *ERROR_LOG_CATEGORY_STRING = "ERROR";
+#include <iostream>
 
-std::string toString(const LogCategory &category) {
-    switch (category) {
-        case VERBOSE_LOG_CATEGORY:
-            return VERBOSE_LOG_CATEGORY_STRING;
+#include <fmt/core.h>
 
-        case INFO_LOG_CATEGORY:
-            return INFO_LOG_CATEGORY_STRING;
-
-        case WARNING_LOG_CATEGORY:
-            return WARNING_LOG_CATEGORY_STRING;
-
-        case ERROR_LOG_CATEGORY:
-            return ERROR_LOG_CATEGORY_STRING;
-    }
-
-    throw std::runtime_error("Not supported");
-}
-
-void Log::push(LogCategory category, const std::string &tag, const std::string &msg) {
+void Log::push(LogCategory category, const std::string_view &tag, const std::string_view &msg) {
     LogEntry entry = {
             .category = category,
-            .tag = tag,
-            .msg = msg
+            .tag = std::string(tag),
+            .msg = std::string(msg)
     };
 
     this->_buffer.push_back(entry);
+
+    std::cout << fmt::format("{0}\t{1}: {2}", toString(category), tag, msg) << std::endl;
 }
 
-void Log::verbose(const std::string &tag, const std::string &msg) {
+void Log::verbose(const std::string_view &tag, const std::string_view &msg) {
     this->push(VERBOSE_LOG_CATEGORY, tag, msg);
 }
 
-void Log::info(const std::string &tag, const std::string &msg) {
+void Log::info(const std::string_view &tag, const std::string_view &msg) {
     this->push(INFO_LOG_CATEGORY, tag, msg);
 }
 
-void Log::warning(const std::string &tag, const std::string &msg) {
+void Log::warning(const std::string_view &tag, const std::string_view &msg) {
     this->push(WARNING_LOG_CATEGORY, tag, msg);
 }
 
-void Log::warning(const std::string &tag, const std::exception &error) {
+void Log::warning(const std::string_view &tag, const std::exception &error) {
     this->push(WARNING_LOG_CATEGORY, tag, error.what());
 }
 
-void Log::error(const std::string &tag, const std::string &msg) {
+void Log::error(const std::string_view &tag, const std::string_view &msg) {
     this->push(ERROR_LOG_CATEGORY, tag, msg);
 }
 
-void Log::error(const std::string &tag, const std::exception &error) {
+void Log::error(const std::string_view &tag, const std::exception &error) {
     this->push(ERROR_LOG_CATEGORY, tag, error.what());
 }

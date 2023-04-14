@@ -3,17 +3,10 @@
 
 #include <exception>
 #include <string>
+#include <string_view>
 
+#include "src/Engine/LogCategory.hpp"
 #include "src/Utils/CircularBuffer.hpp"
-
-enum LogCategory {
-    VERBOSE_LOG_CATEGORY,
-    INFO_LOG_CATEGORY,
-    WARNING_LOG_CATEGORY,
-    ERROR_LOG_CATEGORY
-};
-
-std::string toString(const LogCategory &category);
 
 struct LogEntry {
     LogCategory category;
@@ -26,14 +19,14 @@ private:
     CircularBuffer<LogEntry, 1024> _buffer;
 
 public:
-    void push(LogCategory category, const std::string &tag, const std::string &msg);
+    void push(LogCategory category, const std::string_view &tag, const std::string_view &msg);
 
-    void verbose(const std::string &tag, const std::string &msg);
-    void info(const std::string &tag, const std::string &msg);
-    void warning(const std::string &tag, const std::string &msg);
-    void warning(const std::string &tag, const std::exception &error);
-    void error(const std::string &tag, const std::string &msg);
-    void error(const std::string &tag, const std::exception &error);
+    void verbose(const std::string_view &tag, const std::string_view &msg);
+    void info(const std::string_view &tag, const std::string_view &msg);
+    void warning(const std::string_view &tag, const std::string_view &msg);
+    void warning(const std::string_view &tag, const std::exception &error);
+    void error(const std::string_view &tag, const std::string_view &msg);
+    void error(const std::string_view &tag, const std::exception &error);
 
     [[nodiscard]] CircularBuffer<LogEntry, 1024> &buffer() { return this->_buffer; }
 };

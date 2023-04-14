@@ -47,7 +47,7 @@ void LogWindow::draw(bool *visible) {
 #pragma clang diagnostic pop
 
             ImGui::TableNextColumn();
-            ImGui::TextWrapped("%s", toString(entry.category).c_str());
+            ImGui::TextWrapped("%s", toString(entry.category).data());
 
             ImGui::TableNextColumn();
             ImGui::TextWrapped("%s", entry.tag.c_str());
