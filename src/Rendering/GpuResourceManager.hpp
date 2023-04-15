@@ -7,6 +7,7 @@
 
 #include "src/Events/EventHandlerIdx.hpp"
 #include "src/Rendering/Types/Mesh.hpp"
+#include "src/Rendering/Types/Texture.hpp"
 #include "src/Resources/ResourceId.hpp"
 
 class Log;
@@ -35,11 +36,15 @@ private:
 
     EventHandlerIdx _handlerIdx;
     std::map<ResourceId, std::shared_ptr<Mesh>> _meshes;
+    std::map<ResourceId, std::shared_ptr<Texture>> _textures;
 
     std::weak_ptr<Mesh> getMesh(const ResourceId &resourceId);
-
     std::shared_ptr<Mesh> loadMesh(const ResourceId &resourceId);
     void freeMesh(const std::shared_ptr<Mesh> &mesh);
+
+    std::weak_ptr<Texture> getTexture(const ResourceId &resourceId);
+    std::shared_ptr<Texture> loadTexture(const ResourceId &resourceId);
+    void freeTexture(const std::shared_ptr<Texture> &texture);
 
 public:
     GpuResourceManager(const std::shared_ptr<Log> &log,
@@ -54,6 +59,8 @@ public:
     void destroy();
 
     [[nodiscard]] std::optional<std::weak_ptr<Mesh>> tryGetMesh(const ResourceId &resourceId);
+
+    [[nodiscard]] std::optional<std::weak_ptr<Texture>> tryGetTexture(const ResourceId &resourceId);
 
     void free(const ResourceId &resourceId);
 

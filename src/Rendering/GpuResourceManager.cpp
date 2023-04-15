@@ -74,6 +74,97 @@ std::weak_ptr<BufferView> uploadBuffer(const std::shared_ptr<CommandManager> &co
     return targetBufferView;
 }
 
+std::weak_ptr<ImageView> uploadImage(const std::shared_ptr<CommandManager> &commandManager,
+                                     const std::shared_ptr<GpuAllocator> &allocator,
+                                     const std::shared_ptr<LogicalDeviceProxy> &logicalDevice,
+                                     const std::unique_ptr<ImageData> &imageData) {
+    vk::DeviceSize size = imageData->size();
+    vk::Extent3D extent = vk::Extent3D(imageData->width, imageData->height, 1);
+
+    BufferRequirements stagingBufferRequirements = {
+            .size = size,
+            .usage = vk::BufferUsageFlagBits::eTransferSrc,
+            .memoryProperties = vk::MemoryPropertyFlagBits::eHostVisible |
+                                vk::MemoryPropertyFlagBits::eHostCoherent
+    };
+
+    auto stagingBufferView = allocator->allocateBuffer(stagingBufferRequirements, true).lock();
+
+    ImageRequirements imageRequirements = {
+            .size = size,
+            .usage = vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled,
+            .memoryProperties = vk::MemoryPropertyFlagBits::eDeviceLocal,
+            .extent = extent,
+            .format = vk::Format::eR8G8B8A8Srgb,
+            .aspectMask = vk::ImageAspectFlagBits::eColor
+    };
+
+    auto imageView = allocator->allocateImage(imageRequirements).lock();
+
+    auto commandBuffer = commandManager->createPrimaryBuffer();
+
+    auto beginInfo = vk::CommandBufferBeginInfo()
+            .setFlags(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
+
+    commandBuffer->getHandle().begin(beginInfo);
+
+    auto memoryBarrier = vk::ImageMemoryBarrier()
+            .setImage(imageView->image)
+            .setSubresourceRange(vk::ImageSubresourceRange()
+                                         .setAspectMask(vk::ImageAspectFlagBits::eColor)
+                                         .setLayerCount(1)
+                                         .setLevelCount(1));
+
+    memoryBarrier
+            .setDstAccessMask(vk::AccessFlagBits::eTransferWrite)
+            .setOldLayout(vk::ImageLayout::eUndefined)
+            .setNewLayout(vk::ImageLayout::eTransferDstOptimal);
+
+    commandBuffer->getHandle().pipelineBarrier(vk::PipelineStageFlagBits::eTopOfPipe,
+                                               vk::PipelineStageFlagBits::eTransfer,
+                                               vk::DependencyFlags(),
+                                               {}, {}, {memoryBarrier});
+
+    auto bufferImageCopy = vk::BufferImageCopy()
+            .setBufferRowLength(imageData->width)
+            .setBufferImageHeight(imageData->height)
+            .setImageExtent(extent)
+            .setImageSubresource(vk::ImageSubresourceLayers()
+                                         .setAspectMask(vk::ImageAspectFlagBits::eColor)
+                                         .setLayerCount(1));
+
+    commandBuffer->getHandle().copyBufferToImage(stagingBufferView->buffer,
+                                                 imageView->image,
+                                                 vk::ImageLayout::eTransferDstOptimal,
+                                                 {bufferImageCopy});
+
+    memoryBarrier
+            .setSrcAccessMask(vk::AccessFlagBits::eTransferWrite)
+            .setDstAccessMask(vk::AccessFlagBits::eShaderRead)
+            .setOldLayout(vk::ImageLayout::eTransferDstOptimal)
+            .setNewLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
+
+    commandBuffer->getHandle().pipelineBarrier(vk::PipelineStageFlagBits::eTopOfPipe,
+                                               vk::PipelineStageFlagBits::eFragmentShader,
+                                               vk::DependencyFlags(),
+                                               {}, {}, {memoryBarrier});
+
+    commandBuffer->getHandle().end();
+
+    auto commandBuffers = {commandBuffer->getHandle()};
+    auto submit = vk::SubmitInfo()
+            .setCommandBuffers(commandBuffers);
+
+    logicalDevice->getGraphicsQueue().submit({submit});
+    logicalDevice->getGraphicsQueue().waitIdle();
+
+    commandBuffer->destroy();
+
+    allocator->freeBuffer(stagingBufferView);
+
+    return imageView;
+}
+
 std::weak_ptr<Mesh> GpuResourceManager::getMesh(const ResourceId &resourceId) {
     auto it = this->_meshes.find(resourceId);
 
@@ -138,6 +229,65 @@ void GpuResourceManager::freeMesh(const std::shared_ptr<Mesh> &mesh) {
     this->_allocator->freeBuffer(mesh->indexBuffer);
 }
 
+std::weak_ptr<Texture> GpuResourceManager::getTexture(const ResourceId &resourceId) {
+    auto it = this->_textures.find(resourceId);
+
+    if (it != this->_textures.end()) {
+        return it->second;
+    }
+
+    std::shared_ptr<Texture> texture = this->loadTexture(resourceId);
+    this->_textures.emplace(resourceId, texture);
+
+    return texture;
+}
+
+std::shared_ptr<Texture> GpuResourceManager::loadTexture(const ResourceId &resourceId) {
+    auto generalException = [&resourceId]() {
+        return EngineError(fmt::format("Failed to load image {0}", resourceId));
+    };
+
+    auto resource = this->_resourceDatabase->tryGetResource(resourceId);
+
+    if (!resource.has_value()) {
+        throw generalException();
+    }
+
+    auto lockedResource = resource.value().lock();
+
+    if (lockedResource->type() != IMAGE_RESOURCE) {
+        throw EngineError(fmt::format("Resource {0} is not an image", resourceId));
+    }
+
+    auto resourceData = this->_resourceLoader->tryLoad(lockedResource);
+
+    if (!resourceData.has_value()) {
+        throw generalException();
+    }
+
+    auto imageData = this->_imageReader->tryRead(resourceData.value());
+
+    if (!imageData.has_value()) {
+        throw generalException();
+    }
+
+    auto texture = std::make_shared<Texture>();
+
+    try {
+        texture->image = uploadImage(this->_commandManager, this->_allocator, this->_logicalDevice,
+                                     imageData.value());
+    } catch (const std::exception &error) {
+        this->_log->error(GPU_RESOURCE_MANAGER_TAG, error);
+        throw generalException();
+    }
+
+    return texture;
+}
+
+void GpuResourceManager::freeTexture(const std::shared_ptr<Texture> &texture) {
+    this->_allocator->freeImage(texture->image);
+}
+
 GpuResourceManager::GpuResourceManager(const std::shared_ptr<Log> &log,
                                        const std::shared_ptr<EventQueue> &eventQueue,
                                        const std::shared_ptr<ResourceDatabase> resourceDatabase,
@@ -190,11 +340,28 @@ std::optional<std::weak_ptr<Mesh>> GpuResourceManager::tryGetMesh(const Resource
     }
 }
 
+std::optional<std::weak_ptr<Texture>> GpuResourceManager::tryGetTexture(const ResourceId &resourceId) {
+    try {
+        return this->getTexture(resourceId);
+    } catch (const std::exception &error) {
+        this->_log->error(GPU_RESOURCE_MANAGER_TAG, error);
+
+        return std::nullopt;
+    }
+}
+
 void GpuResourceManager::free(const ResourceId &resourceId) {
     auto meshIt = this->_meshes.find(resourceId);
 
     if (meshIt != this->_meshes.end()) {
         this->freeMesh(meshIt->second);
+        return;
+    }
+
+    auto textureIt = this->_textures.find(resourceId);
+
+    if (textureIt != this->_textures.end()) {
+        this->freeTexture(textureIt->second);
         return;
     }
 
