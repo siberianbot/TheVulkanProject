@@ -16,6 +16,8 @@ class Window;
 class CommandManager;
 class GpuAllocator;
 class GpuResourceManager;
+class SurfaceManager;
+class SwapchainManager;
 class LogicalDeviceProxy;
 class PhysicalDeviceProxy;
 
@@ -29,23 +31,26 @@ private:
     std::shared_ptr<Window> _window;
 
     vk::Instance _instance;
+    std::shared_ptr<SurfaceManager> _surfaceManager;
     vk::SurfaceKHR _surface;
     std::shared_ptr<PhysicalDeviceProxy> _physicalDevice;
     std::shared_ptr<LogicalDeviceProxy> _logicalDevice;
     std::shared_ptr<CommandManager> _commandManager;
     std::shared_ptr<GpuAllocator> _allocator;
     std::shared_ptr<GpuResourceManager> _resourceManager;
+    std::shared_ptr<SwapchainManager> _swapchainManager;
 
     std::vector<const char *> getRequiredInstanceExtensions();
     vk::PhysicalDeviceFeatures getEnabledFeatures();
 
     void initInstance();
-    void initSurface();
+    void initSurfaceManager();
     void initPhysicalDevice();
     void initLogicalDevice();
     void initCommandManager();
     void initAllocator();
     void initResourceManager();
+    void initSwapchainManager();
 
     static VkBool32 messengerCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
                                       VkDebugUtilsMessageTypeFlagsEXT messageTypes,
@@ -63,6 +68,8 @@ public:
     void init();
     void destroy();
 
+    [[nodiscard]] std::weak_ptr<SurfaceManager> getSurfaceManager() const { return this->_surfaceManager; }
+
     [[nodiscard]] std::weak_ptr<PhysicalDeviceProxy> getPhysicalDeviceProxy() const { return this->_physicalDevice; }
 
     [[nodiscard]] std::weak_ptr<LogicalDeviceProxy> getLogicalDeviceProxy() const { return this->_logicalDevice; }
@@ -72,6 +79,8 @@ public:
     [[nodiscard]] std::weak_ptr<GpuAllocator> getAllocator() const { return this->_allocator; }
 
     [[nodiscard]] std::weak_ptr<GpuResourceManager> getResourceManager() const { return this->_resourceManager; }
+
+    [[nodiscard]] std::weak_ptr<SwapchainManager> getSwapchainManager() const { return this->_swapchainManager; }
 };
 
 #endif // RENDERING_GPUMANAGER_HPP

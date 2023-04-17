@@ -49,10 +49,7 @@ void Window::framebufferResizeCallback(GLFWwindow *window, int width, int height
 
     Event event = {
             .type = RESIZE_WINDOW_EVENT,
-            .value = WindowData{
-                    .width = static_cast<uint32_t>(width),
-                    .height = static_cast<uint32_t>(height)
-            }
+            .value = that
     };
 
     that->_eventQueue->pushEvent(event);

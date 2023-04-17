@@ -15,6 +15,8 @@
 #include "src/Rendering/Extensions.hpp"
 #include "src/Rendering/GpuAllocator.hpp"
 #include "src/Rendering/GpuResourceManager.hpp"
+#include "src/Rendering/SurfaceManager.hpp"
+#include "src/Rendering/SwapchainManager.hpp"
 #include "src/Rendering/Proxies/LogicalDeviceProxy.hpp"
 #include "src/Rendering/Proxies/PhysicalDeviceProxy.hpp"
 #include "src/System/Window.hpp"
@@ -85,14 +87,9 @@ void GpuManager::initInstance() {
     }
 }
 
-void GpuManager::initSurface() {
-    VkSurfaceKHR surface = VK_NULL_HANDLE;
-
-    if (glfwCreateWindowSurface(this->_instance, this->_window->handle(), nullptr, &surface) != VK_SUCCESS) {
-        throw EngineError("Failed to initialize Vulkan surface");
-    }
-
-    this->_surface = vk::SurfaceKHR(surface);
+void GpuManager::initSurfaceManager() {
+    this->_surfaceManager = std::make_shared<SurfaceManager>(this->_instance);
+    this->_surface = this->_surfaceManager->getSurfaceFor(this->_window->handle());
 }
 
 void GpuManager::initPhysicalDevice() {
@@ -202,6 +199,17 @@ void GpuManager::initResourceManager() {
     this->_resourceManager->init();
 }
 
+void GpuManager::initSwapchainManager() {
+    this->_swapchainManager = std::make_shared<SwapchainManager>(this->_log,
+                                                                 this->_varCollection,
+                                                                 this->_eventQueue,
+                                                                 this->_surfaceManager,
+                                                                 this->_physicalDevice,
+                                                                 this->_logicalDevice);
+
+    this->_swapchainManager->init();
+}
+
 VkBool32 GpuManager::messengerCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
                                        VkDebugUtilsMessageTypeFlagsEXT messageTypes,
                                        const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
@@ -251,25 +259,24 @@ void GpuManager::init() {
     this->_log->info(GPU_MANAGER_TAG, "Initializing GPU manager...");
 
     this->initInstance();
-    this->initSurface();
+    this->initSurfaceManager();
     this->initPhysicalDevice();
     this->initLogicalDevice();
     this->initCommandManager();
     this->initAllocator();
     this->initResourceManager();
+    this->initSwapchainManager();
 }
 
 void GpuManager::destroy() {
     this->_logicalDevice->getHandle().waitIdle();
 
+    this->_swapchainManager->destroy();
     this->_resourceManager->freeAll();
     this->_allocator->freeAll();
-
     this->_commandManager->destroy();
     this->_logicalDevice->destroy();
-
     this->_physicalDevice = nullptr;
-
-    this->_instance.destroySurfaceKHR(this->_surface);
+    this->_surfaceManager->destroy();
     this->_instance.destroy();
 }

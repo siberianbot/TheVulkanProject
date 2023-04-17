@@ -8,8 +8,8 @@ std::shared_ptr<Scene> Event::scene() const {
     return std::get<std::shared_ptr<Scene>>(this->value);
 }
 
-WindowData Event::window() const {
-    return std::get<WindowData>(this->value);
+Window *Event::window() const {
+    return std::get<Window *>(this->value);
 }
 
 InputData Event::input() const {

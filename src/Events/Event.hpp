@@ -9,6 +9,7 @@
 
 class Object;
 class Scene;
+class Window;
 
 enum EventType {
     CLOSE_REQUESTED_EVENT,
@@ -46,17 +47,12 @@ struct InputData {
     double cursorVertical;
 };
 
-struct WindowData {
-    uint32_t width;
-    uint32_t height;
-};
-
 struct Event {
     EventType type;
     std::variant<
             std::shared_ptr<Object>,
             std::shared_ptr<Scene>,
-            WindowData,
+            Window *,
             InputData,
             ResourceId
     > value;
@@ -68,7 +64,7 @@ struct Event {
     std::shared_ptr<Scene> scene() const;
 
     // *_WINDOW_EVENT
-    WindowData window() const;
+    Window *window() const;
 
     // *_INPUT_EVENTS
     InputData input() const;
