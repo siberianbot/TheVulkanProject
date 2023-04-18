@@ -68,6 +68,8 @@ public:
     void init();
     void destroy();
 
+    [[nodiscard]] vk::Instance getInstance() const { return this->_instance; }
+
     [[nodiscard]] std::weak_ptr<SurfaceManager> getSurfaceManager() const { return this->_surfaceManager; }
 
     [[nodiscard]] std::weak_ptr<PhysicalDeviceProxy> getPhysicalDeviceProxy() const { return this->_physicalDevice; }

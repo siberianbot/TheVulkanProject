@@ -14,6 +14,9 @@ class CommandBufferProxy;
 class LogicalDeviceProxy;
 class Window;
 
+// TODO: not use explicitly
+class DebugUIRenderStage;
+
 class Renderer {
 private:
     struct FrameSync {
@@ -34,6 +37,9 @@ private:
     std::vector<std::shared_ptr<CommandBufferProxy>> _commandBuffers;
     std::shared_ptr<Swapchain> _swapchain;
     std::jthread _renderThread;
+
+    // TODO: not use explicitly
+    std::unique_ptr<DebugUIRenderStage> _renderStage;
 
     void render();
 

@@ -71,6 +71,7 @@ src = [
 
     # Debug
     'src/Debug/DebugUIRoot.cpp',
+    'src/Debug/DebugUIRenderStage.cpp',
     'src/Debug/UI/LogWindow.cpp',
     'src/Debug/UI/MainMenuBar.cpp',
     'src/Debug/UI/ObjectEditorWindow.cpp',

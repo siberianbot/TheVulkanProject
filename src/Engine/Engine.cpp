@@ -22,6 +22,7 @@
 #include "src/Scene/SceneNode.hpp"
 #include "src/Scene/SceneManager.hpp"
 #include "src/Debug/DebugUIRoot.hpp"
+#include "src/Debug/DebugUIRenderStage.hpp"
 
 Engine::Engine()
         : _log(std::make_shared<Log>()),
@@ -83,71 +84,6 @@ void Engine::init() {
     this->_debugUI = std::make_shared<DebugUIRoot>(this->_log, this->_eventQueue, this->_vars, this->_resourceDatabase,
                                                    this->_resourceLoader, this->_sceneManager);
 
-    this->_inputProcessor->addKeyboardPressHandler(GLFW_KEY_W, [this]() { this->_moveForward = true; });
-    this->_inputProcessor->addKeyboardReleaseHandler(GLFW_KEY_W, [this]() { this->_moveForward = false; });
-
-    this->_inputProcessor->addKeyboardPressHandler(GLFW_KEY_S, [this]() { this->_moveBackward = true; });
-    this->_inputProcessor->addKeyboardReleaseHandler(GLFW_KEY_S, [this]() { this->_moveBackward = false; });
-
-    this->_inputProcessor->addKeyboardPressHandler(GLFW_KEY_A, [this]() { this->_strafeLeft = true; });
-    this->_inputProcessor->addKeyboardReleaseHandler(GLFW_KEY_A, [this]() { this->_strafeLeft = false; });
-
-    this->_inputProcessor->addKeyboardPressHandler(GLFW_KEY_D, [this]() { this->_strafeRight = true; });
-    this->_inputProcessor->addKeyboardReleaseHandler(GLFW_KEY_D, [this]() { this->_strafeRight = false; });
-
-    this->_inputProcessor->addKeyboardReleaseHandler(GLFW_KEY_ESCAPE, [this]() {
-        if (this->_state == NotFocused) {
-            return;
-        }
-
-        this->_state = NotFocused;
-        this->_window->showCursor();
-    });
-
-    this->_inputProcessor->addMouseReleaseHandler(GLFW_MOUSE_BUTTON_1, [this]() {
-        if (this->_state == Focused) {
-            return;
-        }
-
-        this->_state = Focused;
-        this->_window->hideCursor();
-    });
-
-    this->_x = this->_window->cursorX();
-    this->_y = this->_window->cursorY();
-    this->_inputProcessor->addCursorMoveHandler([this](double x, double y) {
-        double dx = this->_x - x;
-        double dy = this->_y - y;
-
-        this->_x = x;
-        this->_y = y;
-
-        if (this->_state != Focused ||
-            this->_sceneManager->currentCamera().expired()) {
-            return;
-        }
-
-        std::shared_ptr<Camera> camera = this->_sceneManager->currentCamera().lock();
-
-        if (camera == nullptr) {
-            return;
-        }
-
-        const float sensitivity = 0.0005f;
-        const auto normalize = [](float value) -> float {
-            if (value < 0) {
-                return value + 2 * M_PI;
-            } else if (value > 2 * M_PI) {
-                return value - 2 * M_PI;
-            }
-
-            return value;
-        };
-
-        camera->position()->rotation().x = normalize(camera->position()->rotation().x - sensitivity * (float) dx);
-        camera->position()->rotation().y = normalize(camera->position()->rotation().y + sensitivity * (float) dy);
-    });
-
     std::shared_ptr<SceneReader> sceneReader = std::make_shared<SceneReader>(this->_log);
 
     auto sceneResource = this->_resourceDatabase->tryGetResource("data/scenes/scene1");
@@ -186,37 +122,8 @@ void Engine::run() {
     this->_work = true;
 
     while (this->_work) {
-        double startTime = glfwGetTime();
-
         glfwPollEvents();
 
         this->_eventQueue->process();
-
-        if (!this->_sceneManager->currentCamera().expired()) {
-            std::shared_ptr<Camera> camera = this->_sceneManager->currentCamera().lock();
-
-            auto forward = camera->forward();
-            auto side = camera->side();
-
-            if (this->_moveForward) {
-                camera->position()->position() += 5 * this->_delta * forward;
-            }
-
-            if (this->_moveBackward) {
-                camera->position()->position() -= 5 * this->_delta * forward;
-            }
-
-            if (this->_strafeLeft) {
-                camera->position()->position() -= 5 * this->_delta * side;
-            }
-
-            if (this->_strafeRight) {
-                camera->position()->position() += 5 * this->_delta * side;
-            }
-        }
-
-//        this->_debugUI->render();
-
-        this->_delta = glfwGetTime() - startTime;
     }
 }

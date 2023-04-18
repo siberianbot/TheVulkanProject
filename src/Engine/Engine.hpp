@@ -16,11 +16,6 @@ class Window;
 class SceneManager;
 class DebugUIRoot;
 
-enum CameraControlState {
-    NotFocused,
-    Focused
-};
-
 class Engine {
 private:
     std::shared_ptr<Log> _log;
@@ -35,15 +30,7 @@ private:
     std::shared_ptr<SceneManager> _sceneManager;
     std::shared_ptr<DebugUIRoot> _debugUI;
 
-    bool _work = false;
-    float _delta = 0;
-    CameraControlState _state = NotFocused;
-    double _x = 0;
-    double _y = 0;
-    bool _moveForward = false;
-    bool _moveBackward = false;
-    bool _strafeLeft = false;
-    bool _strafeRight = false;
+    volatile bool _work = false;
 
 public:
     Engine();

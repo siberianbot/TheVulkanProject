@@ -12,6 +12,9 @@
 #include "src/Rendering/Proxies/CommandBufferProxy.hpp"
 #include "src/Rendering/Proxies/LogicalDeviceProxy.hpp"
 
+// TODO: not use explicitly
+#include "src/Debug/DebugUIRenderStage.hpp"
+
 static constexpr const std::string_view RENDERER_TAG = "Renderer";
 
 static constexpr const uint64_t RENDERER_WAIT_TIMEOUT = 16 * 1000;
@@ -19,8 +22,7 @@ static constexpr const uint64_t RENDERER_WAIT_TIMEOUT = 16 * 1000;
 void Renderer::render() {
     FrameSync frameSync = this->_frameSyncs[this->_currentFrameIdx];
 
-    if (this->_logicalDevice->getHandle().waitForFences(frameSync.fence, true, RENDERER_WAIT_TIMEOUT) !=
-        vk::Result::eSuccess) {
+    if (this->_logicalDevice->getHandle().waitForFences(frameSync.fence, true, UINT64_MAX) == vk::Result::eTimeout) {
         throw EngineError("Frame fence timeout");
     }
 
@@ -37,7 +39,9 @@ void Renderer::render() {
     auto commandBuffer = this->_commandBuffers[this->_currentFrameIdx]->getHandle();
 
     commandBuffer.begin(vk::CommandBufferBeginInfo());
-    // TODO: render
+
+    this->_renderStage->draw(imageIdx, commandBuffer);
+
     commandBuffer.end();
 
     auto waitDstStageMask = {static_cast<vk::PipelineStageFlags>(vk::PipelineStageFlagBits::eColorAttachmentOutput)};
@@ -48,7 +52,7 @@ void Renderer::render() {
             .setSignalSemaphores(frameSync.renderFinishedSemaphore)
             .setWaitDstStageMask(waitDstStageMask);
 
-    this->_logicalDevice->getGraphicsQueue().submit(submitInfo);
+    this->_logicalDevice->getGraphicsQueue().submit(submitInfo, frameSync.fence);
 
     auto presentInfo = vk::PresentInfoKHR()
             .setWaitSemaphores(frameSync.renderFinishedSemaphore)
@@ -106,6 +110,11 @@ void Renderer::init() {
     this->_swapchain = swapchainManager->getSwapchainFor(this->_window);
     this->_swapchain->create();
 
+    // TODO: not use explicitly
+    this->_renderStage = std::make_unique<DebugUIRenderStage>(this->_gpuManager,
+                                                              this->_swapchain);
+    this->_renderStage->init();
+
     this->_renderThread = std::jthread([this](std::stop_token stopToken) {
         while (!stopToken.stop_requested()) {
             try {
@@ -120,6 +129,8 @@ void Renderer::init() {
 void Renderer::destroy() {
     this->_renderThread.request_stop();
     this->_renderThread.join();
+
+    this->_renderStage->destroy();
 
     this->_swapchain->destroy();
 
