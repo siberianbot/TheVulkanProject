@@ -12,6 +12,7 @@
 #include "src/Engine/InputProcessor.hpp"
 #include "src/System/Window.hpp"
 #include "src/Rendering/GpuManager.hpp"
+#include "src/Rendering/Renderer.hpp"
 #include "src/Resources/ResourceDatabase.hpp"
 #include "src/Resources/ResourceLoader.hpp"
 #include "src/Resources/Readers/SceneReader.hpp"
@@ -39,6 +40,9 @@ Engine::Engine()
                                                    this->_resourceDatabase,
                                                    this->_resourceLoader,
                                                    this->_window)),
+          _renderer(std::make_shared<Renderer>(this->_log,
+                                               this->_gpuManager,
+                                               this->_window)),
           _sceneManager(std::make_shared<SceneManager>(this->_eventQueue)),
           _debugUI(nullptr) {
     //
@@ -74,6 +78,7 @@ void Engine::init() {
     });
 
     this->_gpuManager->init();
+    this->_renderer->init();
 
     this->_debugUI = std::make_shared<DebugUIRoot>(this->_log, this->_eventQueue, this->_vars, this->_resourceDatabase,
                                                    this->_resourceLoader, this->_sceneManager);
@@ -164,6 +169,7 @@ void Engine::init() {
 void Engine::cleanup() {
     this->_sceneManager->setScene(nullptr);
 
+    this->_renderer->destroy();
     this->_gpuManager->destroy();
 
     ImGui::DestroyContext();

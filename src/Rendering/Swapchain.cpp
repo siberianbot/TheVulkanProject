@@ -112,6 +112,7 @@ void Swapchain::create() {
             .setImageColorSpace(surfaceFormat.colorSpace)
             .setImageExtent(extent)
             .setImageArrayLayers(1)
+            .setImageUsage(vk::ImageUsageFlagBits::eColorAttachment)
             .setPresentMode(presentMode)
             .setPreTransform(capabilities.currentTransform)
             .setClipped(true)

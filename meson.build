@@ -37,6 +37,7 @@ src = [
     'src/Rendering/GpuAllocator.cpp',
     'src/Rendering/GpuManager.cpp',
     'src/Rendering/GpuResourceManager.cpp',
+    'src/Rendering/Renderer.cpp',
     'src/Rendering/SurfaceManager.cpp',
     'src/Rendering/Swapchain.cpp',
     'src/Rendering/SwapchainManager.cpp',
