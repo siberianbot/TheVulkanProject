@@ -4,6 +4,7 @@
 #include <map>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <variant>
 
 using VarMap = std::map<std::string, std::variant<bool, int, float, std::string>>;
@@ -34,13 +35,15 @@ public:
     void set(const std::string &key, const char *value);
     void set(const std::string &key, const std::string &value);
 
-    bool getOrDefault(const std::string &key, const bool &defaultValue);
-    int getOrDefault(const std::string &key, const int &defaultValue);
-    float getOrDefault(const std::string &key, const float &defaultValue);
-    std::string getOrDefault(const std::string &key, const char *defaultValue);
-    std::string getOrDefault(const std::string &key, const std::string &defaultValue);
+    [[deprecated]] bool getOrDefault(const std::string &key, const bool &defaultValue);
+    [[deprecated]] int getOrDefault(const std::string &key, const int &defaultValue);
+    [[deprecated]] float getOrDefault(const std::string &key, const float &defaultValue);
+    [[deprecated]] std::string getOrDefault(const std::string &key, const char *defaultValue);
+    [[deprecated]] std::string getOrDefault(const std::string &key, const std::string &defaultValue);
 
-    VarMap &vars() { return this->_vars; }
+    [[nodiscard]] int32_t getIntOrDefault(const std::string_view &key, const int32_t &defaultValue);
+
+    [[nodiscard]] VarMap &vars() { return this->_vars; }
 };
 
 #endif // ENGINE_VARCOLLECTION_HPP

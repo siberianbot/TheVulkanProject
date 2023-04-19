@@ -8,6 +8,7 @@ static constexpr const char *WINDOW_WIDTH_VAR = "Window.Width";
 static constexpr const char *WINDOW_HEIGHT_VAR = "Window.Height";
 
 static constexpr const std::string_view RENDERING_VSYNC = "Rendering.VSync";
+static constexpr const std::string_view RENDERING_INFLIGHT_FRAME_COUNT = "Rendering.InflightFrameCount";
 
 static constexpr const char *RENDERING_SCENE_STAGE_SHADOW_MAP_SIZE = "Rendering.SceneStage.ShadowMapSize";
 static constexpr const char *RENDERING_SCENE_STAGE_SHADOW_MAP_COUNT = "Rendering.SceneStage.ShadowMapCount";

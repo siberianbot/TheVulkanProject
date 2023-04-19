@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <optional>
+#include <thread>
 #include <vector>
 
 #include <vulkan/vulkan.hpp>
@@ -23,6 +24,7 @@ class Swapchain {
     std::shared_ptr<LogicalDeviceProxy> _logicalDevice;
     std::shared_ptr<Window> _window;
 
+    bool _invalid;
     std::optional<vk::SwapchainKHR> _swapchain;
     std::optional<vk::Format> _swapchainColorFormat;
     std::optional<vk::Extent2D> _swapchainExtent;
@@ -43,6 +45,12 @@ public:
 
     void create();
     void destroy();
+
+    void invalidate();
+
+    [[nodiscard]] std::optional<uint32_t> acquireNextImage(const vk::Semaphore &semaphore);
+
+    [[nodiscard]] const bool &isInvalid() const { return this->_invalid; }
 
     [[nodiscard]] const vk::SwapchainKHR &getHandle() const { return this->_swapchain.value(); }
 

@@ -74,7 +74,8 @@ Swapchain::Swapchain(const std::shared_ptr<Log> &log,
           _surfaceManager(surfaceManager),
           _physicalDevice(physicalDevice),
           _logicalDevice(logicalDevice),
-          _window(window) {
+          _window(window),
+          _invalid(true) {
     //
 }
 
@@ -176,6 +177,7 @@ void Swapchain::create() {
     }
 
     this->_swapchainImageViews = imageViews;
+    this->_invalid = false;
 }
 
 void Swapchain::destroy() {
@@ -197,4 +199,20 @@ void Swapchain::destroy() {
     this->_swapchainMinImageCount = std::nullopt;
     this->_swapchainImageCount = std::nullopt;
     this->_swapchainImageViews.clear();
+}
+
+void Swapchain::invalidate() {
+    this->_invalid = true;
+}
+
+std::optional<uint32_t> Swapchain::acquireNextImage(const vk::Semaphore &semaphore) {
+    auto [result, imageIdx] = this->_logicalDevice->getHandle().acquireNextImageKHR(this->_swapchain.value(),
+                                                                                    std::numeric_limits<uint64_t>::max(),
+                                                                                    semaphore);
+
+    if (result != vk::Result::eSuccess) {
+        return std::nullopt;
+    }
+
+    return imageIdx;
 }

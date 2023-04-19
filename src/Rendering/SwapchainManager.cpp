@@ -30,8 +30,7 @@ void SwapchainManager::init() {
             return;
         }
 
-        it->second->destroy();
-        it->second->create();
+        it->second->invalidate();
     });
 }
 

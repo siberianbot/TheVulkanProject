@@ -10,6 +10,7 @@
 #include "src/Rendering/Stages/RenderStage.hpp"
 
 class Log;
+class VarCollection;
 class GpuManager;
 class Swapchain;
 class CommandBufferProxy;
@@ -25,6 +26,7 @@ private:
     };
 
     std::shared_ptr<Log> _log;
+    std::shared_ptr<VarCollection> _varCollection;
     std::shared_ptr<GpuManager> _gpuManager;
     std::shared_ptr<Window> _window;
 
@@ -43,6 +45,7 @@ private:
 
 public:
     Renderer(const std::shared_ptr<Log> &log,
+             const std::shared_ptr<VarCollection> &varCollection,
              const std::shared_ptr<GpuManager> &gpuManager,
              const std::shared_ptr<Window> &window);
 

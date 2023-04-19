@@ -119,9 +119,13 @@ void DebugUIRenderStage::init(const RenderStageInitContext &context) {
     this->_renderArea = vk::Rect2D()
             .setOffset(vk::Offset2D(0, 0))
             .setExtent(context.swapchain->getExtent());
+
+    this->_initialized = true;
 }
 
 void DebugUIRenderStage::destroy() {
+    this->_initialized = false;
+
     ImGui_ImplVulkan_Shutdown();
 
     for (const auto &framebuffer: this->_framebuffers) {

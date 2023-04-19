@@ -39,3 +39,7 @@ std::string VarCollection::getOrDefault(const std::string &key, const char *defa
 std::string VarCollection::getOrDefault(const std::string &key, const std::string &defaultValue) {
     return this->get<std::string>(key).value_or(defaultValue);
 }
+
+int32_t VarCollection::getIntOrDefault(const std::string_view &key, const int32_t &defaultValue) {
+    return this->get<int32_t>(std::string(key)).value_or(defaultValue);
+}

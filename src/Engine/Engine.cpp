@@ -42,6 +42,7 @@ Engine::Engine()
                                                    this->_resourceLoader,
                                                    this->_window)),
           _renderer(std::make_shared<Renderer>(this->_log,
+                                               this->_vars,
                                                this->_gpuManager,
                                                this->_window)),
           _sceneManager(std::make_shared<SceneManager>(this->_eventQueue)),
