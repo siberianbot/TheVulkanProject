@@ -36,18 +36,21 @@ void Renderer::render() {
         return;
     }
 
-    auto commandBuffer = this->_commandBuffers[this->_currentFrameIdx]->getHandle();
+    auto commandBuffer = this->_commandBuffers[this->_currentFrameIdx];
 
-    commandBuffer.begin(vk::CommandBufferBeginInfo());
+    commandBuffer->reset();
+    commandBuffer->getHandle().begin(vk::CommandBufferBeginInfo());
 
-    this->_renderStage->draw(imageIdx, commandBuffer);
+    for (const auto &stage: this->_stages) {
+        stage->draw(imageIdx, commandBuffer->getHandle());
+    }
 
-    commandBuffer.end();
+    commandBuffer->getHandle().end();
 
     auto waitDstStageMask = {static_cast<vk::PipelineStageFlags>(vk::PipelineStageFlagBits::eColorAttachmentOutput)};
 
     auto submitInfo = vk::SubmitInfo()
-            .setCommandBuffers(commandBuffer)
+            .setCommandBuffers(commandBuffer->getHandle())
             .setWaitSemaphores(frameSync.imageAvailableSemaphore)
             .setSignalSemaphores(frameSync.renderFinishedSemaphore)
             .setWaitDstStageMask(waitDstStageMask);
@@ -79,7 +82,7 @@ void Renderer::init() {
     if (this->_gpuManager->getLogicalDeviceProxy().expired() ||
         this->_gpuManager->getCommandManager().expired() ||
         this->_gpuManager->getSwapchainManager().expired()) {
-        throw EngineError("Failed to initialize renderer - GPU manager is not initialized");
+        throw EngineError("GPU manager is not initialized");
     }
 
     this->_logicalDevice = this->_gpuManager->getLogicalDeviceProxy().lock();
@@ -91,7 +94,7 @@ void Renderer::init() {
     this->_inflightFrameCount = 2; // TODO: extract from variables
 
     this->_frameSyncs = std::vector<FrameSync>(this->_inflightFrameCount);
-    this->_commandBuffers = std::vector<std::shared_ptr<CommandBufferProxy>>(this->_inflightFrameCount);
+    this->_commandBuffers = std::vector<std::shared_ptr<CommandBufferProxy >>(this->_inflightFrameCount);
 
     auto fenceCreateInfo = vk::FenceCreateInfo()
             .setFlags(vk::FenceCreateFlagBits::eSignaled);
@@ -110,10 +113,13 @@ void Renderer::init() {
     this->_swapchain = swapchainManager->getSwapchainFor(this->_window);
     this->_swapchain->create();
 
-    // TODO: not use explicitly
-    this->_renderStage = std::make_unique<DebugUIRenderStage>(this->_gpuManager,
-                                                              this->_swapchain);
-    this->_renderStage->init();
+    RenderStageInitContext initContext = {
+            .swapchain = this->_swapchain
+    };
+
+    for (const auto &stage: this->_stages) {
+        stage->init(initContext);
+    }
 
     this->_renderThread = std::jthread([this](std::stop_token stopToken) {
         while (!stopToken.stop_requested()) {
@@ -130,7 +136,11 @@ void Renderer::destroy() {
     this->_renderThread.request_stop();
     this->_renderThread.join();
 
-    this->_renderStage->destroy();
+    this->_logicalDevice->getHandle().waitIdle();
+
+    for (const auto &stage: this->_stages) {
+        stage->destroy();
+    }
 
     this->_swapchain->destroy();
 
@@ -149,4 +159,8 @@ void Renderer::destroy() {
     this->_frameSyncs.clear();
 
     this->_logicalDevice = nullptr;
+}
+
+void Renderer::addRenderStage(std::unique_ptr<RenderStage> &&stage) {
+    this->_stages.push_back(std::move(stage));
 }

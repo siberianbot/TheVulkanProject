@@ -11,17 +11,15 @@
 #include "src/Rendering/Proxies/LogicalDeviceProxy.hpp"
 #include "src/Rendering/Proxies/PhysicalDeviceProxy.hpp"
 
-DebugUIRenderStage::DebugUIRenderStage(const std::shared_ptr<GpuManager> &gpuManager,
-                                       const std::shared_ptr<Swapchain> &swapchain)
-        : _gpuManager(gpuManager),
-          _swapchain(swapchain) {
+DebugUIRenderStage::DebugUIRenderStage(const std::shared_ptr<GpuManager> &gpuManager)
+        : _gpuManager(gpuManager) {
     //
 }
 
-void DebugUIRenderStage::init() {
-    // TODO: check for gpu manager readiness
-
-    auto logicalDevice = this->_gpuManager->getLogicalDeviceProxy().lock();
+void DebugUIRenderStage::init(const RenderStageInitContext &context) {
+    auto physicalDevice = this->_gpuManager->getPhysicalDeviceProxy().lock();
+    this->_logicalDevice = this->_gpuManager->getLogicalDeviceProxy().lock();
+    auto commandManager = this->_gpuManager->getCommandManager().lock();
 
     auto poolSizes = {
             vk::DescriptorPoolSize(vk::DescriptorType::eSampler, 1024),
@@ -41,14 +39,14 @@ void DebugUIRenderStage::init() {
             .setMaxSets(1024) // TODO: vars
             .setPoolSizes(poolSizes);
 
-    auto descriptorPool = logicalDevice->getHandle().createDescriptorPool(descriptorPoolCreateInfo);
+    this->_descriptorPool = this->_logicalDevice->getHandle().createDescriptorPool(descriptorPoolCreateInfo);
 
     auto attachment = vk::AttachmentDescription()
             .setLoadOp(vk::AttachmentLoadOp::eClear)
             .setStoreOp(vk::AttachmentStoreOp::eStore)
             .setInitialLayout(vk::ImageLayout::eUndefined)
             .setFinalLayout(vk::ImageLayout::ePresentSrcKHR)
-            .setFormat(this->_swapchain->getColorFormat());
+            .setFormat(context.swapchain->getColorFormat());
 
     auto attachmentReference = vk::AttachmentReference()
             .setAttachment(0)
@@ -70,19 +68,19 @@ void DebugUIRenderStage::init() {
             .setSubpasses(subpass)
             .setDependencies(subpassDependency);
 
-    this->_renderpass = logicalDevice->getHandle().createRenderPass(renderpassCreateInfo);
+    this->_renderpass = this->_logicalDevice->getHandle().createRenderPass(renderpassCreateInfo);
 
     ImGui_ImplVulkan_InitInfo initInfo = {
             .Instance = this->_gpuManager->getInstance(),
-            .PhysicalDevice = this->_gpuManager->getPhysicalDeviceProxy().lock()->getHandle(),
-            .Device = logicalDevice->getHandle(),
-            .QueueFamily = this->_gpuManager->getPhysicalDeviceProxy().lock()->getGraphicsQueueFamilyIdx(),
-            .Queue = logicalDevice->getGraphicsQueue(),
+            .PhysicalDevice = physicalDevice->getHandle(),
+            .Device = this->_logicalDevice->getHandle(),
+            .QueueFamily = physicalDevice->getGraphicsQueueFamilyIdx(),
+            .Queue = this->_logicalDevice->getGraphicsQueue(),
             .PipelineCache = nullptr,
-            .DescriptorPool = descriptorPool,
+            .DescriptorPool = this->_descriptorPool,
             .Subpass = 0,
-            .MinImageCount = this->_swapchain->getMinImageCount(),
-            .ImageCount = this->_swapchain->getImageCount(),
+            .MinImageCount = context.swapchain->getMinImageCount(),
+            .ImageCount = context.swapchain->getImageCount(),
             .MSAASamples = VK_SAMPLE_COUNT_1_BIT,
             .Allocator = nullptr,
             .CheckVkResultFn = nullptr
@@ -90,8 +88,7 @@ void DebugUIRenderStage::init() {
 
     ImGui_ImplVulkan_Init(&initInfo, this->_renderpass);
 
-    auto commandBuffer = this->_gpuManager->getCommandManager().lock()->createPrimaryBuffer();
-
+    auto commandBuffer = commandManager->createPrimaryBuffer();
     auto commandBufferBeginInfo = vk::CommandBufferBeginInfo();
 
     commandBuffer->getHandle().begin(commandBufferBeginInfo);
@@ -100,30 +97,42 @@ void DebugUIRenderStage::init() {
 
     auto submitInfo = vk::SubmitInfo()
             .setCommandBuffers(commandBuffer->getHandle());
-    logicalDevice->getGraphicsQueue().submit(submitInfo);
-    logicalDevice->getGraphicsQueue().waitIdle();
+    this->_logicalDevice->getGraphicsQueue().submit(submitInfo);
+    this->_logicalDevice->getGraphicsQueue().waitIdle();
 
     commandBuffer->destroy();
 
     ImGui_ImplVulkan_DestroyFontUploadObjects();
 
-    this->_framebuffers = std::vector<vk::Framebuffer>(this->_swapchain->getImageCount());
-    for (uint32_t idx = 0; idx < this->_swapchain->getImageCount(); idx++) {
+    this->_framebuffers = std::vector<vk::Framebuffer>(context.swapchain->getImageCount());
+    for (uint32_t idx = 0; idx < context.swapchain->getImageCount(); idx++) {
         auto framebufferCreateInfo = vk::FramebufferCreateInfo()
                 .setRenderPass(this->_renderpass)
-                .setAttachments(this->_swapchain->getImageViews().at(idx))
-                .setWidth(this->_swapchain->getExtent().width)
-                .setHeight(this->_swapchain->getExtent().height)
+                .setAttachments(context.swapchain->getImageViews().at(idx))
+                .setWidth(context.swapchain->getExtent().width)
+                .setHeight(context.swapchain->getExtent().height)
                 .setLayers(1);
 
-        this->_framebuffers[idx] = logicalDevice->getHandle().createFramebuffer(framebufferCreateInfo);
+        this->_framebuffers[idx] = this->_logicalDevice->getHandle().createFramebuffer(framebufferCreateInfo);
     }
+
+    this->_renderArea = vk::Rect2D()
+            .setOffset(vk::Offset2D(0, 0))
+            .setExtent(context.swapchain->getExtent());
 }
 
 void DebugUIRenderStage::destroy() {
     ImGui_ImplVulkan_Shutdown();
 
-    // TODO: cleanup
+    for (const auto &framebuffer: this->_framebuffers) {
+        this->_logicalDevice->getHandle().destroy(framebuffer);
+    }
+    this->_framebuffers.clear();
+
+    this->_logicalDevice->getHandle().destroy(this->_renderpass);
+    this->_logicalDevice->getHandle().destroy(this->_descriptorPool);
+
+    this->_logicalDevice = nullptr;
 }
 
 void DebugUIRenderStage::draw(uint32_t imageIdx, const vk::CommandBuffer &commandBuffer) {
@@ -131,16 +140,13 @@ void DebugUIRenderStage::draw(uint32_t imageIdx, const vk::CommandBuffer &comman
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
-    ImGui::ShowDemoWindow();
+    ImGui::ShowDemoWindow(); // TODO: render actual UI
 
     auto renderpassBeginInfo = vk::RenderPassBeginInfo()
             .setRenderPass(this->_renderpass)
-            .setClearValues(vk::ClearValue()
-                                    .setColor(vk::ClearColorValue()))
+            .setClearValues(vk::ClearValue().setColor(vk::ClearColorValue()))
             .setFramebuffer(this->_framebuffers[imageIdx])
-            .setRenderArea(vk::Rect2D()
-                                   .setOffset(vk::Offset2D(0, 0))
-                                   .setExtent(this->_swapchain->getExtent()));
+            .setRenderArea(this->_renderArea);
 
     commandBuffer.beginRenderPass(renderpassBeginInfo, vk::SubpassContents::eInline);
 

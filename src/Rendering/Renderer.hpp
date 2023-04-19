@@ -7,15 +7,14 @@
 
 #include <vulkan/vulkan.hpp>
 
+#include "src/Rendering/Stages/RenderStage.hpp"
+
 class Log;
 class GpuManager;
 class Swapchain;
 class CommandBufferProxy;
 class LogicalDeviceProxy;
 class Window;
-
-// TODO: not use explicitly
-class DebugUIRenderStage;
 
 class Renderer {
 private:
@@ -38,8 +37,7 @@ private:
     std::shared_ptr<Swapchain> _swapchain;
     std::jthread _renderThread;
 
-    // TODO: not use explicitly
-    std::unique_ptr<DebugUIRenderStage> _renderStage;
+    std::vector<std::unique_ptr<RenderStage>> _stages;
 
     void render();
 
@@ -50,6 +48,8 @@ public:
 
     void init();
     void destroy();
+
+    void addRenderStage(std::unique_ptr<RenderStage> &&stage);
 };
 
 #endif // RENDERING_RENDERER_HPP

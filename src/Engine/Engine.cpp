@@ -79,11 +79,15 @@ void Engine::init() {
     });
 
     this->_gpuManager->init();
+
+    this->_renderer->addRenderStage(std::make_unique<DebugUIRenderStage>(this->_gpuManager));
     this->_renderer->init();
 
+    // TODO: remove this bullshit out of there
     this->_debugUI = std::make_shared<DebugUIRoot>(this->_log, this->_eventQueue, this->_vars, this->_resourceDatabase,
                                                    this->_resourceLoader, this->_sceneManager);
 
+    // TODO: remove this bullshit out of there
     std::shared_ptr<SceneReader> sceneReader = std::make_shared<SceneReader>(this->_log);
 
     auto sceneResource = this->_resourceDatabase->tryGetResource("data/scenes/scene1");
