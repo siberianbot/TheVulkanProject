@@ -1,9 +1,5 @@
 #include "DebugUIRoot.hpp"
 
-#include <imgui.h>
-#include <imgui_impl_glfw.h>
-#include <imgui_impl_vulkan.h>
-
 #include "src/Debug/DebugUIState.hpp"
 #include "src/Debug/UI/LogWindow.hpp"
 #include "src/Debug/UI/MainMenuBar.hpp"
@@ -31,10 +27,6 @@ DebugUIRoot::DebugUIRoot(const std::shared_ptr<Log> &log,
 }
 
 void DebugUIRoot::render() {
-    ImGui_ImplVulkan_NewFrame();
-    ImGui_ImplGlfw_NewFrame();
-    ImGui::NewFrame();
-
     this->_mainMenuBar->draw();
 
     if (this->_state->logWindowVisible) {

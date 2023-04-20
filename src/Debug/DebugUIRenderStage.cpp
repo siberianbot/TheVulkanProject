@@ -4,6 +4,8 @@
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_vulkan.h>
 
+#include "src/Debug/DebugUIRoot.hpp"
+#include "src/Engine/EngineError.hpp"
 #include "src/Rendering/CommandManager.hpp"
 #include "src/Rendering/GpuManager.hpp"
 #include "src/Rendering/Swapchain.hpp"
@@ -11,8 +13,10 @@
 #include "src/Rendering/Proxies/LogicalDeviceProxy.hpp"
 #include "src/Rendering/Proxies/PhysicalDeviceProxy.hpp"
 
-DebugUIRenderStage::DebugUIRenderStage(const std::shared_ptr<GpuManager> &gpuManager)
-        : _gpuManager(gpuManager) {
+DebugUIRenderStage::DebugUIRenderStage(const std::shared_ptr<GpuManager> &gpuManager,
+                                       const std::shared_ptr<DebugUIRoot> &debugUIRoot)
+        : _gpuManager(gpuManager),
+          _debugUIRoot(debugUIRoot) {
     //
 }
 
@@ -83,7 +87,11 @@ void DebugUIRenderStage::init(const RenderStageInitContext &context) {
             .ImageCount = context.swapchain->getImageCount(),
             .MSAASamples = VK_SAMPLE_COUNT_1_BIT,
             .Allocator = nullptr,
-            .CheckVkResultFn = nullptr
+            .CheckVkResultFn = [](VkResult result) {
+                if (result != VK_SUCCESS) {
+                    throw EngineError("Vulkan assertion failed");
+                }
+            }
     };
 
     ImGui_ImplVulkan_Init(&initInfo, this->_renderpass);
@@ -144,7 +152,7 @@ void DebugUIRenderStage::draw(uint32_t imageIdx, const vk::CommandBuffer &comman
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
-    ImGui::ShowDemoWindow(); // TODO: render actual UI
+    this->_debugUIRoot->render();
 
     auto renderpassBeginInfo = vk::RenderPassBeginInfo()
             .setRenderPass(this->_renderpass)

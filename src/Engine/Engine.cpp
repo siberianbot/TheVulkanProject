@@ -1,9 +1,7 @@
 #include "Engine.hpp"
 
-#include <cmath>
-
 #include <GLFW/glfw3.h>
-#include "subprojects/imgui-1.89.2/imgui.h"
+#include <imgui.h>
 
 #include "src/Engine/Log.hpp"
 #include "src/Engine/VarCollection.hpp"
@@ -46,7 +44,12 @@ Engine::Engine()
                                                this->_gpuManager,
                                                this->_window)),
           _sceneManager(std::make_shared<SceneManager>(this->_eventQueue)),
-          _debugUI(nullptr) {
+          _debugUIRoot(std::make_shared<DebugUIRoot>(this->_log,
+                                                     this->_eventQueue,
+                                                     this->_vars,
+                                                     this->_resourceDatabase,
+                                                     this->_resourceLoader,
+                                                     this->_sceneManager)) {
     //
 }
 
@@ -81,12 +84,10 @@ void Engine::init() {
 
     this->_gpuManager->init();
 
-    this->_renderer->addRenderStage(std::make_unique<DebugUIRenderStage>(this->_gpuManager));
+    // TODO: this should be configured externally
+    this->_renderer->addRenderStage(std::make_unique<DebugUIRenderStage>(this->_gpuManager,
+                                                                         this->_debugUIRoot));
     this->_renderer->init();
-
-    // TODO: remove this bullshit out of there
-    this->_debugUI = std::make_shared<DebugUIRoot>(this->_log, this->_eventQueue, this->_vars, this->_resourceDatabase,
-                                                   this->_resourceLoader, this->_sceneManager);
 
     // TODO: remove this bullshit out of there
     std::shared_ptr<SceneReader> sceneReader = std::make_shared<SceneReader>(this->_log);

@@ -28,7 +28,7 @@ private:
     std::shared_ptr<GpuManager> _gpuManager;
     std::shared_ptr<Renderer> _renderer;
     std::shared_ptr<SceneManager> _sceneManager;
-    std::shared_ptr<DebugUIRoot> _debugUI;
+    std::shared_ptr<DebugUIRoot> _debugUIRoot;
 
     volatile bool _work = false;
 
