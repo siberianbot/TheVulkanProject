@@ -24,7 +24,6 @@ struct BufferRequirements {
 };
 
 struct ImageRequirements {
-    vk::DeviceSize size;
     vk::ImageUsageFlags usage;
     vk::MemoryPropertyFlags memoryProperties;
 

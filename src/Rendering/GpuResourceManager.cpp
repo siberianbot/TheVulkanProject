@@ -78,11 +78,10 @@ std::weak_ptr<ImageView> uploadImage(const std::shared_ptr<CommandManager> &comm
                                      const std::shared_ptr<GpuAllocator> &allocator,
                                      const std::shared_ptr<LogicalDeviceProxy> &logicalDevice,
                                      const std::unique_ptr<ImageData> &imageData) {
-    vk::DeviceSize size = imageData->size();
     vk::Extent3D extent = vk::Extent3D(imageData->width, imageData->height, 1);
 
     BufferRequirements stagingBufferRequirements = {
-            .size = size,
+            .size = imageData->size(),
             .usage = vk::BufferUsageFlagBits::eTransferSrc,
             .memoryProperties = vk::MemoryPropertyFlagBits::eHostVisible |
                                 vk::MemoryPropertyFlagBits::eHostCoherent
@@ -91,7 +90,6 @@ std::weak_ptr<ImageView> uploadImage(const std::shared_ptr<CommandManager> &comm
     auto stagingBufferView = allocator->allocateBuffer(stagingBufferRequirements, true).lock();
 
     ImageRequirements imageRequirements = {
-            .size = size,
             .usage = vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled,
             .memoryProperties = vk::MemoryPropertyFlagBits::eDeviceLocal,
             .extent = extent,
