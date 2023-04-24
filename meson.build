@@ -38,6 +38,8 @@ src = [
     'src/Rendering/SurfaceManager.cpp',
     'src/Rendering/Swapchain.cpp',
     'src/Rendering/SwapchainManager.cpp',
+    'src/Rendering/Graph/RenderGraph.cpp',
+    'src/Rendering/Graph/RenderSubgraph.cpp',
     'src/Rendering/Proxies/CommandBufferProxy.cpp',
     'src/Rendering/Proxies/LogicalDeviceProxy.cpp',
     'src/Rendering/Proxies/PhysicalDeviceProxy.cpp',
