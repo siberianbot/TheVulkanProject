@@ -2,17 +2,17 @@
 #define RENDERING_RENDERER_HPP
 
 #include <memory>
+#include <optional>
 #include <thread>
 #include <vector>
 
 #include <vulkan/vulkan.hpp>
 
-#include "src/Rendering/Stages/RenderStage.hpp"
-
 class Log;
 class VarCollection;
 class GpuManager;
 class Swapchain;
+class RenderGraph;
 class CommandBufferProxy;
 class LogicalDeviceProxy;
 class Window;
@@ -39,7 +39,7 @@ private:
     std::shared_ptr<Swapchain> _swapchain;
     std::jthread _renderThread;
 
-    std::vector<std::unique_ptr<RenderStage>> _stages;
+    std::optional<std::shared_ptr<RenderGraph>> _renderGraph;
 
     void render();
 
@@ -52,7 +52,9 @@ public:
     void init();
     void destroy();
 
-    void addRenderStage(std::unique_ptr<RenderStage> &&stage);
+    void setRenderGraph(const std::shared_ptr<RenderGraph> &renderGraph);
+
+    [[nodiscard]] std::optional<std::shared_ptr<RenderGraph>> getRenderGraph() const { return this->_renderGraph; }
 };
 
 #endif // RENDERING_RENDERER_HPP

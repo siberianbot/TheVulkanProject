@@ -39,6 +39,7 @@ src = [
     'src/Rendering/Swapchain.cpp',
     'src/Rendering/SwapchainManager.cpp',
     'src/Rendering/Graph/RenderGraph.cpp',
+    'src/Rendering/Graph/RenderGraphBuilder.cpp',
     'src/Rendering/Graph/RenderSubgraph.cpp',
     'src/Rendering/Proxies/CommandBufferProxy.cpp',
     'src/Rendering/Proxies/LogicalDeviceProxy.cpp',
@@ -73,7 +74,6 @@ src = [
 
     # Debug
     'src/Debug/DebugUIRoot.cpp',
-    'src/Debug/DebugUIRenderStage.cpp',
     'src/Debug/UI/LogWindow.cpp',
     'src/Debug/UI/MainMenuBar.cpp',
     'src/Debug/UI/ObjectEditorWindow.cpp',

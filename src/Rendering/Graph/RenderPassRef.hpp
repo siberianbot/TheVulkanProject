@@ -1,0 +1,8 @@
+#ifndef RENDERING_GRAPH_RENDERPASSREF_HPP
+#define RENDERING_GRAPH_RENDERPASSREF_HPP
+
+#include <string>
+
+using RenderPassRef = std::string;
+
+#endif // RENDERING_GRAPH_RENDERPASSREF_HPP

@@ -11,6 +11,7 @@
 #include <vulkan/vulkan.hpp>
 
 #include "src/Rendering/Types/BufferView.hpp"
+#include "src/Rendering/Types/ImageRequirements.hpp"
 #include "src/Rendering/Types/ImageView.hpp"
 
 class Log;
@@ -21,21 +22,6 @@ struct BufferRequirements {
     vk::DeviceSize size;
     vk::BufferUsageFlags usage;
     vk::MemoryPropertyFlags memoryProperties;
-};
-
-struct ImageRequirements {
-    vk::ImageUsageFlags usage;
-    vk::MemoryPropertyFlags memoryProperties;
-
-    vk::Extent3D extent;
-    vk::Format format;
-
-    std::optional<uint32_t> layerCount;
-    std::optional<vk::SampleCountFlagBits> samples;
-    std::optional<vk::ImageCreateFlags> imageFlags;
-
-    std::optional<vk::ImageViewType> type;
-    std::optional<vk::ImageAspectFlags> aspectMask;
 };
 
 class GpuAllocator {

@@ -20,7 +20,6 @@
 #include "src/Scene/SceneNode.hpp"
 #include "src/Scene/SceneManager.hpp"
 #include "src/Debug/DebugUIRoot.hpp"
-#include "src/Debug/DebugUIRenderStage.hpp"
 
 Engine::Engine()
         : _log(std::make_shared<Log>()),
@@ -85,8 +84,6 @@ void Engine::init() {
     this->_gpuManager->init();
 
     // TODO: this should be configured externally
-    this->_renderer->addRenderStage(std::make_unique<DebugUIRenderStage>(this->_gpuManager,
-                                                                         this->_debugUIRoot));
     this->_renderer->init();
 
     // TODO: remove this bullshit out of there

@@ -11,6 +11,7 @@
 #include "src/Rendering/GpuManager.hpp"
 #include "src/Rendering/Swapchain.hpp"
 #include "src/Rendering/SwapchainManager.hpp"
+#include "src/Rendering/Graph/RenderGraph.hpp"
 #include "src/Rendering/Proxies/CommandBufferProxy.hpp"
 #include "src/Rendering/Proxies/LogicalDeviceProxy.hpp"
 
@@ -38,12 +39,8 @@ void Renderer::render() {
     commandBuffer->reset();
     commandBuffer->getHandle().begin(vk::CommandBufferBeginInfo());
 
-    for (const auto &stage: this->_stages) {
-        if (!stage->isInitialized()) {
-            continue;
-        }
-
-        stage->draw(imageIdx.value(), commandBuffer->getHandle());
+    if (this->_renderGraph.has_value()) {
+        this->_renderGraph.value()->execute(imageIdx.value(), commandBuffer->getHandle());
     }
 
     commandBuffer->getHandle().end();
@@ -115,6 +112,8 @@ void Renderer::init() {
 
     this->_swapchain = swapchainManager->getSwapchainFor(this->_window);
 
+    this->_renderGraph = std::nullopt;
+
     this->_renderThread = std::jthread([this](std::stop_token stopToken) {
         auto exception = []() { return EngineError("Rendering thread failure"); };
 
@@ -122,12 +121,8 @@ void Renderer::init() {
             if (this->_swapchain->isInvalid()) {
                 this->_logicalDevice->getHandle().waitIdle();
 
-                for (const auto &stage: this->_stages) {
-                    if (!stage->isInitialized()) {
-                        continue;
-                    }
-
-                    stage->destroy();
+                if (this->_renderGraph.has_value()) {
+                    this->_renderGraph.value()->invalidateFramebuffers();
                 }
 
                 try {
@@ -135,18 +130,6 @@ void Renderer::init() {
                 } catch (const std::exception &error) {
                     this->_log->error(RENDERER_TAG, error);
                     throw exception();
-                }
-
-                RenderStageInitContext initContext = {
-                        .swapchain = this->_swapchain
-                };
-
-                for (const auto &stage: this->_stages) {
-                    try {
-                        stage->init(initContext);
-                    } catch (const std::exception &error) {
-                        this->_log->error(RENDERER_TAG, error);
-                    }
                 }
             }
 
@@ -168,12 +151,8 @@ void Renderer::destroy() {
 
     this->_logicalDevice->getHandle().waitIdle();
 
-    for (const auto &stage: this->_stages) {
-        if (!stage->isInitialized()) {
-            continue;
-        }
-
-        stage->destroy();
+    if (this->_renderGraph.has_value()) {
+        this->_renderGraph.value()->destroyRenderpasses();
     }
 
     this->_swapchain->destroy();
@@ -195,6 +174,6 @@ void Renderer::destroy() {
     this->_logicalDevice = nullptr;
 }
 
-void Renderer::addRenderStage(std::unique_ptr<RenderStage> &&stage) {
-    this->_stages.push_back(std::move(stage));
+void Renderer::setRenderGraph(const std::shared_ptr<RenderGraph> &renderGraph) {
+    this->_renderGraph = renderGraph;
 }
