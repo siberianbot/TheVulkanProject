@@ -3,45 +3,27 @@
 
 #include <memory>
 #include <optional>
-#include <thread>
-#include <vector>
 
-#include <vulkan/vulkan.hpp>
+#include "src/Rendering/Graph/RenderGraph.hpp"
 
 class Log;
 class VarCollection;
 class GpuManager;
+class RenderThread;
 class Swapchain;
-class RenderGraph;
-class CommandBufferProxy;
-class LogicalDeviceProxy;
 class Window;
 
 class Renderer {
 private:
-    struct FrameSync {
-        vk::Fence fence;
-        vk::Semaphore imageAvailableSemaphore;
-        vk::Semaphore renderFinishedSemaphore;
-    };
-
     std::shared_ptr<Log> _log;
     std::shared_ptr<VarCollection> _varCollection;
     std::shared_ptr<GpuManager> _gpuManager;
     std::shared_ptr<Window> _window;
 
-    std::shared_ptr<LogicalDeviceProxy> _logicalDevice;
-
-    uint32_t _inflightFrameCount;
-    uint32_t _currentFrameIdx;
-    std::vector<FrameSync> _frameSyncs;
-    std::vector<std::shared_ptr<CommandBufferProxy>> _commandBuffers;
     std::shared_ptr<Swapchain> _swapchain;
-    std::jthread _renderThread;
+    std::shared_ptr<RenderThread> _renderThread;
 
-    std::optional<std::shared_ptr<RenderGraph>> _renderGraph;
-
-    void render();
+    std::optional<RenderGraph> _renderGraph;
 
 public:
     Renderer(const std::shared_ptr<Log> &log,
@@ -52,9 +34,10 @@ public:
     void init();
     void destroy();
 
-    void setRenderGraph(const std::shared_ptr<RenderGraph> &renderGraph);
+    void removeRenderGraph();
+    void setRenderGraph(const RenderGraph &graph);
 
-    [[nodiscard]] std::optional<std::shared_ptr<RenderGraph>> getRenderGraph() const { return this->_renderGraph; }
+    [[nodiscard]] const std::optional<RenderGraph> &getRenderGraph() const { return this->_renderGraph; }
 };
 
 #endif // RENDERING_RENDERER_HPP

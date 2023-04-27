@@ -1,73 +1,10 @@
 #include "Renderer.hpp"
 
-#include <limits>
-#include <string_view>
-
 #include "src/Engine/EngineError.hpp"
-#include "src/Engine/Log.hpp"
-#include "src/Engine/VarCollection.hpp"
-#include "src/Engine/Vars.hpp"
-#include "src/Rendering/CommandManager.hpp"
 #include "src/Rendering/GpuManager.hpp"
+#include "src/Rendering/RenderThread.hpp"
 #include "src/Rendering/Swapchain.hpp"
 #include "src/Rendering/SwapchainManager.hpp"
-#include "src/Rendering/Graph/RenderGraph.hpp"
-#include "src/Rendering/Proxies/CommandBufferProxy.hpp"
-#include "src/Rendering/Proxies/LogicalDeviceProxy.hpp"
-
-static constexpr const std::string_view RENDERER_TAG = "Renderer";
-
-void Renderer::render() {
-    auto frameSync = this->_frameSyncs[this->_currentFrameIdx];
-
-    if (this->_logicalDevice->getHandle().waitForFences(frameSync.fence, true, std::numeric_limits<uint64_t>::max()) ==
-        vk::Result::eTimeout) {
-        throw EngineError("Frame fence timeout");
-    }
-
-    this->_logicalDevice->getHandle().resetFences(frameSync.fence);
-
-    auto imageIdx = this->_swapchain->acquireNextImage(frameSync.imageAvailableSemaphore);
-
-    if (!imageIdx.has_value()) {
-        this->_swapchain->invalidate();
-        return;
-    }
-
-    auto commandBuffer = this->_commandBuffers[this->_currentFrameIdx];
-
-    commandBuffer->reset();
-    commandBuffer->getHandle().begin(vk::CommandBufferBeginInfo());
-
-    if (this->_renderGraph.has_value()) {
-        this->_renderGraph.value()->execute(imageIdx.value(), commandBuffer->getHandle());
-    }
-
-    commandBuffer->getHandle().end();
-
-    auto waitDstStageMask = {
-            static_cast<vk::PipelineStageFlags>(vk::PipelineStageFlagBits::eColorAttachmentOutput)
-    };
-
-    auto submitInfo = vk::SubmitInfo()
-            .setCommandBuffers(commandBuffer->getHandle())
-            .setWaitSemaphores(frameSync.imageAvailableSemaphore)
-            .setSignalSemaphores(frameSync.renderFinishedSemaphore)
-            .setWaitDstStageMask(waitDstStageMask);
-
-    this->_logicalDevice->getGraphicsQueue().submit(submitInfo, frameSync.fence);
-
-    auto presentInfo = vk::PresentInfoKHR()
-            .setWaitSemaphores(frameSync.renderFinishedSemaphore)
-            .setSwapchains(this->_swapchain->getHandle())
-            .setImageIndices(imageIdx.value());
-
-    if (this->_logicalDevice->getPresentQueue().presentKHR(presentInfo) != vk::Result::eSuccess) {
-        this->_swapchain->invalidate();
-    }
-
-    this->_currentFrameIdx = (this->_currentFrameIdx + 1) % this->_inflightFrameCount;
-}
 
 Renderer::Renderer(const std::shared_ptr<Log> &log,
                    const std::shared_ptr<VarCollection> &varCollection,
@@ -82,98 +19,34 @@ Renderer::Renderer(const std::shared_ptr<Log> &log,
 
 void Renderer::init() {
     if (this->_gpuManager->getLogicalDeviceProxy().expired() ||
+        this->_gpuManager->getAllocator().expired() ||
         this->_gpuManager->getCommandManager().expired() ||
         this->_gpuManager->getSwapchainManager().expired()) {
         throw EngineError("GPU manager is not initialized");
     }
 
-    this->_logicalDevice = this->_gpuManager->getLogicalDeviceProxy().lock();
-    auto commandManager = this->_gpuManager->getCommandManager().lock();
     auto swapchainManager = this->_gpuManager->getSwapchainManager().lock();
-
-    this->_inflightFrameCount = this->_varCollection->getIntOrDefault(RENDERING_INFLIGHT_FRAME_COUNT, 2);
-
-    this->_frameSyncs = std::vector<FrameSync>(this->_inflightFrameCount);
-    this->_commandBuffers = std::vector<std::shared_ptr<CommandBufferProxy >>(this->_inflightFrameCount);
-
-    auto fenceCreateInfo = vk::FenceCreateInfo()
-            .setFlags(vk::FenceCreateFlagBits::eSignaled);
-    auto semaphoreCreateInfo = vk::SemaphoreCreateInfo();
-
-    for (uint32_t frameIdx = 0; frameIdx < this->_inflightFrameCount; frameIdx++) {
-        this->_frameSyncs[frameIdx] = {
-                .fence = this->_logicalDevice->getHandle().createFence(fenceCreateInfo),
-                .imageAvailableSemaphore = this->_logicalDevice->getHandle().createSemaphore(semaphoreCreateInfo),
-                .renderFinishedSemaphore = this->_logicalDevice->getHandle().createSemaphore(semaphoreCreateInfo)
-        };
-
-        this->_commandBuffers[frameIdx] = commandManager->createPrimaryBuffer();
-    }
-
     this->_swapchain = swapchainManager->getSwapchainFor(this->_window);
 
-    this->_renderGraph = std::nullopt;
-
-    this->_renderThread = std::jthread([this](std::stop_token stopToken) {
-        auto exception = []() { return EngineError("Rendering thread failure"); };
-
-        while (!stopToken.stop_requested()) {
-            if (this->_swapchain->isInvalid()) {
-                this->_logicalDevice->getHandle().waitIdle();
-
-                if (this->_renderGraph.has_value()) {
-                    this->_renderGraph.value()->invalidateFramebuffers();
-                }
-
-                try {
-                    this->_swapchain->create();
-                } catch (const std::exception &error) {
-                    this->_log->error(RENDERER_TAG, error);
-                    throw exception();
-                }
-            }
-
-            try {
-                this->render();
-            } catch (const vk::OutOfDateKHRError &error) {
-                this->_swapchain->invalidate();
-            } catch (const std::exception &error) {
-                this->_log->error(RENDERER_TAG, error);
-                throw exception();
-            }
-        }
-    });
+    this->_renderThread = std::make_shared<RenderThread>(this,
+                                                         this->_log,
+                                                         this->_varCollection,
+                                                         this->_gpuManager->getCommandManager().lock(),
+                                                         this->_gpuManager->getAllocator().lock(),
+                                                         this->_swapchain,
+                                                         this->_gpuManager->getLogicalDeviceProxy().lock());
+    this->_renderThread->run();
 }
 
 void Renderer::destroy() {
-    this->_renderThread.request_stop();
-    this->_renderThread.join();
-
-    this->_logicalDevice->getHandle().waitIdle();
-
-    if (this->_renderGraph.has_value()) {
-        this->_renderGraph.value()->destroyRenderpasses();
-    }
-
+    this->_renderThread->stop();
     this->_swapchain->destroy();
-
-    for (const auto &commandBuffer: this->_commandBuffers) {
-        commandBuffer->destroy();
-    }
-
-    this->_commandBuffers.clear();
-
-    for (const auto &frameSync: this->_frameSyncs) {
-        this->_logicalDevice->getHandle().destroy(frameSync.fence);
-        this->_logicalDevice->getHandle().destroy(frameSync.imageAvailableSemaphore);
-        this->_logicalDevice->getHandle().destroy(frameSync.renderFinishedSemaphore);
-    }
-
-    this->_frameSyncs.clear();
-
-    this->_logicalDevice = nullptr;
 }
 
-void Renderer::setRenderGraph(const std::shared_ptr<RenderGraph> &renderGraph) {
-    this->_renderGraph = renderGraph;
+void Renderer::removeRenderGraph() {
+    this->_renderGraph = std::nullopt;
+}
+
+void Renderer::setRenderGraph(const RenderGraph &graph) {
+    this->_renderGraph = graph;
 }

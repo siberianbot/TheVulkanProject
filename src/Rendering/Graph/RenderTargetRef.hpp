@@ -1,8 +1,0 @@
-#ifndef RENDERING_GRAPH_RENDERTARGETREF_HPP
-#define RENDERING_GRAPH_RENDERTARGETREF_HPP
-
-#include <string>
-
-using RenderTargetRef = std::string;
-
-#endif // RENDERING_GRAPH_RENDERTARGETREF_HPP

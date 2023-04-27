@@ -1,78 +1,98 @@
 #ifndef RENDERING_RENDERGRAPH_HPP
 #define RENDERING_RENDERGRAPH_HPP
 
+#include <array>
+#include <functional>
 #include <map>
-#include <memory>
+#include <optional>
 #include <string>
-#include <tuple>
 #include <vector>
 
 #include <vulkan/vulkan.hpp>
 
-#include "src/Rendering/Graph/RenderSubgraph.hpp"
-#include "src/Rendering/Types/ImageRequirements.hpp"
-#include "src/Rendering/Types/ImageView.hpp"
+using RenderTargetRef = std::string;
+using RenderAttachmentRef = std::string;
+using RenderPassRef = std::string;
+using RenderSubgraphRef = std::string;
 
-class Log;
-class GpuAllocator;
-class Swapchain;
-class LogicalDeviceProxy;
+using RenderPassAction = std::function<void(const vk::CommandBuffer &commandBuffer)>;
+using RenderSubgraphCreateHandler = std::function<void(const vk::RenderPass &renderPass)>;
+using RenderSubgraphDestroyHandler = std::function<void()>;
 
-class RenderGraph {
-public:
-    struct SubgraphInfo {
-        RenderSubgraph subgraph;
-        std::map<RenderTargetRef, uint32_t> attachmentsMap;
-        std::map<RenderTargetRef, ImageRequirements> imageRequirements;
-        vk::RenderPassCreateInfo renderPassCreateInfo;
-        std::vector<RenderPassRef> executionOrder;
-        std::vector<vk::AttachmentReference *> depthReferences;
-        std::vector<vk::ClearValue> clearValues;
-    };
-
-private:
-    std::shared_ptr<Log> _log;
-    std::shared_ptr<LogicalDeviceProxy> _logicalDevice;
-    std::shared_ptr<GpuAllocator> _gpuAllocator;
-    std::shared_ptr<Swapchain> _swapchain;
-
-    std::map<RenderSubgraphRef, SubgraphInfo> _subgraphs;
-    std::vector<RenderSubgraphRef> _executionOrder;
-
-    bool _graphBuilt;
-    bool _framebuffersBuilt;
-
-    std::map<RenderTargetRef, std::shared_ptr<ImageView>> _allocatedImages;
-    std::map<RenderSubgraphRef, vk::RenderPass> _renderpasses;
-    std::map<RenderSubgraphRef, std::vector<vk::Framebuffer>> _framebuffers;
-
-    std::vector<vk::Framebuffer> createFramebuffersFor(const RenderSubgraphRef &subgraphRef,
-                                                       const RenderGraph::SubgraphInfo &subgraph);
-
-public:
-    RenderGraph(const std::shared_ptr<Log> &log,
-                const std::shared_ptr<LogicalDeviceProxy> &logicalDevice,
-                const std::shared_ptr<GpuAllocator> &gpuAllocator,
-                const std::shared_ptr<Swapchain> &swapchain,
-                const std::map<RenderSubgraphRef, SubgraphInfo> &subgraphs,
-                const std::vector<RenderSubgraphRef> &executionOrder);
-    ~RenderGraph();
-
-    void createRenderpasses();
-    void destroyRenderpasses();
-
-    void createFramebuffers();
-    void destroyFrameBuffers();
-
-    void invalidateFramebuffers();
-
-    void execute(uint32_t imageIdx, const vk::CommandBuffer &commandBuffer);
-
-    [[nodiscard]] bool graphBuilt() const { return this->_graphBuilt; }
-
-    [[nodiscard]] bool framebuffersBuilt() const { return this->_framebuffersBuilt; }
-
-    [[nodiscard]] const vk::RenderPass &getRenderPass(const RenderSubgraphRef &subgraphRef);
+enum class RenderTargetType {
+    Input = 1 << 0,
+    Color = 1 << 1,
+    DepthStencil = 1 << 2
 };
+
+enum class RenderTargetSource {
+    Image,
+    Swapchain
+};
+
+enum class RenderTargetFormat {
+    DefaultColor,
+    DefaultDepth,
+    SwapchainColor
+};
+
+struct RenderTargetClearValue {
+    std::array<float, 4> rgba;
+    float depth;
+    uint32_t stencil;
+};
+
+struct RenderTarget {
+    RenderTargetType type;
+    RenderTargetSource source;
+    RenderTargetFormat format;
+    RenderTargetClearValue clearValue;
+};
+
+struct RenderAttachment {
+    uint32_t idx;
+    RenderTargetRef targetRef;
+
+    vk::AttachmentLoadOp loadOp;
+    vk::AttachmentStoreOp storeOp;
+    vk::ImageLayout initialLayout;
+    vk::ImageLayout finalLayout;
+};
+
+struct RenderPass {
+    uint32_t idx;
+
+    std::vector<RenderAttachmentRef> inputRefs;
+    std::vector<RenderAttachmentRef> colorRefs;
+    std::optional<RenderAttachmentRef> depthRef;
+
+    std::vector<RenderPassRef> dependencies;
+
+    RenderPassAction action;
+};
+
+struct RenderSubgraph {
+    std::map<RenderAttachmentRef, RenderAttachment> attachments;
+    std::map<RenderPassRef, RenderPass> passes;
+    RenderPassRef firstPass;
+
+    std::vector<RenderSubgraphRef> next;
+
+    RenderSubgraphCreateHandler createHandler;
+    RenderSubgraphDestroyHandler destroyHandler;
+};
+
+struct RenderGraph {
+    std::map<RenderTargetRef, RenderTarget> targets;
+    std::map<RenderSubgraphRef, RenderSubgraph> subgraphs;
+    RenderSubgraphRef firstSubgraph;
+};
+
+bool operator==(const RenderPass &lhs, const RenderPass &rhs);
+bool operator==(const RenderAttachment &lhs, const RenderAttachment &rhs);
+bool operator==(const RenderSubgraph &lhs, const RenderSubgraph &rhs);
+bool operator==(const RenderTargetClearValue &lhs, const RenderTargetClearValue &rhs);
+bool operator==(const RenderTarget &lhs, const RenderTarget &rhs);
+bool operator==(const RenderGraph &lhs, const RenderGraph &rhs);
 
 #endif // RENDERING_RENDERGRAPH_HPP
