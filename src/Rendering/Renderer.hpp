@@ -1,6 +1,7 @@
 #ifndef RENDERING_RENDERER_HPP
 #define RENDERING_RENDERER_HPP
 
+#include <map>
 #include <memory>
 #include <optional>
 
@@ -11,6 +12,7 @@ class VarCollection;
 class GpuManager;
 class RenderThread;
 class Swapchain;
+class RenderStage;
 class Window;
 
 class Renderer {
@@ -24,6 +26,7 @@ private:
     std::shared_ptr<RenderThread> _renderThread;
 
     std::optional<RenderGraph> _renderGraph;
+    std::map<RenderStageRef, std::shared_ptr<RenderStage>> _renderStages;
 
 public:
     Renderer(const std::shared_ptr<Log> &log,
@@ -38,6 +41,10 @@ public:
     void setRenderGraph(const RenderGraph &graph);
 
     [[nodiscard]] const std::optional<RenderGraph> &getRenderGraph() const { return this->_renderGraph; }
+
+    void addRenderStage(const RenderStageRef &stageRef, const std::shared_ptr<RenderStage> &stage);
+    [[nodiscard]] const std::optional<std::shared_ptr<RenderStage>> tryGetRenderStage(
+            const RenderStageRef &stageRef);
 };
 
 #endif // RENDERING_RENDERER_HPP

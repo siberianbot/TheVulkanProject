@@ -134,7 +134,8 @@ void RenderThread::handleRenderGraphInvalidation() {
         }
     }
 
-    this->_renderGraphExecutor = std::make_shared<RenderGraphExecutor>(this->_gpuAllocator,
+    this->_renderGraphExecutor = std::make_shared<RenderGraphExecutor>(this->_renderer,
+                                                                       this->_gpuAllocator,
                                                                        this->_swapchain,
                                                                        this->_logicalDevice,
                                                                        this->_renderer->getRenderGraph().value());

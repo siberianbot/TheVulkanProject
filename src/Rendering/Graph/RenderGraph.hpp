@@ -14,10 +14,7 @@ using RenderTargetRef = std::string;
 using RenderAttachmentRef = std::string;
 using RenderPassRef = std::string;
 using RenderSubgraphRef = std::string;
-
-using RenderPassAction = std::function<void(const vk::CommandBuffer &commandBuffer)>;
-using RenderSubgraphCreateHandler = std::function<void(const vk::RenderPass &renderPass)>;
-using RenderSubgraphDestroyHandler = std::function<void()>;
+using RenderStageRef = std::string;
 
 enum class RenderTargetType {
     Input = 1 << 0,
@@ -67,19 +64,15 @@ struct RenderPass {
     std::optional<RenderAttachmentRef> depthRef;
 
     std::vector<RenderPassRef> dependencies;
-
-    RenderPassAction action;
 };
 
 struct RenderSubgraph {
+    RenderStageRef stageRef;
     std::map<RenderAttachmentRef, RenderAttachment> attachments;
     std::map<RenderPassRef, RenderPass> passes;
     RenderPassRef firstPass;
 
     std::vector<RenderSubgraphRef> next;
-
-    RenderSubgraphCreateHandler createHandler;
-    RenderSubgraphDestroyHandler destroyHandler;
 };
 
 struct RenderGraph {

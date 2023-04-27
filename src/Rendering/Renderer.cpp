@@ -5,6 +5,7 @@
 #include "src/Rendering/RenderThread.hpp"
 #include "src/Rendering/Swapchain.hpp"
 #include "src/Rendering/SwapchainManager.hpp"
+#include "src/Rendering/Graph/RenderStage.hpp"
 
 Renderer::Renderer(const std::shared_ptr<Log> &log,
                    const std::shared_ptr<VarCollection> &varCollection,
@@ -28,6 +29,10 @@ void Renderer::init() {
     auto swapchainManager = this->_gpuManager->getSwapchainManager().lock();
     this->_swapchain = swapchainManager->getSwapchainFor(this->_window);
 
+    for (const auto &[stageRef, stage]: this->_renderStages) {
+        stage->init();
+    }
+
     this->_renderThread = std::make_shared<RenderThread>(this,
                                                          this->_log,
                                                          this->_varCollection,
@@ -40,6 +45,11 @@ void Renderer::init() {
 
 void Renderer::destroy() {
     this->_renderThread->stop();
+
+    for (const auto &[stageRef, stage]: this->_renderStages) {
+        stage->destroy();
+    }
+
     this->_swapchain->destroy();
 }
 
@@ -49,4 +59,18 @@ void Renderer::removeRenderGraph() {
 
 void Renderer::setRenderGraph(const RenderGraph &graph) {
     this->_renderGraph = graph;
+}
+
+void Renderer::addRenderStage(const RenderStageRef &stageRef, const std::shared_ptr<RenderStage> &stage) {
+    this->_renderStages[stageRef] = stage;
+}
+
+const std::optional<std::shared_ptr<RenderStage>> Renderer::tryGetRenderStage(const RenderStageRef &stageRef) {
+    auto it = this->_renderStages.find(stageRef);
+
+    if (it == this->_renderStages.end()) {
+        return std::nullopt;
+    }
+
+    return it->second;
 }

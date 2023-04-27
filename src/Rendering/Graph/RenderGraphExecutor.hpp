@@ -10,6 +10,7 @@
 #include "src/Rendering/Types/ImageView.hpp"
 
 class GpuAllocator;
+class Renderer;
 class Swapchain;
 class LogicalDeviceProxy;
 
@@ -18,6 +19,7 @@ private:
     using FramebufferCollection = std::vector<vk::Framebuffer>;
     using ExecutionOrder = std::vector<RenderPassRef>;
 
+    Renderer *_renderer;
     std::shared_ptr<GpuAllocator> _gpuAllocator;
     std::shared_ptr<Swapchain> _swapchain;
     std::shared_ptr<LogicalDeviceProxy> _logicalDevice;
@@ -46,7 +48,8 @@ private:
                          const vk::CommandBuffer &commandBuffer);
 
 public:
-    RenderGraphExecutor(const std::shared_ptr<GpuAllocator> &gpuAllocator,
+    RenderGraphExecutor(Renderer *renderer,
+                        const std::shared_ptr<GpuAllocator> &gpuAllocator,
                         const std::shared_ptr<Swapchain> &swapchain,
                         const std::shared_ptr<LogicalDeviceProxy> &logicalDevice,
                         const RenderGraph &graph);

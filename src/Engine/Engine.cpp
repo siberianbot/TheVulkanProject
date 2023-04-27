@@ -1,11 +1,10 @@
 #include "Engine.hpp"
 
 #include <GLFW/glfw3.h>
-
 #include <imgui.h>
-#include <imgui_impl_glfw.h>
-#include <imgui_impl_vulkan.h>
 
+#include "src/Debug/DebugUIRoot.hpp"
+#include "src/Debug/DebugUIRenderStage.hpp"
 #include "src/Engine/EngineError.hpp"
 #include "src/Engine/Log.hpp"
 #include "src/Engine/VarCollection.hpp"
@@ -24,7 +23,6 @@
 #include "src/Scene/Scene.hpp"
 #include "src/Scene/SceneNode.hpp"
 #include "src/Scene/SceneManager.hpp"
-#include "src/Debug/DebugUIRoot.hpp"
 
 Engine::Engine()
         : _log(std::make_shared<Log>()),
@@ -88,9 +86,14 @@ void Engine::init() {
 
     this->_gpuManager->init();
 
-    this->_renderer->init();
-
     // TODO: this should be configured externally
+    auto debugUIRenderStage = std::make_shared<DebugUIRenderStage>(this->_gpuManager,
+                                                                   this->_debugUIRoot);
+    this->_renderer->addRenderStage("DebugUI", debugUIRenderStage);
+
+    auto debugUISubgraph = debugUIRenderStage->asSubgraph();
+    debugUISubgraph.stageRef = "DebugUI";
+
     RenderGraph renderGraph = {
             .targets = {
                     {
@@ -106,51 +109,14 @@ void Engine::init() {
             .subgraphs = {
                     {
                             "DebugUI",
-                            RenderSubgraph{
-                                    .attachments = {
-                                            {
-                                                    "Swapchain",
-                                                    RenderAttachment{
-                                                            .idx = 0,
-                                                            .targetRef = "Swapchain",
-                                                            .loadOp = vk::AttachmentLoadOp::eClear,
-                                                            .storeOp = vk::AttachmentStoreOp::eStore,
-                                                            .initialLayout = vk::ImageLayout::eUndefined,
-                                                            .finalLayout = vk::ImageLayout::ePresentSrcKHR
-                                                    }
-                                            }
-                                    },
-                                    .passes = {
-                                            {
-                                                    "DebugUI",
-                                                    RenderPass{
-                                                            .idx = 0,
-                                                            .inputRefs = {},
-                                                            .colorRefs = {
-                                                                    "Swapchain"
-                                                            },
-                                                            .depthRef = std::nullopt,
-                                                            .dependencies = {},
-                                                            .action = [](const vk::CommandBuffer &buffer) {
-                                                                // TODO
-                                                            }
-                                                    }
-                                            }
-                                    },
-                                    .firstPass = "DebugUI",
-                                    .next = {},
-                                    .createHandler = [](const vk::RenderPass &renderPass) {
-                                        // TODO
-                                    },
-                                    .destroyHandler = []() {
-                                        // TODO
-                                    }
-                            }
+                            debugUISubgraph
                     }
             },
             .firstSubgraph = "DebugUI"
     };
     this->_renderer->setRenderGraph(renderGraph);
+
+    this->_renderer->init();
 
     // TODO: remove this bullshit out of there
     std::shared_ptr<SceneReader> sceneReader = std::make_shared<SceneReader>(this->_log);

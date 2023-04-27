@@ -7,7 +7,9 @@
 
 #include "src/Engine/EngineError.hpp"
 #include "src/Rendering/GpuAllocator.hpp"
+#include "src/Rendering/Renderer.hpp"
 #include "src/Rendering/Swapchain.hpp"
+#include "src/Rendering/Graph/RenderStage.hpp"
 #include "src/Rendering/Proxies/LogicalDeviceProxy.hpp"
 
 vk::Format RenderGraphExecutor::processFormat(const RenderTargetFormat &format) {
@@ -282,23 +284,32 @@ void RenderGraphExecutor::executeSubgraph(const RenderSubgraphRef &subgraphRef,
             commandBuffer.nextSubpass(vk::SubpassContents::eInline);
         }
 
-        auto passIterator = subgraph.passes.find(*it);
+        auto passRef = *it;
+        auto passIterator = subgraph.passes.find(passRef);
 
         if (passIterator == subgraph.passes.end()) {
             throw EngineError(fmt::format("Unknown pass {0}", subgraphRef));
         }
 
-        passIterator->second.action(commandBuffer);
+        auto stage = this->_renderer->tryGetRenderStage(subgraph.stageRef);
+
+        if (!stage.has_value()) {
+            throw EngineError(fmt::format("Stage {0} not found", subgraph.stageRef));
+        }
+
+        stage.value()->onPassExecute(passRef, commandBuffer);
     }
 
     commandBuffer.endRenderPass();
 }
 
-RenderGraphExecutor::RenderGraphExecutor(const std::shared_ptr<GpuAllocator> &gpuAllocator,
+RenderGraphExecutor::RenderGraphExecutor(Renderer *renderer,
+                                         const std::shared_ptr<GpuAllocator> &gpuAllocator,
                                          const std::shared_ptr<Swapchain> &swapchain,
                                          const std::shared_ptr<LogicalDeviceProxy> &logicalDevice,
                                          const RenderGraph &graph)
-        : _gpuAllocator(gpuAllocator),
+        : _renderer(renderer),
+          _gpuAllocator(gpuAllocator),
           _swapchain(swapchain),
           _logicalDevice(logicalDevice),
           _graph(graph) {
@@ -311,10 +322,17 @@ void RenderGraphExecutor::create() {
 
         try {
             renderpass = this->processSubgraphRenderpass(subgraph);
-            subgraph.createHandler(renderpass);
         } catch (const std::exception &error) {
             throw EngineError(fmt::format("Failed to create renderpass for {0}: {1}", subgraphRef, error.what()));
         }
+
+        auto stage = this->_renderer->tryGetRenderStage(subgraph.stageRef);
+
+        if (!stage.has_value()) {
+            throw EngineError(fmt::format("Stage {0} not found", subgraph.stageRef));
+        }
+
+        stage.value()->onGraphCreate(this->_swapchain, renderpass);
 
         this->_renderpasses[subgraphRef] = renderpass;
         this->_executionOrders[subgraphRef] = this->processSubgraphExecutionOrder(subgraph);
@@ -327,7 +345,15 @@ void RenderGraphExecutor::destroy() {
     this->destroyFramebuffers();
 
     for (const auto &[subgraphRef, renderpass]: this->_renderpasses) {
-        this->_graph.subgraphs[subgraphRef].destroyHandler();
+        auto subgraph = this->_graph.subgraphs[subgraphRef];
+        auto stage = this->_renderer->tryGetRenderStage(subgraph.stageRef);
+
+        if (!stage.has_value()) {
+            throw EngineError(fmt::format("Stage {0} not found", subgraph.stageRef));
+        }
+
+        stage.value()->onGraphDestroy();
+
         this->_logicalDevice->getHandle().destroy(renderpass);
     }
 

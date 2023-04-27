@@ -1,5 +1,6 @@
 #include "DebugUIRenderStage.hpp"
 
+#include <fmt/core.h>
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_vulkan.h>
@@ -20,10 +21,16 @@ DebugUIRenderStage::DebugUIRenderStage(const std::shared_ptr<GpuManager> &gpuMan
     //
 }
 
-void DebugUIRenderStage::init(const RenderStageInitContext &context) {
-    auto physicalDevice = this->_gpuManager->getPhysicalDeviceProxy().lock();
+void DebugUIRenderStage::init() {
+    if (this->_gpuManager->getPhysicalDeviceProxy().expired() ||
+        this->_gpuManager->getLogicalDeviceProxy().expired() ||
+        this->_gpuManager->getCommandManager().expired()) {
+        throw EngineError("GPU manager is not initialized");
+    }
+
+    this->_physicalDevice = this->_gpuManager->getPhysicalDeviceProxy().lock();
     this->_logicalDevice = this->_gpuManager->getLogicalDeviceProxy().lock();
-    auto commandManager = this->_gpuManager->getCommandManager().lock();
+    this->_commandManager = this->_gpuManager->getCommandManager().lock();
 
     auto poolSizes = {
             vk::DescriptorPoolSize(vk::DescriptorType::eSampler, 1024),
@@ -44,47 +51,29 @@ void DebugUIRenderStage::init(const RenderStageInitContext &context) {
             .setPoolSizes(poolSizes);
 
     this->_descriptorPool = this->_logicalDevice->getHandle().createDescriptorPool(descriptorPoolCreateInfo);
+}
 
-    auto attachment = vk::AttachmentDescription()
-            .setLoadOp(vk::AttachmentLoadOp::eClear)
-            .setStoreOp(vk::AttachmentStoreOp::eStore)
-            .setInitialLayout(vk::ImageLayout::eUndefined)
-            .setFinalLayout(vk::ImageLayout::ePresentSrcKHR)
-            .setFormat(context.swapchain->getColorFormat());
+void DebugUIRenderStage::destroy() {
+    this->_logicalDevice->getHandle().destroy(this->_descriptorPool);
 
-    auto attachmentReference = vk::AttachmentReference()
-            .setAttachment(0)
-            .setLayout(vk::ImageLayout::eColorAttachmentOptimal);
+    this->_commandManager = nullptr;
+    this->_logicalDevice = nullptr;
+    this->_physicalDevice = nullptr;
+}
 
-    auto subpass = vk::SubpassDescription()
-            .setColorAttachments(attachmentReference);
-
-    auto subpassDependency = vk::SubpassDependency()
-            .setSrcSubpass(VK_SUBPASS_EXTERNAL)
-            .setDstSubpass(0)
-            .setSrcStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput)
-            .setDstStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput)
-            .setSrcAccessMask(vk::AccessFlags())
-            .setDstAccessMask(vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite);
-
-    auto renderpassCreateInfo = vk::RenderPassCreateInfo()
-            .setAttachments(attachment)
-            .setSubpasses(subpass)
-            .setDependencies(subpassDependency);
-
-    this->_renderpass = this->_logicalDevice->getHandle().createRenderPass(renderpassCreateInfo);
-
+void DebugUIRenderStage::onGraphCreate(const std::shared_ptr<Swapchain> swapchain,
+                                       const vk::RenderPass &renderPass) {
     ImGui_ImplVulkan_InitInfo initInfo = {
             .Instance = this->_gpuManager->getInstance(),
-            .PhysicalDevice = physicalDevice->getHandle(),
+            .PhysicalDevice = this->_physicalDevice->getHandle(),
             .Device = this->_logicalDevice->getHandle(),
-            .QueueFamily = physicalDevice->getGraphicsQueueFamilyIdx(),
+            .QueueFamily = this->_physicalDevice->getGraphicsQueueFamilyIdx(),
             .Queue = this->_logicalDevice->getGraphicsQueue(),
             .PipelineCache = nullptr,
             .DescriptorPool = this->_descriptorPool,
             .Subpass = 0,
-            .MinImageCount = context.swapchain->getMinImageCount(),
-            .ImageCount = context.swapchain->getImageCount(),
+            .MinImageCount = swapchain->getMinImageCount(),
+            .ImageCount = swapchain->getImageCount(),
             .MSAASamples = VK_SAMPLE_COUNT_1_BIT,
             .Allocator = nullptr,
             .CheckVkResultFn = [](VkResult result) {
@@ -94,9 +83,9 @@ void DebugUIRenderStage::init(const RenderStageInitContext &context) {
             }
     };
 
-    ImGui_ImplVulkan_Init(&initInfo, this->_renderpass);
+    ImGui_ImplVulkan_Init(&initInfo, renderPass);
 
-    auto commandBuffer = commandManager->createPrimaryBuffer();
+    auto commandBuffer = this->_commandManager->createPrimaryBuffer();
     auto commandBufferBeginInfo = vk::CommandBufferBeginInfo();
 
     commandBuffer->getHandle().begin(commandBufferBeginInfo);
@@ -111,60 +100,58 @@ void DebugUIRenderStage::init(const RenderStageInitContext &context) {
     commandBuffer->destroy();
 
     ImGui_ImplVulkan_DestroyFontUploadObjects();
-
-    this->_framebuffers = std::vector<vk::Framebuffer>(context.swapchain->getImageCount());
-    for (uint32_t idx = 0; idx < context.swapchain->getImageCount(); idx++) {
-        auto framebufferCreateInfo = vk::FramebufferCreateInfo()
-                .setRenderPass(this->_renderpass)
-                .setAttachments(context.swapchain->getImageViews().at(idx))
-                .setWidth(context.swapchain->getExtent().width)
-                .setHeight(context.swapchain->getExtent().height)
-                .setLayers(1);
-
-        this->_framebuffers[idx] = this->_logicalDevice->getHandle().createFramebuffer(framebufferCreateInfo);
-    }
-
-    this->_renderArea = vk::Rect2D()
-            .setOffset(vk::Offset2D(0, 0))
-            .setExtent(context.swapchain->getExtent());
-
-    this->_initialized = true;
 }
 
-void DebugUIRenderStage::destroy() {
-    this->_initialized = false;
-
+void DebugUIRenderStage::onGraphDestroy() {
     ImGui_ImplVulkan_Shutdown();
-
-    for (const auto &framebuffer: this->_framebuffers) {
-        this->_logicalDevice->getHandle().destroy(framebuffer);
-    }
-    this->_framebuffers.clear();
-
-    this->_logicalDevice->getHandle().destroy(this->_renderpass);
-    this->_logicalDevice->getHandle().destroy(this->_descriptorPool);
-
-    this->_logicalDevice = nullptr;
 }
 
-void DebugUIRenderStage::draw(uint32_t imageIdx, const vk::CommandBuffer &commandBuffer) {
+void DebugUIRenderStage::onPassExecute(const RenderPassRef &passRef, const vk::CommandBuffer &commandBuffer) {
+    if (passRef != "DebugUI") {
+        throw EngineError(fmt::format("Unknown pass {0}", passRef));
+    }
+
     ImGui_ImplVulkan_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
     this->_debugUIRoot->render();
 
-    auto renderpassBeginInfo = vk::RenderPassBeginInfo()
-            .setRenderPass(this->_renderpass)
-            .setClearValues(vk::ClearValue().setColor(vk::ClearColorValue()))
-            .setFramebuffer(this->_framebuffers[imageIdx])
-            .setRenderArea(this->_renderArea);
-
-    commandBuffer.beginRenderPass(renderpassBeginInfo, vk::SubpassContents::eInline);
-
     ImGui::Render();
     ImDrawData *drawData = ImGui::GetDrawData();
     ImGui_ImplVulkan_RenderDrawData(drawData, commandBuffer);
+}
 
-    commandBuffer.endRenderPass();
+RenderSubgraph DebugUIRenderStage::asSubgraph() {
+    return RenderSubgraph{
+            .attachments = {
+                    {
+                            "Swapchain",
+                            RenderAttachment{
+                                    .idx = 0,
+                                    .targetRef = "Swapchain",
+                                    .loadOp = vk::AttachmentLoadOp::eClear,
+                                    .storeOp = vk::AttachmentStoreOp::eStore,
+                                    .initialLayout = vk::ImageLayout::eUndefined,
+                                    .finalLayout = vk::ImageLayout::ePresentSrcKHR
+                            }
+                    }
+            },
+            .passes = {
+                    {
+                            "DebugUI",
+                            RenderPass{
+                                    .idx = 0,
+                                    .inputRefs = {},
+                                    .colorRefs = {
+                                            "Swapchain"
+                                    },
+                                    .depthRef = std::nullopt,
+                                    .dependencies = {}
+                            }
+                    }
+            },
+            .firstPass = "DebugUI",
+            .next = {}
+    };
 }
